@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+.cache/
+.vite/
+dist/
+
+# system
+Thumbs.db
+.DS_Store
+*.log
+
+# editor
+.vscode/
+.idea/
+
+# local
+*.local
+*.env
