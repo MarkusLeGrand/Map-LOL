@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Éditeur de masques LoL (walls / brush)</title>
+<style>
+  :root { color-scheme: dark; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:#0b1220;color:#e5e7eb}
+  header{position:sticky;top:0;background:#0b1220f2;backdrop-filter:blur(6px);display:flex;gap:.75rem;align-items:center;padding:.75rem .9rem;border-bottom:1px solid #1f2937}
+  main{display:grid;grid-template-columns:320px 1fr;gap:1rem;padding:.9rem}
+  aside{background:#111827;border:1px solid #1f2937;border-radius:14px;padding:.9rem;height:fit-content}
+  .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+  .btn{background:#374151;color:#e5e7eb;border:none;border-radius:10px;padding:.5rem .75rem;cursor:pointer}
+  .btn:hover{background:#4b5563}
+  .btn.primary{background:#2563eb}.btn.primary:hover{background:#1d4ed8}
+  input[type=range]{width:200px}
+  label{font-size:.9rem;color:#9ca3af}
+  canvas{background:#0b1220;border-radius:14px;border:1px solid #1f2937;display:block;max-width:100%;height:auto}
+  .hint{font-size:.8rem;color:#9ca3af}
+  .pill{font-size:.8rem;padding:.15rem .45rem;border-radius:999px;background:#1f2937}
+  .legend{display:flex;gap:.5rem;align-items:center}
+  .sw{width:14px;height:14px;border-radius:4px;border:1px solid #1f2937;display:inline-block}
+  .sw.walls{background:#fff}
+  .sw.brush{background:#fff;box-shadow:inset 0 0 0 3px #22c55e}
+</style>
+</head>
+<body>
+<header>
+  <strong>Éditeur de masques LoL</strong>
+  <span class="pill">walls.png = murs (blanc)</span>
+  <span class="pill">brush.png = buissons (blanc)</span>
+</header>
+<main>
+  <aside>
+    <div class="row">
+      <input id="bgfile" type="file" accept="image/*" />
+      <button class="btn" id="fit">Ajuster</button>
+    </div>
+    <p class="hint">Charge <code>sr.jpg</code> (carrée de préférence). Le canevas prendra la même résolution.</p>
+    <div class="row">
+      <label>Calque:</label>
+      <button class="btn primary" id="layerWalls">Walls</button>
+      <button class="btn" id="layerBrush">Brush</button>
+    </div>
+    <div class="row">
+      <label>Outil:</label>
+      <button class="btn primary" id="toolPaint">Peindre</button>
+      <button class="btn" id="toolErase">Gommer</button>
+    </div>
+    <div class="row">
+      <label>Taille: <span id="brushSzLbl">16</span>px</label>
+      <input id="brush" type="range" min="2" max="120" value="16" />
+    </div>
+    <div class="row">
+      <label>Opacité overlay</label>
+      <input id="alpha" type="range" min="0" max="1" step="0.05" value="0.35" />
+    </div>
+    <div class="legend">
+      <span class="sw walls"></span><span class="hint">= mur/rocher (bloque la vision)</span>
+    </div>
+    <div class="legend">
+      <span class="sw brush"></span><span class="hint">= buisson (zone de bush)</span>
+    </div>
+    <hr style="border-color:#1f2937;margin:.8rem 0" />
+    <div class="row">
+      <button class="btn" id="clearWalls">Vider walls</button>
+      <button class="btn" id="clearBrush">Vider brush</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="exportWalls">Exporter walls.png</button>
+      <button class="btn" id="exportBrush">Exporter brush.png</button>
+    </div>
+  </aside>
+  <section>
+    <canvas id="view" width="1024" height="1024"></canvas>
+  </section>
+</main>
+<script>
+const view = document.getElementById('view');
+const ctx = view.getContext('2d');
+let bg = null;
+let W = view.width, H = view.height;
+
+let layer = 'walls'; // 'walls' | 'brush'
+let tool = 'paint';  // 'paint' | 'erase'
+let brush = 16;
+let alpha = 0.35;
+
+const walls = document.createElement('canvas');
+const brushCv = document.createElement('canvas');
+let wctx = walls.getContext('2d');
+let bctx = brushCv.getContext('2d');
+walls.width = brushCv.width = W;
+walls.height = brushCv.height = H;
+wctx.fillStyle = 'black'; wctx.fillRect(0,0,W,H);
+bctx.fillStyle = 'black'; bctx.fillRect(0,0,W,H);
+
+function resizeToBackground(img){
+  W = img.width; H = img.height;
+  view.width = W; view.height = H;
+  walls.width = brushCv.width = W;
+  walls.height = brushCv.height = H;
+  wctx = walls.getContext('2d'); bctx = brushCv.getContext('2d');
+  wctx.fillStyle = 'black'; wctx.fillRect(0,0,W,H);
+  bctx.fillStyle = 'black'; bctx.fillRect(0,0,W,H);
+  draw();
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  if(bg){ ctx.drawImage(bg,0,0,W,H); }
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(walls,0,0);   // walls en blanc
+  ctx.drawImage(brushCv,0,0); // brush en blanc aussi
+  ctx.globalAlpha = 1;
+}
+
+function drawDot(x,y,targetCtx,mode){
+  targetCtx.save();
+  targetCtx.globalCompositeOperation = (mode==='paint') ? 'source-over' : 'destination-out';
+  targetCtx.fillStyle = (mode==='paint') ? 'white' : 'black';
+  targetCtx.beginPath();
+  targetCtx.arc(x,y,brush/2,0,Math.PI*2);
+  targetCtx.fill();
+  targetCtx.restore();
+  draw();
+}
+
+let painting=false;
+view.addEventListener('mousedown', e=>{ painting=true; handlePaint(e); });
+view.addEventListener('mousemove', e=>{ if(painting) handlePaint(e); });
+window.addEventListener('mouseup', ()=> painting=false);
+
+function handlePaint(e){
+  const rect = view.getBoundingClientRect();
+  const x = Math.round((e.clientX - rect.left) * (W/rect.width));
+  const y = Math.round((e.clientY - rect.top) * (H/rect.height));
+  const target = (layer==='walls') ? wctx : bctx;
+  drawDot(x,y,target,tool);
+}
+
+document.getElementById('bgfile').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = ()=>{ bg = img; resizeToBackground(img); };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('fit').onclick = ()=> draw();
+document.getElementById('layerWalls').onclick = (e)=>{
+  layer='walls';
+  e.target.classList.add('primary');
+  document.getElementById('layerBrush').classList.remove('primary');
+};
+document.getElementById('layerBrush').onclick = (e)=>{
+  layer='brush';
+  e.target.classList.add('primary');
+  document.getElementById('layerWalls').classList.remove('primary');
+};
+document.getElementById('toolPaint').onclick = (e)=>{
+  tool='paint';
+  e.target.classList.add('primary');
+  document.getElementById('toolErase').classList.remove('primary');
+};
+document.getElementById('toolErase').onclick = (e)=>{
+  tool='erase';
+  e.target.classList.add('primary');
+  document.getElementById('toolPaint').classList.remove('primary');
+};
+document.getElementById('brush').addEventListener('input', e=>{
+  brush = +e.target.value;
+  document.getElementById('brushSzLbl').textContent = brush;
+});
+document.getElementById('alpha').addEventListener('input', e=>{
+  alpha = +e.target.value; draw();
+});
+
+document.getElementById('clearWalls').onclick = ()=>{ wctx.fillStyle='black'; wctx.fillRect(0,0,W,H); draw(); };
+document.getElementById('clearBrush').onclick = ()=>{ bctx.fillStyle='black'; bctx.fillRect(0,0,W,H); draw(); };
+
+function downloadCanvas(cvs, filename){
+  const a = document.createElement('a');
+  a.href = cvs.toDataURL('image/png');
+  a.download = filename;
+  a.click();
+}
+
+document.getElementById('exportWalls').onclick = ()=> downloadCanvas(walls, 'walls.png');
+document.getElementById('exportBrush').onclick = ()=> downloadCanvas(brushCv, 'brush.png');
+
+draw();
+</script>
+</body>
+</html>
