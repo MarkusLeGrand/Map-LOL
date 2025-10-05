@@ -28,12 +28,14 @@ const useFogEngine = ({
     canvas.width = boardSize;
     canvas.height = boardSize;
 
+    // Vision désactivée
     if (visionSide === "off") {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       lastFogDataRef.current = null;
       return;
     }
 
+    // Sans masque walls: tout sombre (évite la triche)
     if (!wallsGrid) {
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = "rgba(0,0,0,0.85)";
@@ -42,18 +44,21 @@ const useFogEngine = ({
       return;
     }
 
+    // Overlay noir
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = "rgba(0,0,0,0.64)";
     ctx.fillRect(0, 0, boardSize, boardSize);
 
+    // On va "vider" la fog sur les zones visibles
     ctx.globalCompositeOperation = "destination-out";
     ctx.fillStyle = "#000";
 
     const CELL = boardSize / GRID;
 
+    // px -> indices grille (with floor + clamp)
     const toGrid = (px, py) => {
-      const ix = Math.round((px / boardSize) * GRID);
-      const iy = Math.round((py / boardSize) * GRID);
+      const ix = clamp(Math.floor((px / boardSize) * GRID), 0, GRID - 1);
+      const iy = clamp(Math.floor((py / boardSize) * GRID), 0, GRID - 1);
       return [ix, iy];
     };
 
@@ -64,8 +69,8 @@ const useFogEngine = ({
 
     const isWallCell = (ix, iy) => {
       const idx = idxSafe(ix, iy);
-      if (idx < 0 || !wallsGrid) return true;
-      const v = wallsGrid[idx];
+      if (idx < 0 || !wallsGrid) return true; // bord = mur
+      const v = wallsGrid[idx]; // 1 = blanc
       return invertWalls ? v === 0 : v === 1;
     };
 
@@ -76,6 +81,7 @@ const useFogEngine = ({
       return invertBrush ? v === 0 : v === 1;
     };
 
+    // BFS "plein" (pas de ray casting) avec gestion des buissons
     const revealFOV = (cx, cy, radiusPx, { sourceTeam, isWard = false }) => {
       const [sx, sy] = toGrid(cx, cy);
       const r = Math.max(1, Math.round((radiusPx / boardSize) * GRID));
@@ -104,6 +110,7 @@ const useFogEngine = ({
         [-1, -1],
       ];
 
+      // petit disque au centre pour éviter un trou visuel
       ctx.beginPath();
       ctx.arc(cx, cy, CELL * 1.5, 0, Math.PI * 2);
       ctx.fill();
@@ -112,6 +119,7 @@ const useFogEngine = ({
         const x = qx[head];
         const y = qy[head];
         head += 1;
+
         const dx = x - sx;
         const dy = y - sy;
         if (dx * dx + dy * dy > r2) continue;
@@ -124,12 +132,15 @@ const useFogEngine = ({
           if (nx < 0 || ny < 0 || nx >= GRID || ny >= GRID) continue;
           const idx = ny * GRID + nx;
           if (vis[idx]) continue;
+
+          // mur = stop
           if (isWallCell(nx, ny)) continue;
 
+          // bush
           if (isBrushCell(nx, ny)) {
             let bushRevealed = false;
             if (sourceInBush) {
-              bushRevealed = true;
+              bushRevealed = true; // même bush
             } else {
               const cellCenterX = (nx + 0.5) * CELL;
               const cellCenterY = (ny + 0.5) * CELL;
@@ -165,18 +176,23 @@ const useFogEngine = ({
       }
     };
 
+    // Tours actives
     towers
       .filter((t) => t.team === visionSide && t.enabled)
       .forEach((t) => {
-        revealFOV(t.x * boardSize, t.y * boardSize, towerVisionRadius, { sourceTeam: visionSide });
+        revealFOV(t.x * boardSize, t.y * boardSize, towerVisionRadius, {
+          sourceTeam: visionSide,
+        });
       });
 
+    // Champions
     tokens
       .filter((t) => t.team === visionSide)
       .forEach((t) => {
         revealFOV(t.x, t.y, tokenVisionRadius, { sourceTeam: visionSide });
       });
 
+    // Wards
     wards
       .filter((w) => w.team === visionSide)
       .forEach((w) => {
@@ -210,6 +226,7 @@ const useFogEngine = ({
       const ix = clamp(Math.round(x), 0, boardSize - 1);
       const iy = clamp(Math.round(y), 0, boardSize - 1);
       const offset = (iy * boardSize + ix) * 4;
+      // alpha < 10 => la fog a été "percée"
       return img.data[offset + 3] < 10;
     },
     [boardSize]
@@ -218,10 +235,9 @@ const useFogEngine = ({
   const inBrushArea = useCallback(
     (x, y) => {
       if (!brushGrid) return false;
-      const CELL = boardSize / GRID;
-      const toGrid = (px, py) => {
-        const ix = Math.round((px / boardSize) * GRID);
-        const iy = Math.round((py / boardSize) * GRID);
+      const toGridLocal = (px, py) => {
+        const ix = clamp(Math.floor((px / boardSize) * GRID), 0, GRID - 1);
+        const iy = clamp(Math.floor((py / boardSize) * GRID), 0, GRID - 1);
         return [ix, iy];
       };
       const brushAt = (ix, iy) => {
@@ -237,7 +253,7 @@ const useFogEngine = ({
         [0, -8],
       ];
       for (const [ox, oy] of offs) {
-        const [ix, iy] = toGrid(x + ox, y + oy);
+        const [ix, iy] = toGridLocal(x + ox, y + oy);
         if (brushAt(ix, iy)) return true;
       }
       return false;
@@ -248,10 +264,16 @@ const useFogEngine = ({
   const allyRevealsBush = useCallback(
     (x, y, viewerTeam) => {
       const nearWard = wards.some(
-        (w) => w.team === viewerTeam && inBrushArea(w.x, w.y) && Math.hypot(w.x - x, w.y - y) < 260
+        (w) =>
+          w.team === viewerTeam &&
+          inBrushArea(w.x, w.y) &&
+          Math.hypot(w.x - x, w.y - y) < 260
       );
       const nearAlly = tokens.some(
-        (a) => a.team === viewerTeam && inBrushArea(a.x, a.y) && Math.hypot(a.x - x, a.y - y) < 220
+        (a) =>
+          a.team === viewerTeam &&
+          inBrushArea(a.x, a.y) &&
+          Math.hypot(a.x - x, a.y - y) < 220
       );
       return nearWard || nearAlly;
     },
