@@ -28,12 +28,14 @@ const useFogEngine = ({
     canvas.width = boardSize;
     canvas.height = boardSize;
 
+    // Vision désactivée
     if (visionSide === "off") {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       lastFogDataRef.current = null;
       return;
     }
 
+    // Sans masque walls: tout sombre (évite la triche)
     if (!wallsGrid) {
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = "rgba(0,0,0,0.85)";
@@ -42,15 +44,18 @@ const useFogEngine = ({
       return;
     }
 
+    // Overlay noir
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = "rgba(0,0,0,0.64)";
     ctx.fillRect(0, 0, boardSize, boardSize);
 
+    // On va "vider" la fog sur les zones visibles
     ctx.globalCompositeOperation = "destination-out";
     ctx.fillStyle = "#000";
 
     const CELL = boardSize / GRID;
 
+    // px -> indices grille (with floor + clamp)
     const toGrid = (px, py) => {
       const ix = clamp(Math.floor((px / boardSize) * GRID), 0, GRID - 1);
       const iy = clamp(Math.floor((py / boardSize) * GRID), 0, GRID - 1);
@@ -64,8 +69,8 @@ const useFogEngine = ({
 
     const isWallCell = (ix, iy) => {
       const idx = idxSafe(ix, iy);
-      if (idx < 0 || !wallsGrid) return true;
-      const v = wallsGrid[idx];
+      if (idx < 0 || !wallsGrid) return true; // bord = mur
+      const v = wallsGrid[idx]; // 1 = blanc
       return invertWalls ? v === 0 : v === 1;
     };
 
@@ -76,103 +81,118 @@ const useFogEngine = ({
       return invertBrush ? v === 0 : v === 1;
     };
 
+    // BFS "plein" (pas de ray casting) avec gestion des buissons
     const revealFOV = (cx, cy, radiusPx, { sourceTeam, isWard = false }) => {
       const [sx, sy] = toGrid(cx, cy);
-      const rGrid = Math.max(1, Math.round((radiusPx / boardSize) * GRID));
-      const rPx2 = radiusPx * radiusPx;
+      const r = Math.max(1, Math.round((radiusPx / boardSize) * GRID));
+      const r2 = r * r;
       const sourceInBush = isBrushCell(sx, sy);
 
-      const visited = new Uint8Array(GRID * GRID);
-      const stepPx = CELL / 2;
-      const maxSteps = Math.ceil(radiusPx / stepPx);
+      const vis = new Uint8Array(GRID * GRID);
+      const qx = new Int32Array(GRID * GRID);
+      const qy = new Int32Array(GRID * GRID);
+      let head = 0;
+      let tail = 0;
 
-      const cellIsRevealed = (ix, iy) => {
-        if (ix < 0 || iy < 0 || ix >= GRID || iy >= GRID) return false;
-        const idx = iy * GRID + ix;
-        if (visited[idx]) return false;
-        visited[idx] = 1;
+      qx[tail] = sx;
+      qy[tail] = sy;
+      tail += 1;
+      vis[sy * GRID + sx] = 1;
 
-        if (isBrushCell(ix, iy)) {
-          let bushRevealed = false;
-          if (sourceInBush) {
-            bushRevealed = true;
-          } else {
-            const cellCenterX = (ix + 0.5) * CELL;
-            const cellCenterY = (iy + 0.5) * CELL;
+      const nb = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+        [1, 1],
+        [1, -1],
+        [-1, 1],
+        [-1, -1],
+      ];
 
-            const revealByWard = wards.some((w) => {
-              const [wx, wy] = toGrid(w.x, w.y);
-              return (
-                w.team === sourceTeam &&
-                isBrushCell(wx, wy) &&
-                Math.hypot(w.x - cellCenterX, w.y - cellCenterY) < 260
-              );
-            });
-
-            const revealByAlly = tokens.some((a) => {
-              const [ax, ay] = toGrid(a.x, a.y);
-              return (
-                a.team === sourceTeam &&
-                isBrushCell(ax, ay) &&
-                Math.hypot(a.x - cellCenterX, a.y - cellCenterY) < 220
-              );
-            });
-
-            bushRevealed = isWard || revealByWard || revealByAlly;
-          }
-          if (!bushRevealed) return false;
-        }
-
-        ctx.fillRect(ix * CELL, iy * CELL, CELL + 1, CELL + 1);
-        return true;
-      };
-
+      // petit disque au centre pour éviter un trou visuel
       ctx.beginPath();
       ctx.arc(cx, cy, CELL * 1.5, 0, Math.PI * 2);
       ctx.fill();
 
-      const castRay = (angle) => {
-        let px = cx;
-        let py = cy;
-        for (let step = 0; step < maxSteps; step += 1) {
-          px += Math.cos(angle) * stepPx;
-          py += Math.sin(angle) * stepPx;
+      while (head < tail) {
+        const x = qx[head];
+        const y = qy[head];
+        head += 1;
 
-          if (px < 0 || py < 0 || px >= boardSize || py >= boardSize) break;
+        const dx = x - sx;
+        const dy = y - sy;
+        if (dx * dx + dy * dy > r2) continue;
 
-          const dx = px - cx;
-          const dy = py - cy;
-          if (dx * dx + dy * dy > rPx2) break;
+        ctx.fillRect(x * CELL, y * CELL, CELL + 1, CELL + 1);
 
-          const [ix, iy] = toGrid(px, py);
-          if (isWallCell(ix, iy)) break;
+        for (let k = 0; k < nb.length; k += 1) {
+          const nx = x + nb[k][0];
+          const ny = y + nb[k][1];
+          if (nx < 0 || ny < 0 || nx >= GRID || ny >= GRID) continue;
+          const idx = ny * GRID + nx;
+          if (vis[idx]) continue;
 
-          const distGridX = ix - sx;
-          const distGridY = iy - sy;
-          if (distGridX * distGridX + distGridY * distGridY > rGrid * rGrid) break;
+          // mur = stop
+          if (isWallCell(nx, ny)) continue;
 
-          cellIsRevealed(ix, iy);
+          // bush
+          if (isBrushCell(nx, ny)) {
+            let bushRevealed = false;
+            if (sourceInBush) {
+              bushRevealed = true; // même bush
+            } else {
+              const cellCenterX = (nx + 0.5) * CELL;
+              const cellCenterY = (ny + 0.5) * CELL;
+
+              const revealByWard = wards.some((w) => {
+                const [wx, wy] = toGrid(w.x, w.y);
+                return (
+                  w.team === sourceTeam &&
+                  isBrushCell(wx, wy) &&
+                  Math.hypot(w.x - cellCenterX, w.y - cellCenterY) < 260
+                );
+              });
+
+              const revealByAlly = tokens.some((a) => {
+                const [ax, ay] = toGrid(a.x, a.y);
+                return (
+                  a.team === sourceTeam &&
+                  isBrushCell(ax, ay) &&
+                  Math.hypot(a.x - cellCenterX, a.y - cellCenterY) < 220
+                );
+              });
+
+              bushRevealed = isWard || revealByWard || revealByAlly;
+            }
+            if (!bushRevealed) continue;
+          }
+
+          vis[idx] = 1;
+          qx[tail] = nx;
+          qy[tail] = ny;
+          tail += 1;
         }
-      };
-
-      const rayStep = Math.PI / 256;
-      for (let angle = 0; angle < Math.PI * 2; angle += rayStep) {
-        castRay(angle);
       }
     };
 
+    // Tours actives
     towers
       .filter((t) => t.team === visionSide && t.enabled)
       .forEach((t) => {
-        revealFOV(t.x * boardSize, t.y * boardSize, towerVisionRadius, { sourceTeam: visionSide });
+        revealFOV(t.x * boardSize, t.y * boardSize, towerVisionRadius, {
+          sourceTeam: visionSide,
+        });
       });
 
+    // Champions
     tokens
       .filter((t) => t.team === visionSide)
       .forEach((t) => {
         revealFOV(t.x, t.y, tokenVisionRadius, { sourceTeam: visionSide });
       });
 
+    // Wards
     wards
       .filter((w) => w.team === visionSide)
       .forEach((w) => {
@@ -206,24 +226,24 @@ const useFogEngine = ({
       const ix = clamp(Math.round(x), 0, boardSize - 1);
       const iy = clamp(Math.round(y), 0, boardSize - 1);
       const offset = (iy * boardSize + ix) * 4;
+      // alpha < 10 => la fog a été "percée"
       return img.data[offset + 3] < 10;
     },
     [boardSize]
   );
 
-    const inBrushArea = useCallback(
-      (x, y) => {
-        if (!brushGrid) return false;
-        const CELL = boardSize / GRID;
-        const toGrid = (px, py) => {
-          const ix = clamp(Math.floor((px / boardSize) * GRID), 0, GRID - 1);
-          const iy = clamp(Math.floor((py / boardSize) * GRID), 0, GRID - 1);
-          return [ix, iy];
-        };
-        const brushAt = (ix, iy) => {
-          if (ix < 0 || iy < 0 || ix >= GRID || iy >= GRID) return false;
-          const v = brushGrid[iy * GRID + ix];
-          return invertBrush ? v === 0 : v === 1;
+  const inBrushArea = useCallback(
+    (x, y) => {
+      if (!brushGrid) return false;
+      const toGridLocal = (px, py) => {
+        const ix = clamp(Math.floor((px / boardSize) * GRID), 0, GRID - 1);
+        const iy = clamp(Math.floor((py / boardSize) * GRID), 0, GRID - 1);
+        return [ix, iy];
+      };
+      const brushAt = (ix, iy) => {
+        if (ix < 0 || iy < 0 || ix >= GRID || iy >= GRID) return false;
+        const v = brushGrid[iy * GRID + ix];
+        return invertBrush ? v === 0 : v === 1;
       };
       const offs = [
         [0, 0],
@@ -233,7 +253,7 @@ const useFogEngine = ({
         [0, -8],
       ];
       for (const [ox, oy] of offs) {
-        const [ix, iy] = toGrid(x + ox, y + oy);
+        const [ix, iy] = toGridLocal(x + ox, y + oy);
         if (brushAt(ix, iy)) return true;
       }
       return false;
@@ -244,10 +264,16 @@ const useFogEngine = ({
   const allyRevealsBush = useCallback(
     (x, y, viewerTeam) => {
       const nearWard = wards.some(
-        (w) => w.team === viewerTeam && inBrushArea(w.x, w.y) && Math.hypot(w.x - x, w.y - y) < 260
+        (w) =>
+          w.team === viewerTeam &&
+          inBrushArea(w.x, w.y) &&
+          Math.hypot(w.x - x, w.y - y) < 260
       );
       const nearAlly = tokens.some(
-        (a) => a.team === viewerTeam && inBrushArea(a.x, a.y) && Math.hypot(a.x - x, a.y - y) < 220
+        (a) =>
+          a.team === viewerTeam &&
+          inBrushArea(a.x, a.y) &&
+          Math.hypot(a.x - x, a.y - y) < 220
       );
       return nearWard || nearAlly;
     },
