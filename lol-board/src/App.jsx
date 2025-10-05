@@ -5,13 +5,24 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 ========================= */
 const MAX_BOARD = 1100;
 const LSK_TOWERS = "lolboard_towers_v1";
-const LSK_STATE = "lolboard_state_v1";
 
-const wardRadius = { stealth: 260, control: 300, trap: 220 };
+// Grille pour la vision
+const GRID = 384; // 256 (rapide), 384 (reco), 512 (qualité)
+
+// Distances officielles LoL (unités de jeu) + conversion px
+const OFFICIAL_UNITS = {
+  mapWidth: 14820,   // largeur SR en unités
+  champSight: 1200,  // vision champion
+  wardSight: 900,    // vision ward (stealth & control)
+  controlTrue: 660,  // true-sight control ward
+};
+const unitsToPx = (units, boardSize) => (boardSize * units) / OFFICIAL_UNITS.mapWidth;
+
+const wardRadiusDefault = { stealth: 260, control: 300, trap: 220 };
 const DEFAULT_TOWER_RADIUS = 750;
 
 /* =========================
-   UTILS (images & samplers)
+   UTILS
 ========================= */
 function useImage(src) {
   const [img, setImg] = useState(null);
@@ -26,29 +37,10 @@ function useImage(src) {
   return img;
 }
 
-function useSampler(img) {
-  return useMemo(() => {
-    if (!img) return null;
-    const cvs = document.createElement("canvas");
-    const w = (cvs.width = img.width);
-    const h = (cvs.height = img.height);
-    const ctx = cvs.getContext("2d");
-    ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, w, h).data;
-    return (x, y, board) => {
-      const u = Math.max(0, Math.min(w - 1, Math.round((x / board) * w)));
-      const v = Math.max(0, Math.min(h - 1, Math.round((y / board) * h)));
-      const o = (v * w + u) * 4;
-      return data[o]; // canal R (0..255)
-    };
-  }, [img]);
-}
-
 /* =========================
    DEFAULTS
 ========================= */
 const defaultTowersNormalized = [
-  // (positions approx — recale avec "Éditer les tours" puis Enregistrer)
   { id: "B_t1_bot", team: "blue", x: 0.18, y: 0.88, enabled: true },
   { id: "B_t2_bot", team: "blue", x: 0.26, y: 0.80, enabled: true },
   { id: "B_t3_bot", team: "blue", x: 0.33, y: 0.73, enabled: true },
@@ -110,7 +102,6 @@ const defaultTokens = (S) => {
    APP
 ========================= */
 export default function TacticalBoard() {
-  // sizing responsive & carré
   const containerRef = useRef(null);
   const boardRef = useRef(null);
   const fogCanvasRef = useRef(null);
@@ -134,20 +125,58 @@ export default function TacticalBoard() {
   });
 
   const [editTowers, setEditTowers] = useState(false);
-  const [towerVisionRadius, setTowerVisionRadius] = useState(DEFAULT_TOWER_RADIUS);
-  const [tokenVisionRadius, setTokenVisionRadius] = useState(320); // réduit par défaut
 
-  // drag refs
+  // Radii (seront auto-override si useOfficialRadii = true)
+  const [towerVisionRadius, setTowerVisionRadius] = useState(DEFAULT_TOWER_RADIUS);
+  const [tokenVisionRadius, setTokenVisionRadius] = useState(320);
+  const [wardRadius, setWardRadius] = useState(wardRadiusDefault);
+  const [controlTruePx, setControlTruePx] = useState(45);
+  const [useOfficialRadii, setUseOfficialRadii] = useState(true);
+
+  // Calibration par clic
+  const [calMode, setCalMode] = useState(null); // 'token' | 'ward' | 'tower' | null
+  const calClicksRef = useRef([]);
+
+  // Debug & inversion
+  const [showWalls, setShowWalls] = useState(false);
+  const [showBrush, setShowBrush] = useState(false);
+  const [invertWalls, setInvertWalls] = useState(false);
+  const [invertBrush, setInvertBrush] = useState(false);
+
+  // drag
   const dragRef = useRef({ id: null, dx: 0, dy: 0, isDup: false });
   const dragTowerRef = useRef({ id: null });
 
-  // LOS masks
+  // Masques
   const wallsImg = useImage("/masks/walls.png");
   const brushImg = useImage("/masks/brush.png");
-  const sampleWalls = useSampler(wallsImg);
-  const sampleBrush = useSampler(brushImg);
 
-  // responsive square
+  // Grilles (BIN) à partir des masques
+  const wallsGrid = useMemo(() => {
+    if (!wallsImg) return null;
+    const cvs = document.createElement("canvas");
+    cvs.width = GRID; cvs.height = GRID;
+    const ctx = cvs.getContext("2d");
+    ctx.drawImage(wallsImg, 0, 0, GRID, GRID);
+    const data = ctx.getImageData(0, 0, GRID, GRID).data;
+    const grid = new Uint8Array(GRID * GRID);
+    for (let i = 0; i < GRID * GRID; i++) grid[i] = data[i * 4] > 128 ? 1 : 0;
+    return grid;
+  }, [wallsImg]);
+
+  const brushGrid = useMemo(() => {
+    if (!brushImg) return null;
+    const cvs = document.createElement("canvas");
+    cvs.width = GRID; cvs.height = GRID;
+    const ctx = cvs.getContext("2d");
+    ctx.drawImage(brushImg, 0, 0, GRID, GRID);
+    const data = ctx.getImageData(0, 0, GRID, GRID).data;
+    const grid = new Uint8Array(GRID * GRID);
+    for (let i = 0; i < GRID * GRID; i++) grid[i] = data[i * 4] > 128 ? 1 : 0;
+    return grid;
+  }, [brushImg]);
+
+  // Responsive carré
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -159,7 +188,22 @@ export default function TacticalBoard() {
     return () => ro.disconnect();
   }, []);
 
-  // batch redraw fog on deps (perf)
+  // Applique automatiquement les rayons officiels
+  useEffect(() => {
+    if (!useOfficialRadii) return;
+    const champPx = Math.round(unitsToPx(OFFICIAL_UNITS.champSight, boardSize));
+    const wardPx  = Math.round(unitsToPx(OFFICIAL_UNITS.wardSight,  boardSize));
+    const ctrlPx  = Math.round(unitsToPx(OFFICIAL_UNITS.controlTrue, boardSize));
+
+    setTokenVisionRadius(champPx);
+    setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx }));
+    setControlTruePx(ctrlPx);
+
+    // Optionnel: donner ~même portée aux tours
+    setTowerVisionRadius(champPx);
+  }, [boardSize, useOfficialRadii]);
+
+  // Redessine la fog
   useEffect(() => {
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(drawFog);
@@ -167,10 +211,11 @@ export default function TacticalBoard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     tokens, wards, towers, visionSide, bgUrl, showGrid, boardSize,
-    wallsImg, brushImg, towerVisionRadius, tokenVisionRadius
+    wallsGrid, brushGrid, towerVisionRadius, tokenVisionRadius, wardRadius,
+    invertWalls, invertBrush
   ]);
 
-  /* ============ FOG OF WAR (LoL) ============ */
+  /* ============ FOG OF WAR (BFS grille) ============ */
   function drawFog() {
     const canvas = fogCanvasRef.current;
     if (!canvas) return;
@@ -184,8 +229,8 @@ export default function TacticalBoard() {
       return;
     }
 
-    // Si pas de walls.png → pas de triche : tout sombre
-    if (!sampleWalls) {
+    if (!wallsGrid) {
+      // Pas de walls -> tout sombre (évite de tricher)
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = "rgba(0,0,0,0.85)";
       ctx.fillRect(0, 0, boardSize, boardSize);
@@ -193,115 +238,174 @@ export default function TacticalBoard() {
       return;
     }
 
-    // Overlay noir à creuser
+    // Overlay noir
     ctx.globalCompositeOperation = "source-over";
-    ctx.fillStyle = "rgba(0,0,0,0.64)"; // un peu plus doux
+    ctx.fillStyle = "rgba(0,0,0,0.64)";
     ctx.fillRect(0, 0, boardSize, boardSize);
 
+    // On va creuser des cases visibles
     ctx.globalCompositeOperation = "destination-out";
-    ctx.fillStyle = "rgba(0,0,0,1)";
-    ctx.strokeStyle = "rgba(0,0,0,1)";
-    ctx.lineWidth = 14;
+    ctx.fillStyle = "#000";
 
-    // voisinage 3×3 : évite que le rayon saute un trait fin
-    const isBlocked = (x, y) => {
-      const s = 1;
-      for (let oy = -s; oy <= s; oy++) {
-        for (let ox = -s; ox <= s; ox++) {
-          if (sampleWalls(x + ox, y + oy, boardSize) > 128) return true;
-        }
-      }
-      return false;
+    const CELL = boardSize / GRID;
+
+    const toGrid = (px, py) => {
+      const ix = Math.round((px / boardSize) * GRID);
+      const iy = Math.round((py / boardSize) * GRID);
+      return [ix, iy];
     };
 
-    // Ray casting adaptatif (fluide & propre)
-    const los = (cx, cy, r) => {
-      const RAYS = 512;                 // 512 directions
-      const stepDeg = 360 / RAYS;
-      for (let i = 0; i < RAYS; i++) {
-        const ang = i * stepDeg;
-        const rad = (ang * Math.PI) / 180;
-        let lastX = cx, lastY = cy;
+    const idxSafe = (ix, iy) => {
+      // Hors grille = MUR
+      if (ix < 0 || iy < 0 || ix >= GRID || iy >= GRID) return -1;
+      return iy * GRID + ix;
+    };
 
-        for (let d = 0; d <= r; ) {
-          const x = cx + Math.cos(rad) * d;
-          const y = cy + Math.sin(rad) * d;
+    const isWallCell = (ix, iy) => {
+      const idx = idxSafe(ix, iy);
+      if (idx < 0 || !wallsGrid) return true; // bord ou pas de masque => mur
+      const v = wallsGrid[idx]; // 1 = blanc
+      return invertWalls ? v === 0 : v === 1;
+    };
 
-          if (isBlocked(x, y)) {
-            // “ferme” proprement la dernière portion
-            const nx = cx + Math.cos(rad) * Math.max(0, d - 1);
-            const ny = cy + Math.sin(rad) * Math.max(0, d - 1);
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-            ctx.lineTo(nx, ny);
-            ctx.stroke();
-            break;
+    const isBrushCell = (ix, iy) => {
+      const idx = idxSafe(ix, iy);
+      if (idx < 0 || !brushGrid) return false;
+      const v = brushGrid[idx];
+      return invertBrush ? v === 0 : v === 1;
+    };
+
+    // BFS LOS (zones pleines)
+    function revealFOV(cx, cy, radiusPx, { sourceTeam, isWard=false }) {
+      const [sx, sy] = toGrid(cx, cy);
+      const r = Math.max(1, Math.round((radiusPx / boardSize) * GRID));
+      const r2 = r * r;
+
+      const sourceInBush = isBrushCell(sx, sy);
+
+      // file
+      const vis = new Uint8Array(GRID * GRID);
+      const qx = new Int32Array(GRID * GRID);
+      const qy = new Int32Array(GRID * GRID);
+      let head = 0, tail = 0;
+
+      qx[tail] = sx; qy[tail] = sy; tail++;
+      vis[sy * GRID + sx] = 1;
+
+      const nb = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+
+      // petit disque au centre (évite trou)
+      ctx.beginPath();
+      ctx.arc(cx, cy, CELL * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      while (head < tail) {
+        const x = qx[head], y = qy[head]; head++;
+        const dx = x - sx, dy = y - sy;
+        if (dx*dx + dy*dy > r2) continue;
+
+        // peindre
+        ctx.fillRect(x * CELL, y * CELL, CELL + 1, CELL + 1);
+
+        for (let k = 0; k < nb.length; k++) {
+          const nx = x + nb[k][0], ny = y + nb[k][1];
+          if (nx < 0 || ny < 0 || nx >= GRID || ny >= GRID) continue;
+          const idx = ny * GRID + nx;
+          if (vis[idx]) continue;
+
+          // mur = stop
+          if (isWallCell(nx, ny)) continue;
+
+          // buisson
+          if (isBrushCell(nx, ny)) {
+            let bushRevealed = false;
+            if (sourceInBush) {
+              bushRevealed = true; // même bush
+            } else {
+              const cellCenterX = (nx + 0.5) * CELL;
+              const cellCenterY = (ny + 0.5) * CELL;
+
+              const revealByWard = wards.some((w) => {
+                const [wx, wy] = toGrid(w.x, w.y);
+                return w.team === sourceTeam && isBrushCell(wx, wy) &&
+                       Math.hypot(w.x - cellCenterX, w.y - cellCenterY) < 260;
+              });
+
+              const revealByAlly = tokens.some((a) => {
+                const [ax, ay] = toGrid(a.x, a.y);
+                return a.team === sourceTeam && isBrushCell(ax, ay) &&
+                       Math.hypot(a.x - cellCenterX, a.y - cellCenterY) < 220;
+              });
+
+              bushRevealed = isWard || revealByWard || revealByAlly;
+            }
+            if (!bushRevealed) continue;
           }
 
-          // creuse le brouillard
-          ctx.beginPath();
-          ctx.arc(x, y, 6, 0, Math.PI * 2);
-          ctx.fill();
-
-          lastX = x; lastY = y;
-
-          // pas de distance adaptatif (moins de points loin)
-          d += d < 200 ? 2 : d < 400 ? 3 : 4;
+          vis[idx] = 1;
+          qx[tail] = nx; qy[tail] = ny; tail++;
         }
       }
-    };
+    }
 
-    // tours (de l'équipe sélectionnée & activées)
+    // Sources de vision
     towers.filter(t => t.team === visionSide && t.enabled).forEach(t => {
-      los(t.x * boardSize, t.y * boardSize, towerVisionRadius);
+      revealFOV(t.x * boardSize, t.y * boardSize, towerVisionRadius, { sourceTeam: visionSide });
     });
-    // champions alliés
     tokens.filter(t => t.team === visionSide).forEach(t => {
-      los(t.x, t.y, tokenVisionRadius);
+      revealFOV(t.x, t.y, tokenVisionRadius, { sourceTeam: visionSide });
     });
-    // wards alliées
     wards.filter(w => w.team === visionSide).forEach(w => {
-      los(w.x, w.y, wardRadius[w.kind] || 250);
+      revealFOV(w.x, w.y, wardRadius[w.kind] || 250, { sourceTeam: visionSide, isWard: true });
     });
 
-    // snapshot pour visibilité
+    // snapshot pour test de visibilité
     lastFogDataRef.current = ctx.getImageData(0, 0, boardSize, boardSize);
     ctx.globalCompositeOperation = "source-over";
   }
 
-  // helpers visibility & bush
   function isVisibleOnCurrentFog(x, y) {
     const img = lastFogDataRef.current;
     if (!img) return false;
     const ix = Math.max(0, Math.min(boardSize - 1, Math.round(x)));
     const iy = Math.max(0, Math.min(boardSize - 1, Math.round(y)));
     const o = (iy * boardSize + ix) * 4;
-    const alpha = img.data[o + 3]; // trou = alpha ≈ 0
-    return alpha < 10;
+    return img.data[o + 3] < 10;
   }
 
-  // sample du brush plus robuste : centre + 4 offsets
+  // Brush check (centre + offsets) via brushGrid + inversions
   function inBrushArea(x, y) {
-    if (!sampleBrush) return false;
+    if (!brushGrid) return false;
+    const CELL = boardSize / GRID;
+    const toGrid = (px, py) => {
+      const ix = Math.round((px / boardSize) * GRID);
+      const iy = Math.round((py / boardSize) * GRID);
+      return [ix, iy];
+    };
     const offs = [[0,0],[8,0],[-8,0],[0,8],[0,-8]];
+    const brushAt = (ix, iy) => {
+      if (ix < 0 || iy < 0 || ix >= GRID || iy >= GRID) return false;
+      const v = brushGrid[iy * GRID + ix];
+      return invertBrush ? v === 0 : v === 1;
+    };
     for (const [ox,oy] of offs) {
-      if (sampleBrush(x+ox, y+oy, boardSize) > 128) return true;
+      const [ix, iy] = toGrid(x+ox, y+oy);
+      if (brushAt(ix, iy)) return true;
     }
     return false;
   }
 
   function allyRevealsBush(x, y, viewerTeam) {
-    // ward ALLIÉE ou champion ALLIÉ dans le même bush (proche)
-    const wardReveals = wards.some(
+    const nearWard = wards.some(
       w => w.team === viewerTeam && inBrushArea(w.x, w.y) && Math.hypot(w.x - x, w.y - y) < 260
     );
-    const allyInBush = tokens.some(
+    const nearAlly = tokens.some(
       a => a.team === viewerTeam && inBrushArea(a.x, a.y) && Math.hypot(a.x - x, a.y - y) < 220
     );
-    return wardReveals || allyInBush;
+    return nearWard || nearAlly;
   }
 
-  /* ============ WARDS & TOKENS & TOWERS ============ */
+  /* ============ INTERACTIONS ============ */
   const toolIs = (t) => tool.type === t;
 
   function boardPosFromEvent(e) {
@@ -316,13 +420,29 @@ export default function TacticalBoard() {
 
   function onBoardClick(e) {
     const p = boardPosFromEvent(e);
+
+    // Calibration: centre puis bord
+    if (calMode) {
+      calClicksRef.current.push(p);
+      if (calClicksRef.current.length === 2) {
+        const [c, edge] = calClicksRef.current;
+        const radiusPix = Math.round(Math.hypot(edge.x - c.x, edge.y - c.y));
+        if (calMode === "token") setTokenVisionRadius(radiusPix);
+        if (calMode === "ward") {
+          setWardRadius((r) => ({ ...r, stealth: radiusPix, control: Math.round(radiusPix * 1.15) }));
+        }
+        if (calMode === "tower") setTowerVisionRadius(radiusPix);
+        setCalMode(null);
+        calClicksRef.current = [];
+      }
+      return;
+    }
+
     if (tool.type === "ward") {
-      setWards((ws) => [
-        ...ws,
-        { id: crypto.randomUUID(), team: tool.team, kind: tool.ward, x: p.x, y: p.y },
-      ]);
+      setWards((ws) => [...ws, { id: crypto.randomUUID(), team: tool.team, kind: tool.ward, x: p.x, y: p.y }]);
     }
   }
+
   function onBoardAltClick(e) {
     if (!e.altKey) return;
     const p = boardPosFromEvent(e);
@@ -427,7 +547,7 @@ export default function TacticalBoard() {
     } catch { alert("JSON invalide"); }
   }
 
-  /* ============ RENDER ============ */
+  /* ============ UI ============ */
   return (
     <div className="min-h-screen w-full bg-slate-900 text-slate-100 p-4">
       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-4">
@@ -490,6 +610,38 @@ export default function TacticalBoard() {
                 <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} />
                 Afficher la grille
               </label>
+
+              {/* Debug & inversion */}
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={showWalls} onChange={e=>setShowWalls(e.target.checked)} />
+                  Voir mask Walls
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={showBrush} onChange={e=>setShowBrush(e.target.checked)} />
+                  Voir mask Brush
+                </label>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={invertWalls} onChange={e=>setInvertWalls(e.target.checked)} />
+                  Inverser walls
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={invertBrush} onChange={e=>setInvertBrush(e.target.checked)} />
+                  Inverser brush
+                </label>
+              </div>
+
+              {/* Radii officiels */}
+              <div className="flex items-center gap-2 text-sm mt-2">
+                <input
+                  type="checkbox"
+                  checked={useOfficialRadii}
+                  onChange={(e)=>setUseOfficialRadii(e.target.checked)}
+                />
+                <span>Radii officiels (auto)</span>
+              </div>
             </div>
 
             <div className="h-px bg-slate-700 my-3" />
@@ -515,14 +667,32 @@ export default function TacticalBoard() {
                 Cliquer une tour: activer/désactiver. En mode édition: glisser pour repositionner (puis “Enregistrer”).
               </p>
 
-              {/* Calibrage rapide */}
+              {/* Calibration + sliders */}
               <div className="h-px bg-slate-700 my-3" />
               <div className="space-y-2">
-                <div className="text-sm uppercase tracking-wide text-slate-400">Calibrage vision</div>
+                <div className="text-sm uppercase tracking-wide text-slate-400">Calibration (screenshot)</div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button onClick={()=>{setCalMode('token'); calClicksRef.current=[];}}
+                          className={`px-2 py-2 rounded-xl ${calMode==='token'?'bg-emerald-600':'bg-slate-700'}`}>Calibrer joueur</button>
+                  <button onClick={()=>{setCalMode('ward'); calClicksRef.current=[];}}
+                          className={`px-2 py-2 rounded-xl ${calMode==='ward'?'bg-emerald-600':'bg-slate-700'}`}>Calibrer ward</button>
+                  <button onClick={()=>{setCalMode('tower'); calClicksRef.current=[];}}
+                          className={`px-2 py-2 rounded-xl ${calMode==='tower'?'bg-emerald-600':'bg-slate-700'}`}>Calibrer tour</button>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Clique <b>centre</b> puis <b>bord</b> d’un cercle de vision (depuis ton replay).
+                </p>
+
+                <div className="h-px bg-slate-700 my-3" />
+                <div className="text-sm uppercase tracking-wide text-slate-400">Ajustement manuel</div>
                 <label className="text-xs text-slate-400">Rayon tour: {towerVisionRadius}px</label>
-                <input type="range" min="300" max="1200" value={towerVisionRadius} onChange={(e)=>setTowerVisionRadius(+e.target.value)} />
-                <label className="text-xs text-slate-400">Rayon champion: {tokenVisionRadius}px</label>
-                <input type="range" min="240" max="600" value={tokenVisionRadius} onChange={(e)=>setTokenVisionRadius(+e.target.value)} />
+                <input type="range" min="300" max="1200" value={towerVisionRadius} onChange={(e)=>setTowerVisionRadius(+e.target.value)} disabled={useOfficialRadii}/>
+                <label className="text-xs text-slate-400">Rayon joueur: {tokenVisionRadius}px</label>
+                <input type="range" min="240" max="600" value={tokenVisionRadius} onChange={(e)=>setTokenVisionRadius(+e.target.value)} disabled={useOfficialRadii}/>
+                <label className="text-xs text-slate-400">Ward stealth: {wardRadius.stealth}px</label>
+                <input type="range" min="180" max="500" value={wardRadius.stealth} onChange={(e)=>setWardRadius(r=>({...r, stealth:+e.target.value}))} disabled={useOfficialRadii}/>
+                <label className="text-xs text-slate-400">Ward control: {wardRadius.control}px</label>
+                <input type="range" min="200" max="600" value={wardRadius.control} onChange={(e)=>setWardRadius(r=>({...r, control:+e.target.value}))} disabled={useOfficialRadii}/>
               </div>
             </div>
 
@@ -549,17 +719,25 @@ export default function TacticalBoard() {
                 className="relative select-none"
                 style={{ width: boardSize, height: boardSize }}
               >
-                {/* Map background */}
-                <div
+                {/* Map background -> <img> pour alignement parfait */}
+                <img
+                  src={bgUrl}
+                  alt="map"
                   className="absolute inset-0"
-                  style={{
-                    backgroundImage: `url(${bgUrl})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
+                  style={{ width: boardSize, height: boardSize, objectFit: "fill" }}
                 />
 
-                {/* Optional grid */}
+                {/* Debug overlays */}
+                {showWalls && (
+                  <img src="/masks/walls.png" alt="walls" className="absolute inset-0 opacity-30 pointer-events-none"
+                       style={{ width: boardSize, height: boardSize, objectFit: "fill" }} />
+                )}
+                {showBrush && (
+                  <img src="/masks/brush.png" alt="brush" className="absolute inset-0 opacity-30 pointer-events-none"
+                       style={{ width: boardSize, height: boardSize, objectFit: "fill" }} />
+                )}
+
+                {/* Grille optionnelle */}
                 {showGrid && (
                   <svg className="absolute inset-0" width={boardSize} height={boardSize}>
                     {[...Array(10)].map((_, i) => (
@@ -571,19 +749,34 @@ export default function TacticalBoard() {
                   </svg>
                 )}
 
-                {/* Wards */}
-                {wards.map((w) => (
-                  <div
-                    key={w.id}
-                    title={`${w.team} ${w.kind}`}
-                    className={`absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full ring-2 ${
-                      w.team === "blue" ? "ring-blue-400" : "ring-rose-400"
-                    } ${
-                      w.kind === "control" ? "bg-amber-400" : w.kind === "stealth" ? "bg-emerald-400" : "bg-violet-400"
-                    }`}
-                    style={{ left: w.x, top: w.y }}
-                  />
-                ))}
+                {/* Wards + anneau true-sight control */}
+                {wards.map((w) => {
+                  const isControl = w.kind === "control";
+                  return (
+                    <React.Fragment key={w.id}>
+                      <div
+                        title={`${w.team} ${w.kind}`}
+                        className={`absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full ring-2 ${
+                          w.team === "blue" ? "ring-blue-400" : "ring-rose-400"
+                        } ${isControl ? "bg-amber-400" : w.kind === "stealth" ? "bg-emerald-400" : "bg-violet-400"}`}
+                        style={{ left: w.x, top: w.y }}
+                      />
+                      {isControl && (
+                        <svg className="absolute" style={{ left: 0, top: 0, width: boardSize, height: boardSize, pointerEvents: "none" }}>
+                          <circle
+                            cx={w.x}
+                            cy={w.y}
+                            r={controlTruePx}
+                            fill="none"
+                            stroke={w.team === "blue" ? "rgba(59,130,246,0.35)" : "rgba(244,63,94,0.35)"}
+                            strokeWidth="2"
+                            strokeDasharray="6 6"
+                          />
+                        </svg>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
 
                 {/* Tokens */}
                 {tokens.map((t) => {
