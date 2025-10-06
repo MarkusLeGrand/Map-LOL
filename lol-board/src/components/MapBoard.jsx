@@ -18,7 +18,6 @@ const MapBoard = ({
   onBoardClick,
   onBoardAltClick,
   beginDragToken,
-  beginDragWard,
   beginDragTower,
   toggleTowerEnable,
   isVisibleOnCurrentFog,
@@ -89,10 +88,7 @@ const MapBoard = ({
             const isControl = w.kind === "control";
             return (
               <React.Fragment key={w.id}>
-                <button
-                  type="button"
-                  onMouseDown={(e) => beginDragWard(e, w.id)}
-                  onTouchStart={(e) => beginDragWard(e, w.id)}
+                <div
                   title={`${w.team} ${w.kind}`}
                   className={`absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full ring-2 ${
                     w.team === "blue" ? "ring-blue-400" : "ring-rose-400"
@@ -120,10 +116,10 @@ const MapBoard = ({
           })}
 
           {tokens.map((t) => {
-            const enemy = visionSide !== "off" && t.team !== visionSide;
+            const enemy = t.team !== visionSide;
             let show = true;
             if (enemy) {
-              const fogVisible = isVisibleOnCurrentFog(t.x, t.y, visionSide);
+              const fogVisible = isVisibleOnCurrentFog(t.x, t.y);
               if (!fogVisible) show = false;
               if (show && inBrushArea(t.x, t.y) && !allyRevealsBush(t.x, t.y, visionSide)) show = false;
             }

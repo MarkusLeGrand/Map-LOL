@@ -21,7 +21,6 @@ export default function TacticalBoard() {
   const calClicksRef = useRef([]);
   const dragRef = useRef({ id: null, dx: 0, dy: 0, isDup: false });
   const dragTowerRef = useRef({ id: null });
-  const dragWardRef = useRef({ id: null, dx: 0, dy: 0 });
 
   const [boardSize, setBoardSize] = useState(900);
   const [visionSide, setVisionSide] = useState("blue");
@@ -193,35 +192,6 @@ export default function TacticalBoard() {
     window.removeEventListener("touchend", endDragToken);
   };
 
-  const onDragMoveWard = (e) => {
-    if (!dragWardRef.current.id) return;
-    if (e.cancelable) e.preventDefault();
-    const p = boardPosFromEvent(e);
-    const { dx, dy, id } = dragWardRef.current;
-    setWards((arr) => arr.map((w) => (w.id === id ? { ...w, x: p.x + dx, y: p.y + dy } : w)));
-  };
-
-  const endDragWard = () => {
-    if (!dragWardRef.current.id) return;
-    dragWardRef.current = { id: null, dx: 0, dy: 0 };
-    window.removeEventListener("mousemove", onDragMoveWard);
-    window.removeEventListener("touchmove", onDragMoveWard);
-    window.removeEventListener("mouseup", endDragWard);
-    window.removeEventListener("touchend", endDragWard);
-  };
-
-  const beginDragWard = (e, id) => {
-    if (e.altKey) return;
-    const p = boardPosFromEvent(e);
-    const ward = wards.find((w) => w.id === id);
-    if (!ward) return;
-    dragWardRef.current = { id, dx: ward.x - p.x, dy: ward.y - p.y };
-    window.addEventListener("mousemove", onDragMoveWard);
-    window.addEventListener("touchmove", onDragMoveWard, { passive: false });
-    window.addEventListener("mouseup", endDragWard);
-    window.addEventListener("touchend", endDragWard);
-  };
-
   const toggleTowerEnable = (tid) => {
     setTowers((arr) => arr.map((t) => (t.id === tid ? { ...t, enabled: !t.enabled } : t)));
   };
@@ -354,7 +324,6 @@ export default function TacticalBoard() {
           onBoardClick={onBoardClick}
           onBoardAltClick={onBoardAltClick}
           beginDragToken={beginDragToken}
-          beginDragWard={beginDragWard}
           beginDragTower={beginDragTower}
           toggleTowerEnable={toggleTowerEnable}
           isVisibleOnCurrentFog={isVisibleOnCurrentFog}

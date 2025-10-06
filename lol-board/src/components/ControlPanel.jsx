@@ -67,7 +67,7 @@ const ControlPanel = ({
               visionSide === "off" ? "bg-emerald-500 text-white" : "bg-slate-700"
             }`}
           >
-            Vision globale
+            Vision Off
           </button>
         </div>
 
