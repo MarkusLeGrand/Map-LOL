@@ -20,6 +20,7 @@ export default function TacticalBoard() {
   const boardRef = useRef(null);
   const calClicksRef = useRef([]);
   const dragRef = useRef({ id: null, dx: 0, dy: 0, isDup: false });
+  const dragWardRef = useRef({ id: null, dx: 0, dy: 0 });
   const dragTowerRef = useRef({ id: null });
 
   const [boardSize, setBoardSize] = useState(900);
@@ -34,7 +35,9 @@ export default function TacticalBoard() {
     try {
       const saved = JSON.parse(localStorage.getItem(LSK_TOWERS));
       if (Array.isArray(saved) && saved.length) return saved;
-    } catch {}
+    } catch {
+      // ignore malformed persisted data
+    }
     return defaultTowersNormalized;
   });
 
@@ -192,6 +195,35 @@ export default function TacticalBoard() {
     window.removeEventListener("touchend", endDragToken);
   };
 
+  const beginDragWard = (e, id) => {
+    if (e.altKey) return;
+    const p = boardPosFromEvent(e);
+    const w = wards.find((wd) => wd.id === id);
+    if (!w) return;
+    dragWardRef.current = { id, dx: w.x - p.x, dy: w.y - p.y };
+    window.addEventListener("mousemove", onDragMoveWard);
+    window.addEventListener("touchmove", onDragMoveWard, { passive: false });
+    window.addEventListener("mouseup", endDragWard);
+    window.addEventListener("touchend", endDragWard);
+  };
+
+  const onDragMoveWard = (e) => {
+    if (!dragWardRef.current.id) return;
+    if (e.cancelable) e.preventDefault();
+    const p = boardPosFromEvent(e);
+    const { id, dx, dy } = dragWardRef.current;
+    setWards((arr) => arr.map((w) => (w.id === id ? { ...w, x: p.x + dx, y: p.y + dy } : w)));
+  };
+
+  const endDragWard = () => {
+    if (!dragWardRef.current.id) return;
+    dragWardRef.current = { id: null, dx: 0, dy: 0 };
+    window.removeEventListener("mousemove", onDragMoveWard);
+    window.removeEventListener("touchmove", onDragMoveWard);
+    window.removeEventListener("mouseup", endDragWard);
+    window.removeEventListener("touchend", endDragWard);
+  };
+
   const toggleTowerEnable = (tid) => {
     setTowers((arr) => arr.map((t) => (t.id === tid ? { ...t, enabled: !t.enabled } : t)));
   };
@@ -324,6 +356,7 @@ export default function TacticalBoard() {
           onBoardClick={onBoardClick}
           onBoardAltClick={onBoardAltClick}
           beginDragToken={beginDragToken}
+          beginDragWard={beginDragWard}
           beginDragTower={beginDragTower}
           toggleTowerEnable={toggleTowerEnable}
           isVisibleOnCurrentFog={isVisibleOnCurrentFog}

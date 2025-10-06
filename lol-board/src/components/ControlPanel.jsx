@@ -62,6 +62,14 @@ const ControlPanel = ({
             Vision Red
           </button>
           <button
+            onClick={() => setVisionSide("global")}
+            className={`px-3 py-2 rounded-xl shadow ${
+              visionSide === "global" ? "bg-purple-600 text-white" : "bg-slate-700"
+            }`}
+          >
+            Vision Globale
+          </button>
+          <button
             onClick={() => setVisionSide("off")}
             className={`px-3 py-2 rounded-xl shadow ${
               visionSide === "off" ? "bg-emerald-500 text-white" : "bg-slate-700"
