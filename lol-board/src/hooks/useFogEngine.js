@@ -35,6 +35,12 @@ const useFogEngine = ({
       return;
     }
 
+    if (visionSide === "global") {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      lastFogDataRef.current = ctx.createImageData(canvas.width, canvas.height);
+      return;
+    }
+
     // Sans masque walls: tout sombre (évite la triche)
     if (!wallsGrid) {
       ctx.globalCompositeOperation = "source-over";
@@ -127,11 +133,17 @@ const useFogEngine = ({
         ctx.fillRect(x * CELL, y * CELL, CELL + 1, CELL + 1);
 
         for (let k = 0; k < nb.length; k += 1) {
-          const nx = x + nb[k][0];
-          const ny = y + nb[k][1];
+          const stepX = nb[k][0];
+          const stepY = nb[k][1];
+          const nx = x + stepX;
+          const ny = y + stepY;
           if (nx < 0 || ny < 0 || nx >= GRID || ny >= GRID) continue;
           const idx = ny * GRID + nx;
           if (vis[idx]) continue;
+
+          if (Math.abs(stepX) === 1 && Math.abs(stepY) === 1) {
+            if (isWallCell(x + stepX, y) || isWallCell(x, y + stepY)) continue;
+          }
 
           // mur = stop
           if (isWallCell(nx, ny)) continue;
@@ -222,14 +234,14 @@ const useFogEngine = ({
   const isVisibleOnCurrentFog = useCallback(
     (x, y) => {
       const img = lastFogDataRef.current;
-      if (!img) return false;
+      if (!img) return visionSide === "global";
       const ix = clamp(Math.round(x), 0, boardSize - 1);
       const iy = clamp(Math.round(y), 0, boardSize - 1);
       const offset = (iy * boardSize + ix) * 4;
       // alpha < 10 => la fog a été "percée"
       return img.data[offset + 3] < 10;
     },
-    [boardSize]
+    [boardSize, visionSide]
   );
 
   const inBrushArea = useCallback(

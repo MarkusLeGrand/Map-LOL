@@ -18,6 +18,7 @@ const MapBoard = ({
   onBoardClick,
   onBoardAltClick,
   beginDragToken,
+  beginDragWard,
   beginDragTower,
   toggleTowerEnable,
   isVisibleOnCurrentFog,
@@ -88,12 +89,15 @@ const MapBoard = ({
             const isControl = w.kind === "control";
             return (
               <React.Fragment key={w.id}>
-                <div
+                <button
+                  type="button"
                   title={`${w.team} ${w.kind}`}
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full ring-2 ${
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full ring-2 focus:outline-none ${
                     w.team === "blue" ? "ring-blue-400" : "ring-rose-400"
                   } ${isControl ? "bg-amber-400" : w.kind === "stealth" ? "bg-emerald-400" : "bg-violet-400"}`}
                   style={{ left: w.x, top: w.y }}
+                  onMouseDown={(e) => beginDragWard(e, w.id)}
+                  onTouchStart={(e) => beginDragWard(e, w.id)}
                 />
                 {isControl && (
                   <svg
@@ -116,7 +120,7 @@ const MapBoard = ({
           })}
 
           {tokens.map((t) => {
-            const enemy = t.team !== visionSide;
+            const enemy = visionSide !== "global" && t.team !== visionSide;
             let show = true;
             if (enemy) {
               const fogVisible = isVisibleOnCurrentFog(t.x, t.y);
