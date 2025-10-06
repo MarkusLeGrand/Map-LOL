@@ -87,103 +87,107 @@ const useFogEngine = ({
       return invertBrush ? v === 0 : v === 1;
     };
 
-    // BFS "plein" (pas de ray casting) avec gestion des buissons
+    // Vision en ligne droite : chaque cellule doit avoir une ligne de vue directe
     const revealFOV = (cx, cy, radiusPx, { sourceTeam, isWard = false }) => {
       const [sx, sy] = toGrid(cx, cy);
       const r = Math.max(1, Math.round((radiusPx / boardSize) * GRID));
       const r2 = r * r;
       const sourceInBush = isBrushCell(sx, sy);
 
-      const vis = new Uint8Array(GRID * GRID);
-      const qx = new Int32Array(GRID * GRID);
-      const qy = new Int32Array(GRID * GRID);
-      let head = 0;
-      let tail = 0;
+      const visited = new Uint8Array(GRID * GRID);
+      const brushVisibilityCache = new Map();
 
-      qx[tail] = sx;
-      qy[tail] = sy;
-      tail += 1;
-      vis[sy * GRID + sx] = 1;
+      const canRevealBrushCell = (ix, iy) => {
+        if (!isBrushCell(ix, iy)) return true;
+        const key = iy * GRID + ix;
+        if (brushVisibilityCache.has(key)) return brushVisibilityCache.get(key);
 
-      const nb = [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-        [1, 1],
-        [1, -1],
-        [-1, 1],
-        [-1, -1],
-      ];
+        let bushRevealed = false;
+        if (sourceInBush) {
+          bushRevealed = true;
+        } else {
+          const cellCenterX = (ix + 0.5) * CELL;
+          const cellCenterY = (iy + 0.5) * CELL;
+
+          const revealByWard = wards.some((w) => {
+            const [wx, wy] = toGrid(w.x, w.y);
+            return (
+              w.team === sourceTeam &&
+              isBrushCell(wx, wy) &&
+              Math.hypot(w.x - cellCenterX, w.y - cellCenterY) < 260
+            );
+          });
+
+          const revealByAlly = tokens.some((a) => {
+            const [ax, ay] = toGrid(a.x, a.y);
+            return (
+              a.team === sourceTeam &&
+              isBrushCell(ax, ay) &&
+              Math.hypot(a.x - cellCenterX, a.y - cellCenterY) < 220
+            );
+          });
+
+          bushRevealed = isWard || revealByWard || revealByAlly;
+        }
+
+        brushVisibilityCache.set(key, bushRevealed);
+        return bushRevealed;
+      };
+
+      const hasLineOfSight = (tx, ty) => {
+        let x = sx;
+        let y = sy;
+        const dx = Math.abs(tx - sx);
+        const dy = Math.abs(ty - sy);
+        const stepX = sx < tx ? 1 : sx > tx ? -1 : 0;
+        const stepY = sy < ty ? 1 : sy > ty ? -1 : 0;
+        let err = dx - dy;
+
+        while (true) {
+          if (!(x === sx && y === sy)) {
+            if (isWallCell(x, y)) {
+              return x === tx && y === ty;
+            }
+            if (isBrushCell(x, y) && !canRevealBrushCell(x, y)) {
+              return false;
+            }
+          }
+
+          if (x === tx && y === ty) break;
+
+          const e2 = err * 2;
+          if (e2 > -dy) {
+            err -= dy;
+            x += stepX;
+          }
+          if (e2 < dx) {
+            err += dx;
+            y += stepY;
+          }
+        }
+
+        return true;
+      };
 
       // petit disque au centre pour éviter un trou visuel
       ctx.beginPath();
       ctx.arc(cx, cy, CELL * 1.5, 0, Math.PI * 2);
       ctx.fill();
 
-      while (head < tail) {
-        const x = qx[head];
-        const y = qy[head];
-        head += 1;
+      for (let ix = sx - r; ix <= sx + r; ix += 1) {
+        for (let iy = sy - r; iy <= sy + r; iy += 1) {
+          if (ix < 0 || iy < 0 || ix >= GRID || iy >= GRID) continue;
+          const dx = ix - sx;
+          const dy = iy - sy;
+          if (dx * dx + dy * dy > r2) continue;
 
-        const dx = x - sx;
-        const dy = y - sy;
-        if (dx * dx + dy * dy > r2) continue;
+          const idx = iy * GRID + ix;
+          if (visited[idx]) continue;
+          if (!hasLineOfSight(ix, iy)) continue;
+          if (!canRevealBrushCell(ix, iy)) continue;
 
-        ctx.fillRect(x * CELL, y * CELL, CELL + 1, CELL + 1);
-
-        for (let k = 0; k < nb.length; k += 1) {
-          const stepX = nb[k][0];
-          const stepY = nb[k][1];
-          const nx = x + stepX;
-          const ny = y + stepY;
-          if (nx < 0 || ny < 0 || nx >= GRID || ny >= GRID) continue;
-          const idx = ny * GRID + nx;
-          if (vis[idx]) continue;
-
-          if (Math.abs(stepX) === 1 && Math.abs(stepY) === 1) {
-            if (isWallCell(x + stepX, y) || isWallCell(x, y + stepY)) continue;
-          }
-
-          // mur = stop
-          if (isWallCell(nx, ny)) continue;
-
-          // bush
-          if (isBrushCell(nx, ny)) {
-            let bushRevealed = false;
-            if (sourceInBush) {
-              bushRevealed = true; // même bush
-            } else {
-              const cellCenterX = (nx + 0.5) * CELL;
-              const cellCenterY = (ny + 0.5) * CELL;
-
-              const revealByWard = wards.some((w) => {
-                const [wx, wy] = toGrid(w.x, w.y);
-                return (
-                  w.team === sourceTeam &&
-                  isBrushCell(wx, wy) &&
-                  Math.hypot(w.x - cellCenterX, w.y - cellCenterY) < 260
-                );
-              });
-
-              const revealByAlly = tokens.some((a) => {
-                const [ax, ay] = toGrid(a.x, a.y);
-                return (
-                  a.team === sourceTeam &&
-                  isBrushCell(ax, ay) &&
-                  Math.hypot(a.x - cellCenterX, a.y - cellCenterY) < 220
-                );
-              });
-
-              bushRevealed = isWard || revealByWard || revealByAlly;
-            }
-            if (!bushRevealed) continue;
-          }
-
-          vis[idx] = 1;
-          qx[tail] = nx;
-          qy[tail] = ny;
-          tail += 1;
+          visited[idx] = 1;
+          ctx.fillRect(ix * CELL, iy * CELL, CELL + 1, CELL + 1);
         }
       }
     };
