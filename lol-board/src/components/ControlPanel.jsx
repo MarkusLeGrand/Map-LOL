@@ -1,0 +1,288 @@
+import React from "react";
+
+const ControlPanel = ({
+  visionSide,
+  setVisionSide,
+  tool,
+  setTool,
+  bgUrl,
+  setBgUrl,
+  showGrid,
+  setShowGrid,
+  showWalls,
+  setShowWalls,
+  showBrush,
+  setShowBrush,
+  invertWalls,
+  setInvertWalls,
+  invertBrush,
+  setInvertBrush,
+  useOfficialRadii,
+  setUseOfficialRadii,
+  editTowers,
+  setEditTowers,
+  saveTowers,
+  resetTowers,
+  setAllTowersEnabled,
+  startCalibration,
+  calMode,
+  towerVisionRadius,
+  setTowerVisionRadius,
+  tokenVisionRadius,
+  setTokenVisionRadius,
+  wardRadius,
+  setWardRadius,
+  resetPositions,
+  clearWards,
+  exportState,
+  importState,
+}) => {
+  const toolIs = (type) => tool.type === type;
+
+  return (
+    <aside className="col-span-12 lg:col-span-3 space-y-4">
+      <div className="rounded-2xl bg-slate-800/70 p-4 shadow-lg">
+        <h2 className="text-xl font-semibold mb-3">Contrôles</h2>
+
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setVisionSide("blue")}
+            className={`px-3 py-2 rounded-xl shadow ${
+              visionSide === "blue" ? "bg-blue-500 text-white" : "bg-slate-700"
+            }`}
+          >
+            Vision Blue
+          </button>
+          <button
+            onClick={() => setVisionSide("red")}
+            className={`px-3 py-2 rounded-xl shadow ${
+              visionSide === "red" ? "bg-rose-500 text-white" : "bg-slate-700"
+            }`}
+          >
+            Vision Red
+          </button>
+          <button
+            onClick={() => setVisionSide("off")}
+            className={`px-3 py-2 rounded-xl shadow ${
+              visionSide === "off" ? "bg-emerald-500 text-white" : "bg-slate-700"
+            }`}
+          >
+            Vision globale
+          </button>
+        </div>
+
+        <div className="h-px bg-slate-700 my-3" />
+
+        <div className="space-y-2">
+          <div className="text-sm uppercase tracking-wide text-slate-400">Outils</div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setTool({ type: "select", team: tool.team, ward: tool.ward })}
+              className={`px-3 py-2 rounded-xl shadow ${toolIs("select") ? "bg-slate-600" : "bg-slate-700"}`}
+            >
+              Sélection / Déplacement
+            </button>
+            <button
+              onClick={() => setTool({ type: "ward", team: "blue", ward: tool.ward })}
+              className={`px-3 py-2 rounded-xl shadow ${
+                toolIs("ward") && tool.team === "blue" ? "bg-blue-600" : "bg-slate-700"
+              }`}
+            >
+              Ward Blue
+            </button>
+            <button
+              onClick={() => setTool({ type: "ward", team: "red", ward: tool.ward })}
+              className={`px-3 py-2 rounded-xl shadow ${
+                toolIs("ward") && tool.team === "red" ? "bg-rose-600" : "bg-slate-700"
+              }`}
+            >
+              Ward Red
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {["stealth", "control", "trap"].map((k) => (
+              <button
+                key={k}
+                onClick={() => setTool((t) => ({ ...t, ward: k }))}
+                className={`px-3 py-1.5 rounded-xl text-sm shadow ${
+                  tool.ward === k ? "bg-amber-600" : "bg-slate-700"
+                }`}
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="h-px bg-slate-700 my-3" />
+
+        <div className="space-y-2">
+          <div className="text-sm uppercase tracking-wide text-slate-400">Carte</div>
+          <input
+            className="w-full px-3 py-2 rounded-xl bg-slate-700 placeholder:text-slate-400"
+            placeholder="URL d'image (optionnel)"
+            value={bgUrl}
+            onChange={(e) => setBgUrl(e.target.value)}
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} />
+            Afficher la grille
+          </label>
+
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={showWalls} onChange={(e) => setShowWalls(e.target.checked)} />
+              Voir mask Walls
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={showBrush} onChange={(e) => setShowBrush(e.target.checked)} />
+              Voir mask Brush
+            </label>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={invertWalls} onChange={(e) => setInvertWalls(e.target.checked)} />
+              Inverser walls
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={invertBrush} onChange={(e) => setInvertBrush(e.target.checked)} />
+              Inverser brush
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm mt-2">
+            <input
+              type="checkbox"
+              checked={useOfficialRadii}
+              onChange={(e) => setUseOfficialRadii(e.target.checked)}
+            />
+            <span>Radii officiels (auto)</span>
+          </div>
+        </div>
+
+        <div className="h-px bg-slate-700 my-3" />
+
+        <div className="space-y-2">
+          <div className="text-sm uppercase tracking-wide text-slate-400">Tours</div>
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={() => setAllTowersEnabled("blue", true)} className="px-3 py-2 rounded-xl bg-blue-600">
+              Activer Blue
+            </button>
+            <button onClick={() => setAllTowersEnabled("blue", false)} className="px-3 py-2 rounded-xl bg-slate-700">
+              Désactiver Blue
+            </button>
+            <button onClick={() => setAllTowersEnabled("red", true)} className="px-3 py-2 rounded-xl bg-rose-600">
+              Activer Red
+            </button>
+            <button onClick={() => setAllTowersEnabled("red", false)} className="px-3 py-2 rounded-xl bg-slate-700">
+              Désactiver Red
+            </button>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setEditTowers((v) => !v)}
+              className={`px-3 py-2 rounded-xl ${editTowers ? "bg-amber-600" : "bg-slate-700"}`}
+            >
+              {editTowers ? "Quitter édition" : "Éditer les tours"}
+            </button>
+            <button onClick={saveTowers} className="px-3 py-2 rounded-xl bg-slate-700">
+              Enregistrer
+            </button>
+            <button onClick={resetTowers} className="px-3 py-2 rounded-xl bg-slate-700">
+              Réinitialiser
+            </button>
+          </div>
+          <p className="text-xs text-slate-400">
+            Cliquer une tour: activer/désactiver. En mode édition: glisser pour repositionner (puis “Enregistrer”).
+          </p>
+
+          <div className="h-px bg-slate-700 my-3" />
+          <div className="space-y-2">
+            <div className="text-sm uppercase tracking-wide text-slate-400">Calibration (screenshot)</div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => startCalibration("token")}
+                className={`px-2 py-2 rounded-xl ${calMode === "token" ? "bg-emerald-600" : "bg-slate-700"}`}
+              >
+                Calibrer joueur
+              </button>
+              <button
+                onClick={() => startCalibration("ward")}
+                className={`px-2 py-2 rounded-xl ${calMode === "ward" ? "bg-emerald-600" : "bg-slate-700"}`}
+              >
+                Calibrer ward
+              </button>
+              <button
+                onClick={() => startCalibration("tower")}
+                className={`px-2 py-2 rounded-xl ${calMode === "tower" ? "bg-emerald-600" : "bg-slate-700"}`}
+              >
+                Calibrer tour
+              </button>
+            </div>
+            <p className="text-xs text-slate-400">
+              Clique <b>centre</b> puis <b>bord</b> d’un cercle de vision (depuis ton replay).
+            </p>
+
+            <div className="h-px bg-slate-700 my-3" />
+            <div className="text-sm uppercase tracking-wide text-slate-400">Ajustement manuel</div>
+            <label className="text-xs text-slate-400">Rayon tour: {towerVisionRadius}px</label>
+            <input
+              type="range"
+              min="300"
+              max="1200"
+              value={towerVisionRadius}
+              onChange={(e) => setTowerVisionRadius(+e.target.value)}
+              disabled={useOfficialRadii}
+            />
+            <label className="text-xs text-slate-400">Rayon joueur: {tokenVisionRadius}px</label>
+            <input
+              type="range"
+              min="240"
+              max="600"
+              value={tokenVisionRadius}
+              onChange={(e) => setTokenVisionRadius(+e.target.value)}
+              disabled={useOfficialRadii}
+            />
+            <label className="text-xs text-slate-400">Ward stealth: {wardRadius.stealth}px</label>
+            <input
+              type="range"
+              min="180"
+              max="500"
+              value={wardRadius.stealth}
+              onChange={(e) => setWardRadius((r) => ({ ...r, stealth: +e.target.value }))}
+              disabled={useOfficialRadii}
+            />
+            <label className="text-xs text-slate-400">Ward control: {wardRadius.control}px</label>
+            <input
+              type="range"
+              min="200"
+              max="600"
+              value={wardRadius.control}
+              onChange={(e) => setWardRadius((r) => ({ ...r, control: +e.target.value }))}
+              disabled={useOfficialRadii}
+            />
+          </div>
+        </div>
+
+        <div className="h-px bg-slate-700 my-3" />
+
+        <div className="flex flex-wrap gap-2">
+          <button onClick={resetPositions} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">
+            Reset positions
+          </button>
+          <button onClick={clearWards} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">
+            Clear wards
+          </button>
+          <button onClick={exportState} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">
+            Exporter
+          </button>
+          <button onClick={importState} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">
+            Importer
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+export default ControlPanel;
