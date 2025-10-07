@@ -28,6 +28,9 @@ const ControlPanel = ({
   calMode,
   towerVisionRadius,
   setTowerVisionRadius,
+  towerCalibType,
+  setTowerCalibType,
+  towerTypeLabels,
   tokenVisionRadius,
   setTokenVisionRadius,
   wardRadius,
@@ -227,21 +230,43 @@ const ControlPanel = ({
                 Calibrer tour
               </button>
             </div>
-            <p className="text-xs text-slate-400">
-              Clique <b>centre</b> puis <b>bord</b> d’un cercle de vision (depuis ton replay).
-            </p>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Type de tour à calibrer</label>
+              <select
+                className="w-full bg-slate-700 text-sm rounded-xl px-2 py-1"
+                value={towerCalibType}
+                onChange={(e) => setTowerCalibType(e.target.value)}
+              >
+                {Object.entries(towerTypeLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-400 mt-1">
+                Clique <b>centre</b> puis <b>bord</b> d’un cercle de vision (depuis ton replay).
+              </p>
+            </div>
 
             <div className="h-px bg-slate-700 my-3" />
             <div className="text-sm uppercase tracking-wide text-slate-400">Ajustement manuel</div>
-            <label className="text-xs text-slate-400">Rayon tour: {towerVisionRadius}px</label>
-            <input
-              type="range"
-              min="300"
-              max="1200"
-              value={towerVisionRadius}
-              onChange={(e) => setTowerVisionRadius(+e.target.value)}
-              disabled={useOfficialRadii}
-            />
+            {Object.entries(towerTypeLabels).map(([value, label]) => (
+              <div key={value}>
+                <label className="text-xs text-slate-400">
+                  {label}: {towerVisionRadius[value] ?? 0}px
+                </label>
+                <input
+                  type="range"
+                  min="300"
+                  max="1200"
+                  value={towerVisionRadius[value] ?? 0}
+                  onChange={(e) =>
+                    setTowerVisionRadius((r) => ({ ...r, [value]: +e.target.value }))
+                  }
+                  disabled={useOfficialRadii}
+                />
+              </div>
+            ))}
             <label className="text-xs text-slate-400">Rayon joueur: {tokenVisionRadius}px</label>
             <input
               type="range"

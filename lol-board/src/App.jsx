@@ -4,9 +4,10 @@ import {
   LSK_TOWERS,
   GRID,
   OFFICIAL_UNITS,
+  OFFICIAL_TOWER_UNITS,
+  TOWER_TYPE_LABELS,
   unitsToPx,
   wardRadiusDefault,
-  DEFAULT_TOWER_RADIUS,
 } from "./config/constants";
 import { defaultTowersNormalized, defaultTokens } from "./data/defaults";
 import useImage from "./hooks/useImage";
@@ -14,6 +15,14 @@ import useFogEngine from "./hooks/useFogEngine";
 import ControlPanel from "./components/ControlPanel";
 import MapBoard from "./components/MapBoard";
 import { createBinaryGrid } from "./utils/createBinaryGrid";
+
+const createTowerRadii = (size, multiplier = 1) =>
+  Object.fromEntries(
+    Object.entries(OFFICIAL_TOWER_UNITS).map(([type, units]) => [
+      type,
+      Math.round(unitsToPx(units, size) * multiplier),
+    ]),
+  );
 
 export default function TacticalBoard() {
   const containerRef = useRef(null);
@@ -42,12 +51,16 @@ export default function TacticalBoard() {
   });
 
   const [editTowers, setEditTowers] = useState(false);
-
-  const [towerVisionRadius, setTowerVisionRadius] = useState(DEFAULT_TOWER_RADIUS);
+  const [unitMultiplier, setUnitMultiplier] = useState(1);
+  const [towerVisionRadius, setTowerVisionRadius] = useState(() =>
+    createTowerRadii(900),
+  );
   const [tokenVisionRadius, setTokenVisionRadius] = useState(320);
   const [wardRadius, setWardRadius] = useState(wardRadiusDefault);
   const [controlTruePx, setControlTruePx] = useState(45);
   const [useOfficialRadii, setUseOfficialRadii] = useState(true);
+
+  const [towerCalibType, setTowerCalibType] = useState("outer");
 
   const [calMode, setCalMode] = useState(null);
 
@@ -75,15 +88,21 @@ export default function TacticalBoard() {
 
   useEffect(() => {
     if (!useOfficialRadii) return;
-    const champPx = Math.round(unitsToPx(OFFICIAL_UNITS.champSight, boardSize));
-    const wardPx = Math.round(unitsToPx(OFFICIAL_UNITS.wardSight, boardSize));
-    const ctrlPx = Math.round(unitsToPx(OFFICIAL_UNITS.controlTrue, boardSize));
+    const champPx = Math.round(
+      unitsToPx(OFFICIAL_UNITS.champSight, boardSize) * unitMultiplier,
+    );
+    const wardPx = Math.round(
+      unitsToPx(OFFICIAL_UNITS.wardSight, boardSize) * unitMultiplier,
+    );
+    const ctrlPx = Math.round(
+      unitsToPx(OFFICIAL_UNITS.controlTrue, boardSize) * unitMultiplier,
+    );
 
     setTokenVisionRadius(champPx);
     setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx }));
     setControlTruePx(ctrlPx);
-    setTowerVisionRadius(champPx);
-  }, [boardSize, useOfficialRadii]);
+    setTowerVisionRadius(createTowerRadii(boardSize, unitMultiplier));
+  }, [boardSize, unitMultiplier, useOfficialRadii]);
 
   const { fogCanvasRef, isVisibleOnCurrentFog, inBrushArea, allyRevealsBush } = useFogEngine({
     boardSize,
@@ -118,11 +137,36 @@ export default function TacticalBoard() {
       if (calClicksRef.current.length === 2) {
         const [c, edge] = calClicksRef.current;
         const radiusPix = Math.round(Math.hypot(edge.x - c.x, edge.y - c.y));
-        if (calMode === "token") setTokenVisionRadius(radiusPix);
-        if (calMode === "ward") {
-          setWardRadius((r) => ({ ...r, stealth: radiusPix, control: Math.round(radiusPix * 1.15) }));
+        if (calMode === "token") {
+          setTokenVisionRadius(radiusPix);
+          if (useOfficialRadii) {
+            const base = unitsToPx(OFFICIAL_UNITS.champSight, boardSize);
+            if (base > 0) setUnitMultiplier(radiusPix / base);
+          }
         }
-        if (calMode === "tower") setTowerVisionRadius(radiusPix);
+        if (calMode === "ward") {
+          if (useOfficialRadii) {
+            const base = unitsToPx(OFFICIAL_UNITS.wardSight, boardSize);
+            if (base > 0) setUnitMultiplier(radiusPix / base);
+          } else {
+            setWardRadius((r) => ({
+              ...r,
+              stealth: radiusPix,
+              control: Math.round(radiusPix * 1.15),
+            }));
+          }
+        }
+        if (calMode === "tower") {
+          if (useOfficialRadii) {
+            const units = OFFICIAL_TOWER_UNITS[towerCalibType];
+            if (units) {
+              const base = unitsToPx(units, boardSize);
+              if (base > 0) setUnitMultiplier(radiusPix / base);
+            }
+          } else {
+            setTowerVisionRadius((prev) => ({ ...prev, [towerCalibType]: radiusPix }));
+          }
+        }
         setCalMode(null);
         calClicksRef.current = [];
       }
@@ -273,7 +317,18 @@ export default function TacticalBoard() {
   const clearWards = () => setWards([]);
 
   const exportState = () => {
-    const data = { tokens, wards, visionSide, towers };
+    const data = {
+      tokens,
+      wards,
+      visionSide,
+      towers,
+      towerVisionRadius,
+      tokenVisionRadius,
+      wardRadius,
+      controlTruePx,
+      unitMultiplier,
+      useOfficialRadii,
+    };
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
     alert("Copié dans le presse-papiers ✅");
   };
@@ -287,6 +342,13 @@ export default function TacticalBoard() {
       if (obj.wards) setWards(obj.wards);
       if (obj.visionSide) setVisionSide(obj.visionSide);
       if (obj.towers) setTowers(obj.towers);
+      if (obj.towerVisionRadius)
+        setTowerVisionRadius((prev) => ({ ...prev, ...obj.towerVisionRadius }));
+      if (obj.tokenVisionRadius) setTokenVisionRadius(obj.tokenVisionRadius);
+      if (obj.wardRadius) setWardRadius(obj.wardRadius);
+      if (obj.controlTruePx) setControlTruePx(obj.controlTruePx);
+      if (typeof obj.unitMultiplier === "number") setUnitMultiplier(obj.unitMultiplier);
+      if (typeof obj.useOfficialRadii === "boolean") setUseOfficialRadii(obj.useOfficialRadii);
     } catch {
       alert("JSON invalide");
     }
@@ -328,6 +390,9 @@ export default function TacticalBoard() {
           calMode={calMode}
           towerVisionRadius={towerVisionRadius}
           setTowerVisionRadius={setTowerVisionRadius}
+          towerCalibType={towerCalibType}
+          setTowerCalibType={setTowerCalibType}
+          towerTypeLabels={TOWER_TYPE_LABELS}
           tokenVisionRadius={tokenVisionRadius}
           setTokenVisionRadius={setTokenVisionRadius}
           wardRadius={wardRadius}
