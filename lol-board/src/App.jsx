@@ -56,6 +56,7 @@ export default function TacticalBoard() {
   const [wardRadius, setWardRadius] = useState(wardRadiusDefault);
   const [controlTruePx, setControlTruePx] = useState(45);
   const [useOfficialRadii, setUseOfficialRadii] = useState(true);
+  const [unitMultiplier, setUnitMultiplier] = useState(1);
 
   const [towerCalibType, setTowerCalibType] = useState("outer");
 
@@ -99,7 +100,7 @@ export default function TacticalBoard() {
     setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx }));
     setControlTruePx(ctrlPx);
     setTowerVisionRadius(createTowerRadii(boardSize));
-  }, [boardSize, useOfficialRadii]);
+  }, [boardSize, useOfficialRadii, unitMultiplier]);
 
   const { fogCanvasRef, isVisibleOnCurrentFog, inBrushArea, allyRevealsBush } = useFogEngine({
     boardSize,
