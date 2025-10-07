@@ -16,11 +16,11 @@ import ControlPanel from "./components/ControlPanel";
 import MapBoard from "./components/MapBoard";
 import { createBinaryGrid } from "./utils/createBinaryGrid";
 
-const createTowerRadii = (size, multiplier = 1) =>
+const createTowerRadii = (size) =>
   Object.fromEntries(
     Object.entries(OFFICIAL_TOWER_UNITS).map(([type, units]) => [
       type,
-      Math.round(unitsToPx(units, size) * multiplier),
+      Math.round(unitsToPx(units, size)),
     ]),
   );
 
@@ -51,10 +51,7 @@ export default function TacticalBoard() {
   });
 
   const [editTowers, setEditTowers] = useState(false);
-  const [unitMultiplier, setUnitMultiplier] = useState(1);
-  const [towerVisionRadius, setTowerVisionRadius] = useState(() =>
-    createTowerRadii(900),
-  );
+  const [towerVisionRadius, setTowerVisionRadius] = useState(() => createTowerRadii(900));
   const [tokenVisionRadius, setTokenVisionRadius] = useState(320);
   const [wardRadius, setWardRadius] = useState(wardRadiusDefault);
   const [controlTruePx, setControlTruePx] = useState(45);
@@ -101,8 +98,8 @@ export default function TacticalBoard() {
     setTokenVisionRadius(champPx);
     setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx }));
     setControlTruePx(ctrlPx);
-    setTowerVisionRadius(createTowerRadii(boardSize, unitMultiplier));
-  }, [boardSize, unitMultiplier, useOfficialRadii]);
+    setTowerVisionRadius(createTowerRadii(boardSize));
+  }, [boardSize, useOfficialRadii]);
 
   const { fogCanvasRef, isVisibleOnCurrentFog, inBrushArea, allyRevealsBush } = useFogEngine({
     boardSize,
@@ -167,6 +164,8 @@ export default function TacticalBoard() {
             setTowerVisionRadius((prev) => ({ ...prev, [towerCalibType]: radiusPix }));
           }
         }
+        if (calMode === "tower")
+          setTowerVisionRadius((prev) => ({ ...prev, [towerCalibType]: radiusPix }));
         setCalMode(null);
         calClicksRef.current = [];
       }
@@ -326,8 +325,6 @@ export default function TacticalBoard() {
       tokenVisionRadius,
       wardRadius,
       controlTruePx,
-      unitMultiplier,
-      useOfficialRadii,
     };
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
     alert("Copié dans le presse-papiers ✅");
@@ -347,8 +344,6 @@ export default function TacticalBoard() {
       if (obj.tokenVisionRadius) setTokenVisionRadius(obj.tokenVisionRadius);
       if (obj.wardRadius) setWardRadius(obj.wardRadius);
       if (obj.controlTruePx) setControlTruePx(obj.controlTruePx);
-      if (typeof obj.unitMultiplier === "number") setUnitMultiplier(obj.unitMultiplier);
-      if (typeof obj.useOfficialRadii === "boolean") setUseOfficialRadii(obj.useOfficialRadii);
     } catch {
       alert("JSON invalide");
     }
