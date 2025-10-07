@@ -85,9 +85,15 @@ export default function TacticalBoard() {
 
   useEffect(() => {
     if (!useOfficialRadii) return;
-    const champPx = Math.round(unitsToPx(OFFICIAL_UNITS.champSight, boardSize));
-    const wardPx = Math.round(unitsToPx(OFFICIAL_UNITS.wardSight, boardSize));
-    const ctrlPx = Math.round(unitsToPx(OFFICIAL_UNITS.controlTrue, boardSize));
+    const champPx = Math.round(
+      unitsToPx(OFFICIAL_UNITS.champSight, boardSize) * unitMultiplier,
+    );
+    const wardPx = Math.round(
+      unitsToPx(OFFICIAL_UNITS.wardSight, boardSize) * unitMultiplier,
+    );
+    const ctrlPx = Math.round(
+      unitsToPx(OFFICIAL_UNITS.controlTrue, boardSize) * unitMultiplier,
+    );
 
     setTokenVisionRadius(champPx);
     setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx }));
@@ -128,9 +134,35 @@ export default function TacticalBoard() {
       if (calClicksRef.current.length === 2) {
         const [c, edge] = calClicksRef.current;
         const radiusPix = Math.round(Math.hypot(edge.x - c.x, edge.y - c.y));
-        if (calMode === "token") setTokenVisionRadius(radiusPix);
+        if (calMode === "token") {
+          setTokenVisionRadius(radiusPix);
+          if (useOfficialRadii) {
+            const base = unitsToPx(OFFICIAL_UNITS.champSight, boardSize);
+            if (base > 0) setUnitMultiplier(radiusPix / base);
+          }
+        }
         if (calMode === "ward") {
-          setWardRadius((r) => ({ ...r, stealth: radiusPix, control: Math.round(radiusPix * 1.15) }));
+          if (useOfficialRadii) {
+            const base = unitsToPx(OFFICIAL_UNITS.wardSight, boardSize);
+            if (base > 0) setUnitMultiplier(radiusPix / base);
+          } else {
+            setWardRadius((r) => ({
+              ...r,
+              stealth: radiusPix,
+              control: Math.round(radiusPix * 1.15),
+            }));
+          }
+        }
+        if (calMode === "tower") {
+          if (useOfficialRadii) {
+            const units = OFFICIAL_TOWER_UNITS[towerCalibType];
+            if (units) {
+              const base = unitsToPx(units, boardSize);
+              if (base > 0) setUnitMultiplier(radiusPix / base);
+            }
+          } else {
+            setTowerVisionRadius((prev) => ({ ...prev, [towerCalibType]: radiusPix }));
+          }
         }
         if (calMode === "tower")
           setTowerVisionRadius((prev) => ({ ...prev, [towerCalibType]: radiusPix }));
