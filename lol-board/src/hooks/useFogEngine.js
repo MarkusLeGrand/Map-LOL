@@ -72,13 +72,6 @@ const useFogEngine = ({
     canvas.width = boardSize;
     canvas.height = boardSize;
 
-    // Vision désactivée
-    if (visionSide === "off") {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      lastFogDataRef.current = null;
-      return;
-    }
-
     if (visionSide === "global") {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       lastFogDataRef.current = ctx.createImageData(canvas.width, canvas.height);
@@ -259,8 +252,7 @@ const useFogEngine = ({
       if (!towerVisionRadius) return 0;
       if (towerId.includes("_t1_")) return towerVisionRadius.outer;
       if (towerId.includes("_t2_")) return towerVisionRadius.inner;
-      if (towerId.includes("_t3_") || towerId.includes("_inhib_"))
-        return towerVisionRadius.inhibitor;
+      if (towerId.includes("_t3_")) return towerVisionRadius.inhibitor;
       if (towerId.includes("nexus")) return towerVisionRadius.nexus;
       return towerVisionRadius.outer;
     };

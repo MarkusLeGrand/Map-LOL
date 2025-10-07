@@ -16,9 +16,10 @@ const MapBoard = ({
   controlTruePx,
   editTowers,
   onBoardClick,
-  onBoardAltClick,
+  onBoardContextMenu,
   beginDragToken,
   beginDragWard,
+  removeWard,
   beginDragTower,
   toggleTowerEnable,
   isVisibleOnCurrentFog,
@@ -31,8 +32,7 @@ const MapBoard = ({
         <div
           ref={boardRef}
           onClick={onBoardClick}
-          onMouseDown={(e) => onBoardAltClick(e)}
-          onContextMenu={(e) => e.preventDefault()}
+          onContextMenu={onBoardContextMenu}
           className="relative select-none"
           style={{ width: boardSize, height: boardSize }}
         >
@@ -98,6 +98,10 @@ const MapBoard = ({
                   style={{ left: w.x, top: w.y }}
                   onMouseDown={(e) => beginDragWard(e, w.id)}
                   onTouchStart={(e) => beginDragWard(e, w.id)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    removeWard(w.id);
+                  }}
                 />
                 {isControl && (
                   <svg

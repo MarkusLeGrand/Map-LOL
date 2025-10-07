@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   MAX_BOARD,
   LSK_TOWERS,
+  LSK_TOKENS,
   GRID,
   OFFICIAL_UNITS,
   OFFICIAL_TOWER_UNITS,
-  TOWER_TYPE_LABELS,
   unitsToPx,
   wardRadiusDefault,
 } from "./config/constants";
@@ -37,16 +37,27 @@ export default function TacticalBoard() {
   const [bgUrl, setBgUrl] = useState("/sr.jpg");
   const [showGrid, setShowGrid] = useState(false);
 
-  const [tokens, setTokens] = useState(() => defaultTokens(900));
-  const [wards, setWards] = useState([]);
-  const [towers, setTowers] = useState(() => {
+  const sanitizeTowers = (arr) =>
+    Array.isArray(arr) ? arr.filter((t) => !t.id?.includes("_inhib_")) : [];
+
+  const [tokens, setTokens] = useState(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(LSK_TOWERS));
+      const saved = JSON.parse(localStorage.getItem(LSK_TOKENS));
       if (Array.isArray(saved) && saved.length) return saved;
     } catch {
       // ignore malformed persisted data
     }
-    return defaultTowersNormalized;
+    return defaultTokens(900);
+  });
+  const [wards, setWards] = useState([]);
+  const [towers, setTowers] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LSK_TOWERS));
+      if (Array.isArray(saved) && saved.length) return sanitizeTowers(saved);
+    } catch {
+      // ignore malformed persisted data
+    }
+    return sanitizeTowers(defaultTowersNormalized);
   });
 
   const [editTowers, setEditTowers] = useState(false);
@@ -54,7 +65,6 @@ export default function TacticalBoard() {
   const [tokenVisionRadius, setTokenVisionRadius] = useState(320);
   const [wardRadius, setWardRadius] = useState(wardRadiusDefault);
   const [controlTruePx, setControlTruePx] = useState(45);
-  const [useOfficialRadii, setUseOfficialRadii] = useState(true);
   const [showWalls, setShowWalls] = useState(false);
   const [showBrush, setShowBrush] = useState(false);
   const [invertWalls, setInvertWalls] = useState(false);
@@ -78,7 +88,6 @@ export default function TacticalBoard() {
   }, []);
 
   useEffect(() => {
-    if (!useOfficialRadii) return;
     const champPx = Math.round(unitsToPx(OFFICIAL_UNITS.champSight, boardSize));
     const wardPx = Math.round(unitsToPx(OFFICIAL_UNITS.wardSight, boardSize));
     const ctrlPx = Math.round(unitsToPx(OFFICIAL_UNITS.controlTrue, boardSize));
@@ -87,7 +96,7 @@ export default function TacticalBoard() {
     setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx }));
     setControlTruePx(ctrlPx);
     setTowerVisionRadius(createTowerRadii(boardSize));
-  }, [boardSize, useOfficialRadii]);
+  }, [boardSize]);
 
   const { fogCanvasRef, isVisibleOnCurrentFog, inBrushArea, allyRevealsBush } = useFogEngine({
     boardSize,
@@ -114,20 +123,12 @@ export default function TacticalBoard() {
     };
   };
 
-  const onBoardClick = (e) => {
-    const p = boardPosFromEvent(e);
-
-    if (tool.type === "ward") {
-      setWards((ws) => [
-        ...ws,
-        { id: crypto.randomUUID(), team: tool.team, kind: tool.ward, x: p.x, y: p.y },
-      ]);
-    }
+  const removeWardById = (id) => {
+    if (tool.type !== "ward") return;
+    setWards((ws) => ws.filter((w) => w.id !== id));
   };
 
-  const onBoardAltClick = (e) => {
-    if (!e.altKey) return;
-    const p = boardPosFromEvent(e);
+  const removeNearestWard = (p) => {
     setWards((ws) => {
       if (!ws.length) return ws;
       let bestIdx = -1;
@@ -146,6 +147,25 @@ export default function TacticalBoard() {
       }
       return ws;
     });
+  };
+
+  const onBoardClick = (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    const p = boardPosFromEvent(e);
+
+    if (tool.type === "ward") {
+      setWards((ws) => [
+        ...ws,
+        { id: crypto.randomUUID(), team: tool.team, kind: tool.ward, x: p.x, y: p.y },
+      ]);
+    }
+  };
+
+  const onBoardContextMenu = (e) => {
+    e.preventDefault();
+    if (tool.type !== "ward") return;
+    const p = boardPosFromEvent(e);
+    removeNearestWard(p);
   };
 
   const beginDragToken = (e, id) => {
@@ -184,7 +204,8 @@ export default function TacticalBoard() {
   };
 
   const beginDragWard = (e, id) => {
-    if (e.altKey) return;
+    if (tool.type !== "ward") return;
+    if (e.button !== undefined && e.button !== 0) return;
     const p = boardPosFromEvent(e);
     const w = wards.find((wd) => wd.id === id);
     if (!w) return;
@@ -243,21 +264,25 @@ export default function TacticalBoard() {
     window.removeEventListener("mouseup", endDragTower);
   };
 
-  const saveTowers = () => {
+  const saveBoardState = () => {
     localStorage.setItem(LSK_TOWERS, JSON.stringify(towers));
-    alert("Positions des tours enregistrées ✅");
+    localStorage.setItem(LSK_TOKENS, JSON.stringify(tokens));
+    alert("Positions des tours et joueurs enregistrées ✅");
   };
 
   const resetTowers = () => {
     localStorage.removeItem(LSK_TOWERS);
-    setTowers(defaultTowersNormalized);
+    setTowers(sanitizeTowers(defaultTowersNormalized));
   };
 
   const setAllTowersEnabled = (team, value) => {
     setTowers((arr) => arr.map((t) => (t.team === team ? { ...t, enabled: value } : t)));
   };
 
-  const resetPositions = () => setTokens(defaultTokens(boardSize));
+  const resetPositions = () => {
+    localStorage.removeItem(LSK_TOKENS);
+    setTokens(defaultTokens(boardSize));
+  };
   const clearWards = () => setWards([]);
 
   const exportState = () => {
@@ -282,8 +307,8 @@ export default function TacticalBoard() {
       const obj = JSON.parse(txt);
       if (obj.tokens) setTokens(obj.tokens);
       if (obj.wards) setWards(obj.wards);
-      if (obj.visionSide) setVisionSide(obj.visionSide);
-      if (obj.towers) setTowers(obj.towers);
+      if (obj.visionSide) setVisionSide(obj.visionSide === "off" ? "blue" : obj.visionSide);
+      if (obj.towers) setTowers(sanitizeTowers(obj.towers));
       if (obj.towerVisionRadius)
         setTowerVisionRadius((prev) => ({ ...prev, ...obj.towerVisionRadius }));
       if (obj.tokenVisionRadius) setTokenVisionRadius(obj.tokenVisionRadius);
@@ -314,20 +339,11 @@ export default function TacticalBoard() {
           setInvertWalls={setInvertWalls}
           invertBrush={invertBrush}
           setInvertBrush={setInvertBrush}
-          useOfficialRadii={useOfficialRadii}
-          setUseOfficialRadii={setUseOfficialRadii}
           editTowers={editTowers}
           setEditTowers={setEditTowers}
-          saveTowers={saveTowers}
+          saveBoardState={saveBoardState}
           resetTowers={resetTowers}
           setAllTowersEnabled={setAllTowersEnabled}
-          towerVisionRadius={towerVisionRadius}
-          setTowerVisionRadius={setTowerVisionRadius}
-          towerTypeLabels={TOWER_TYPE_LABELS}
-          tokenVisionRadius={tokenVisionRadius}
-          setTokenVisionRadius={setTokenVisionRadius}
-          wardRadius={wardRadius}
-          setWardRadius={setWardRadius}
           resetPositions={resetPositions}
           clearWards={clearWards}
           exportState={exportState}
@@ -350,9 +366,10 @@ export default function TacticalBoard() {
           controlTruePx={controlTruePx}
           editTowers={editTowers}
           onBoardClick={onBoardClick}
-          onBoardAltClick={onBoardAltClick}
+          onBoardContextMenu={onBoardContextMenu}
           beginDragToken={beginDragToken}
           beginDragWard={beginDragWard}
+          removeWard={removeWardById}
           beginDragTower={beginDragTower}
           toggleTowerEnable={toggleTowerEnable}
           isVisibleOnCurrentFog={isVisibleOnCurrentFog}
