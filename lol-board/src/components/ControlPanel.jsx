@@ -17,20 +17,11 @@ const ControlPanel = ({
   setInvertWalls,
   invertBrush,
   setInvertBrush,
-  useOfficialRadii,
-  setUseOfficialRadii,
   editTowers,
   setEditTowers,
-  saveTowers,
+  saveBoardState,
   resetTowers,
   setAllTowersEnabled,
-  towerVisionRadius,
-  setTowerVisionRadius,
-  towerTypeLabels,
-  tokenVisionRadius,
-  setTokenVisionRadius,
-  wardRadius,
-  setWardRadius,
   resetPositions,
   clearWards,
   exportState,
@@ -67,14 +58,6 @@ const ControlPanel = ({
             }`}
           >
             Vision Globale
-          </button>
-          <button
-            onClick={() => setVisionSide("off")}
-            className={`px-3 py-2 rounded-xl shadow ${
-              visionSide === "off" ? "bg-emerald-500 text-white" : "bg-slate-700"
-            }`}
-          >
-            Vision Off
           </button>
         </div>
 
@@ -118,7 +101,9 @@ const ControlPanel = ({
                 {k}
               </button>
             ))}
-            </div>
+          </div>
+
+        </div>
 
         <div className="h-px bg-slate-700 my-3" />
 
@@ -156,14 +141,6 @@ const ControlPanel = ({
             </label>
           </div>
 
-          <div className="flex items-center gap-2 text-sm mt-2">
-            <input
-              type="checkbox"
-              checked={useOfficialRadii}
-              onChange={(e) => setUseOfficialRadii(e.target.checked)}
-            />
-            <span>Radii officiels (auto)</span>
-          </div>
         </div>
 
         <div className="h-px bg-slate-700 my-3" />
@@ -191,7 +168,7 @@ const ControlPanel = ({
             >
               {editTowers ? "Quitter édition" : "Éditer les tours"}
             </button>
-            <button onClick={saveTowers} className="px-3 py-2 rounded-xl bg-slate-700">
+            <button onClick={saveBoardState} className="px-3 py-2 rounded-xl bg-slate-700">
               Enregistrer
             </button>
             <button onClick={resetTowers} className="px-3 py-2 rounded-xl bg-slate-700">
@@ -201,56 +178,6 @@ const ControlPanel = ({
           <p className="text-xs text-slate-400">
             Cliquer une tour: activer/désactiver. En mode édition: glisser pour repositionner (puis “Enregistrer”).
           </p>
-
-          <div className="h-px bg-slate-700 my-3" />
-          <div className="space-y-2">
-            <div className="text-sm uppercase tracking-wide text-slate-400">Ajustement manuel</div>
-            {Object.entries(towerTypeLabels).map(([value, label]) => (
-              <div key={value}>
-                <label className="text-xs text-slate-400">
-                  {label}: {towerVisionRadius[value] ?? 0}px
-                </label>
-                <input
-                  type="range"
-                  min="300"
-                  max="1200"
-                  value={towerVisionRadius[value] ?? 0}
-                  onChange={(e) =>
-                    setTowerVisionRadius((r) => ({ ...r, [value]: +e.target.value }))
-                  }
-                  disabled={useOfficialRadii}
-                />
-              </div>
-            ))}
-            <label className="text-xs text-slate-400">Rayon joueur: {tokenVisionRadius}px</label>
-            <input
-              type="range"
-              min="240"
-              max="600"
-              value={tokenVisionRadius}
-              onChange={(e) => setTokenVisionRadius(+e.target.value)}
-              disabled={useOfficialRadii}
-            />
-            <label className="text-xs text-slate-400">Ward stealth: {wardRadius.stealth}px</label>
-            <input
-              type="range"
-              min="180"
-              max="500"
-              value={wardRadius.stealth}
-              onChange={(e) => setWardRadius((r) => ({ ...r, stealth: +e.target.value }))}
-              disabled={useOfficialRadii}
-            />
-            <label className="text-xs text-slate-400">Ward control: {wardRadius.control}px</label>
-            <input
-              type="range"
-              min="200"
-              max="600"
-              value={wardRadius.control}
-              onChange={(e) => setWardRadius((r) => ({ ...r, control: +e.target.value }))}
-              disabled={useOfficialRadii}
-            />
-          </div>
-          </div>
         </div>
 
         <div className="h-px bg-slate-700 my-3" />

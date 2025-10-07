@@ -1,5 +1,6 @@
 export const MAX_BOARD = 1100;
 export const LSK_TOWERS = "lolboard_towers_v1";
+export const LSK_TOKENS = "lolboard_tokens_v1";
 export const GRID = 384; // 256 (rapide), 384 (reco), 512 (qualité)
 
 export const OFFICIAL_UNITS = {
@@ -21,8 +22,8 @@ export const OFFICIAL_TOWER_UNITS = {
 export const TOWER_TYPE_LABELS = {
   outer: "Tour extérieure (T1)",
   inner: "Tour intermédiaire (T2)",
-  inhibitor: "Tour inhibiteur (T3)",
-  nexus: "Tour du Nexus",
+  inhibitor: "Tour intérieure (T3)",
+  nexus: "Tour du Nexus (T4)",
 };
 
 export const unitsToPx = (units, boardSize) => (boardSize * units) / OFFICIAL_UNITS.mapWidth;
