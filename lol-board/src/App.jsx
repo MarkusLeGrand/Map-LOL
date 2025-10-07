@@ -16,11 +16,11 @@ import ControlPanel from "./components/ControlPanel";
 import MapBoard from "./components/MapBoard";
 import { createBinaryGrid } from "./utils/createBinaryGrid";
 
-const createTowerRadii = (size) =>
+const createTowerRadii = (size, multiplier = 1) =>
   Object.fromEntries(
     Object.entries(OFFICIAL_TOWER_UNITS).map(([type, units]) => [
       type,
-      Math.round(unitsToPx(units, size)),
+      Math.round(unitsToPx(units, size) * multiplier),
     ]),
   );
 
@@ -56,6 +56,7 @@ export default function TacticalBoard() {
   const [wardRadius, setWardRadius] = useState(wardRadiusDefault);
   const [controlTruePx, setControlTruePx] = useState(45);
   const [useOfficialRadii, setUseOfficialRadii] = useState(true);
+  const [unitMultiplier, setUnitMultiplier] = useState(1);
 
   const [towerCalibType, setTowerCalibType] = useState("outer");
 
@@ -98,8 +99,8 @@ export default function TacticalBoard() {
     setTokenVisionRadius(champPx);
     setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx }));
     setControlTruePx(ctrlPx);
-    setTowerVisionRadius(createTowerRadii(boardSize));
-  }, [boardSize, useOfficialRadii]);
+    setTowerVisionRadius(createTowerRadii(boardSize, unitMultiplier));
+  }, [boardSize, useOfficialRadii, unitMultiplier]);
 
   const { fogCanvasRef, isVisibleOnCurrentFog, inBrushArea, allyRevealsBush } = useFogEngine({
     boardSize,
