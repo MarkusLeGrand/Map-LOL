@@ -4,9 +4,10 @@ import {
   LSK_TOWERS,
   GRID,
   OFFICIAL_UNITS,
+  OFFICIAL_TOWER_UNITS,
+  TOWER_TYPE_LABELS,
   unitsToPx,
   wardRadiusDefault,
-  DEFAULT_TOWER_RADIUS,
 } from "./config/constants";
 import { defaultTowersNormalized, defaultTokens } from "./data/defaults";
 import useImage from "./hooks/useImage";
@@ -14,6 +15,14 @@ import useFogEngine from "./hooks/useFogEngine";
 import ControlPanel from "./components/ControlPanel";
 import MapBoard from "./components/MapBoard";
 import { createBinaryGrid } from "./utils/createBinaryGrid";
+
+const createTowerRadii = (size) =>
+  Object.fromEntries(
+    Object.entries(OFFICIAL_TOWER_UNITS).map(([type, units]) => [
+      type,
+      Math.round(unitsToPx(units, size)),
+    ]),
+  );
 
 export default function TacticalBoard() {
   const containerRef = useRef(null);
@@ -42,12 +51,13 @@ export default function TacticalBoard() {
   });
 
   const [editTowers, setEditTowers] = useState(false);
-
-  const [towerVisionRadius, setTowerVisionRadius] = useState(DEFAULT_TOWER_RADIUS);
+  const [towerVisionRadius, setTowerVisionRadius] = useState(() => createTowerRadii(900));
   const [tokenVisionRadius, setTokenVisionRadius] = useState(320);
   const [wardRadius, setWardRadius] = useState(wardRadiusDefault);
   const [controlTruePx, setControlTruePx] = useState(45);
   const [useOfficialRadii, setUseOfficialRadii] = useState(true);
+
+  const [towerCalibType, setTowerCalibType] = useState("outer");
 
   const [calMode, setCalMode] = useState(null);
 
@@ -82,7 +92,7 @@ export default function TacticalBoard() {
     setTokenVisionRadius(champPx);
     setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx }));
     setControlTruePx(ctrlPx);
-    setTowerVisionRadius(champPx);
+    setTowerVisionRadius(createTowerRadii(boardSize));
   }, [boardSize, useOfficialRadii]);
 
   const { fogCanvasRef, isVisibleOnCurrentFog, inBrushArea, allyRevealsBush } = useFogEngine({
@@ -122,7 +132,8 @@ export default function TacticalBoard() {
         if (calMode === "ward") {
           setWardRadius((r) => ({ ...r, stealth: radiusPix, control: Math.round(radiusPix * 1.15) }));
         }
-        if (calMode === "tower") setTowerVisionRadius(radiusPix);
+        if (calMode === "tower")
+          setTowerVisionRadius((prev) => ({ ...prev, [towerCalibType]: radiusPix }));
         setCalMode(null);
         calClicksRef.current = [];
       }
@@ -273,7 +284,16 @@ export default function TacticalBoard() {
   const clearWards = () => setWards([]);
 
   const exportState = () => {
-    const data = { tokens, wards, visionSide, towers };
+    const data = {
+      tokens,
+      wards,
+      visionSide,
+      towers,
+      towerVisionRadius,
+      tokenVisionRadius,
+      wardRadius,
+      controlTruePx,
+    };
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
     alert("Copié dans le presse-papiers ✅");
   };
@@ -287,6 +307,11 @@ export default function TacticalBoard() {
       if (obj.wards) setWards(obj.wards);
       if (obj.visionSide) setVisionSide(obj.visionSide);
       if (obj.towers) setTowers(obj.towers);
+      if (obj.towerVisionRadius)
+        setTowerVisionRadius((prev) => ({ ...prev, ...obj.towerVisionRadius }));
+      if (obj.tokenVisionRadius) setTokenVisionRadius(obj.tokenVisionRadius);
+      if (obj.wardRadius) setWardRadius(obj.wardRadius);
+      if (obj.controlTruePx) setControlTruePx(obj.controlTruePx);
     } catch {
       alert("JSON invalide");
     }
@@ -328,6 +353,9 @@ export default function TacticalBoard() {
           calMode={calMode}
           towerVisionRadius={towerVisionRadius}
           setTowerVisionRadius={setTowerVisionRadius}
+          towerCalibType={towerCalibType}
+          setTowerCalibType={setTowerCalibType}
+          towerTypeLabels={TOWER_TYPE_LABELS}
           tokenVisionRadius={tokenVisionRadius}
           setTokenVisionRadius={setTokenVisionRadius}
           wardRadius={wardRadius}
