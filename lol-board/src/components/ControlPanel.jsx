@@ -24,12 +24,8 @@ const ControlPanel = ({
   saveTowers,
   resetTowers,
   setAllTowersEnabled,
-  startCalibration,
-  calMode,
   towerVisionRadius,
   setTowerVisionRadius,
-  towerCalibType,
-  setTowerCalibType,
   towerTypeLabels,
   tokenVisionRadius,
   setTokenVisionRadius,
@@ -122,8 +118,7 @@ const ControlPanel = ({
                 {k}
               </button>
             ))}
-          </div>
-        </div>
+            </div>
 
         <div className="h-px bg-slate-700 my-3" />
 
@@ -209,46 +204,6 @@ const ControlPanel = ({
 
           <div className="h-px bg-slate-700 my-3" />
           <div className="space-y-2">
-            <div className="text-sm uppercase tracking-wide text-slate-400">Calibration (screenshot)</div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => startCalibration("token")}
-                className={`px-2 py-2 rounded-xl ${calMode === "token" ? "bg-emerald-600" : "bg-slate-700"}`}
-              >
-                Calibrer joueur
-              </button>
-              <button
-                onClick={() => startCalibration("ward")}
-                className={`px-2 py-2 rounded-xl ${calMode === "ward" ? "bg-emerald-600" : "bg-slate-700"}`}
-              >
-                Calibrer ward
-              </button>
-              <button
-                onClick={() => startCalibration("tower")}
-                className={`px-2 py-2 rounded-xl ${calMode === "tower" ? "bg-emerald-600" : "bg-slate-700"}`}
-              >
-                Calibrer tour
-              </button>
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Type de tour à calibrer</label>
-              <select
-                className="w-full bg-slate-700 text-sm rounded-xl px-2 py-1"
-                value={towerCalibType}
-                onChange={(e) => setTowerCalibType(e.target.value)}
-              >
-                {Object.entries(towerTypeLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-400 mt-1">
-                Clique <b>centre</b> puis <b>bord</b> d’un cercle de vision (depuis ton replay).
-              </p>
-            </div>
-
-            <div className="h-px bg-slate-700 my-3" />
             <div className="text-sm uppercase tracking-wide text-slate-400">Ajustement manuel</div>
             {Object.entries(towerTypeLabels).map(([value, label]) => (
               <div key={value}>
@@ -294,6 +249,7 @@ const ControlPanel = ({
               onChange={(e) => setWardRadius((r) => ({ ...r, control: +e.target.value }))}
               disabled={useOfficialRadii}
             />
+          </div>
           </div>
         </div>
 

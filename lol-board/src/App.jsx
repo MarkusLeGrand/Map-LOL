@@ -27,7 +27,6 @@ const createTowerRadii = (size, multiplier = 1) =>
 export default function TacticalBoard() {
   const containerRef = useRef(null);
   const boardRef = useRef(null);
-  const calClicksRef = useRef([]);
   const dragRef = useRef({ id: null, dx: 0, dy: 0, isDup: false });
   const dragWardRef = useRef({ id: null, dx: 0, dy: 0 });
   const dragTowerRef = useRef({ id: null });
@@ -56,12 +55,6 @@ export default function TacticalBoard() {
   const [wardRadius, setWardRadius] = useState(wardRadiusDefault);
   const [controlTruePx, setControlTruePx] = useState(45);
   const [useOfficialRadii, setUseOfficialRadii] = useState(true);
-  const [unitMultiplier, setUnitMultiplier] = useState(1);
-
-  const [towerCalibType, setTowerCalibType] = useState("outer");
-
-  const [calMode, setCalMode] = useState(null);
-
   const [showWalls, setShowWalls] = useState(false);
   const [showBrush, setShowBrush] = useState(false);
   const [invertWalls, setInvertWalls] = useState(false);
@@ -86,21 +79,15 @@ export default function TacticalBoard() {
 
   useEffect(() => {
     if (!useOfficialRadii) return;
-    const champPx = Math.round(
-      unitsToPx(OFFICIAL_UNITS.champSight, boardSize) * unitMultiplier,
-    );
-    const wardPx = Math.round(
-      unitsToPx(OFFICIAL_UNITS.wardSight, boardSize) * unitMultiplier,
-    );
-    const ctrlPx = Math.round(
-      unitsToPx(OFFICIAL_UNITS.controlTrue, boardSize) * unitMultiplier,
-    );
+    const champPx = Math.round(unitsToPx(OFFICIAL_UNITS.champSight, boardSize));
+    const wardPx = Math.round(unitsToPx(OFFICIAL_UNITS.wardSight, boardSize));
+    const ctrlPx = Math.round(unitsToPx(OFFICIAL_UNITS.controlTrue, boardSize));
 
     setTokenVisionRadius(champPx);
     setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx }));
     setControlTruePx(ctrlPx);
     setTowerVisionRadius(createTowerRadii(boardSize));
-  }, [boardSize, useOfficialRadii, unitMultiplier]);
+  }, [boardSize, useOfficialRadii]);
 
   const { fogCanvasRef, isVisibleOnCurrentFog, inBrushArea, allyRevealsBush } = useFogEngine({
     boardSize,
@@ -129,49 +116,6 @@ export default function TacticalBoard() {
 
   const onBoardClick = (e) => {
     const p = boardPosFromEvent(e);
-
-    if (calMode) {
-      calClicksRef.current.push(p);
-      if (calClicksRef.current.length === 2) {
-        const [c, edge] = calClicksRef.current;
-        const radiusPix = Math.round(Math.hypot(edge.x - c.x, edge.y - c.y));
-        if (calMode === "token") {
-          setTokenVisionRadius(radiusPix);
-          if (useOfficialRadii) {
-            const base = unitsToPx(OFFICIAL_UNITS.champSight, boardSize);
-            if (base > 0) setUnitMultiplier(radiusPix / base);
-          }
-        }
-        if (calMode === "ward") {
-          if (useOfficialRadii) {
-            const base = unitsToPx(OFFICIAL_UNITS.wardSight, boardSize);
-            if (base > 0) setUnitMultiplier(radiusPix / base);
-          } else {
-            setWardRadius((r) => ({
-              ...r,
-              stealth: radiusPix,
-              control: Math.round(radiusPix * 1.15),
-            }));
-          }
-        }
-        if (calMode === "tower") {
-          if (useOfficialRadii) {
-            const units = OFFICIAL_TOWER_UNITS[towerCalibType];
-            if (units) {
-              const base = unitsToPx(units, boardSize);
-              if (base > 0) setUnitMultiplier(radiusPix / base);
-            }
-          } else {
-            setTowerVisionRadius((prev) => ({ ...prev, [towerCalibType]: radiusPix }));
-          }
-        }
-        if (calMode === "tower")
-          setTowerVisionRadius((prev) => ({ ...prev, [towerCalibType]: radiusPix }));
-        setCalMode(null);
-        calClicksRef.current = [];
-      }
-      return;
-    }
 
     if (tool.type === "ward") {
       setWards((ws) => [
@@ -350,11 +294,6 @@ export default function TacticalBoard() {
     }
   };
 
-  const startCalibration = (mode) => {
-    setCalMode(mode);
-    calClicksRef.current = [];
-  };
-
   return (
     <div className="min-h-screen w-full bg-slate-900 text-slate-100 p-4">
       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-4">
@@ -382,12 +321,8 @@ export default function TacticalBoard() {
           saveTowers={saveTowers}
           resetTowers={resetTowers}
           setAllTowersEnabled={setAllTowersEnabled}
-          startCalibration={startCalibration}
-          calMode={calMode}
           towerVisionRadius={towerVisionRadius}
           setTowerVisionRadius={setTowerVisionRadius}
-          towerCalibType={towerCalibType}
-          setTowerCalibType={setTowerCalibType}
           towerTypeLabels={TOWER_TYPE_LABELS}
           tokenVisionRadius={tokenVisionRadius}
           setTokenVisionRadius={setTokenVisionRadius}
