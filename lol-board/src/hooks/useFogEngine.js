@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { GRID } from "../config/constants";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -20,6 +20,50 @@ const useFogEngine = ({
   const fogCanvasRef = useRef(null);
   const lastFogDataRef = useRef(null);
   const rafRef = useRef(0);
+
+  const brushLabels = useMemo(() => {
+    if (!brushGrid) return null;
+
+    const labels = new Int32Array(GRID * GRID).fill(-1);
+    const stack = [];
+    const offsets = [1, 0, -1, 0, 0, 1, 0, -1];
+
+    const isBrushAt = (ix, iy) => {
+      if (ix < 0 || iy < 0 || ix >= GRID || iy >= GRID) return false;
+      const v = brushGrid[iy * GRID + ix];
+      return invertBrush ? v === 0 : v === 1;
+    };
+
+    let currentLabel = 0;
+    for (let iy = 0; iy < GRID; iy += 1) {
+      for (let ix = 0; ix < GRID; ix += 1) {
+        const idx = iy * GRID + ix;
+        if (!isBrushAt(ix, iy) || labels[idx] !== -1) continue;
+
+        labels[idx] = currentLabel;
+        stack.push(ix, iy);
+
+        while (stack.length) {
+          const cy = stack.pop();
+          const cx = stack.pop();
+
+          for (let k = 0; k < offsets.length; k += 2) {
+            const nx = cx + offsets[k];
+            const ny = cy + offsets[k + 1];
+            if (!isBrushAt(nx, ny)) continue;
+            const nIdx = ny * GRID + nx;
+            if (labels[nIdx] !== -1) continue;
+            labels[nIdx] = currentLabel;
+            stack.push(nx, ny);
+          }
+        }
+
+        currentLabel += 1;
+      }
+    }
+
+    return labels;
+  }, [brushGrid, invertBrush]);
 
   const drawFog = useCallback(() => {
     const canvas = fogCanvasRef.current;
@@ -87,12 +131,21 @@ const useFogEngine = ({
       return invertBrush ? v === 0 : v === 1;
     };
 
+    const getBrushLabel = (ix, iy) => {
+      if (!brushLabels) return -1;
+      const idx = idxSafe(ix, iy);
+      if (idx < 0) return -1;
+      return brushLabels[idx];
+    };
+
     // Vision en ligne droite : chaque cellule doit avoir une ligne de vue directe
-    const revealFOV = (cx, cy, radiusPx, { sourceTeam, isWard = false }) => {
+    const revealFOV = (cx, cy, radiusPx, { sourceTeam }) => {
       const [sx, sy] = toGrid(cx, cy);
       const r = Math.max(1, Math.round((radiusPx / boardSize) * GRID));
       const r2 = r * r;
       const sourceInBush = isBrushCell(sx, sy);
+      const sourceBrushLabel =
+        sourceInBush && brushLabels ? getBrushLabel(sx, sy) : -1;
 
       const visited = new Uint8Array(GRID * GRID);
       const brushVisibilityCache = new Map();
@@ -103,31 +156,40 @@ const useFogEngine = ({
         if (brushVisibilityCache.has(key)) return brushVisibilityCache.get(key);
 
         let bushRevealed = false;
-        if (sourceInBush) {
-          bushRevealed = true;
-        } else {
-          const cellCenterX = (ix + 0.5) * CELL;
-          const cellCenterY = (iy + 0.5) * CELL;
+        if (sourceBrushLabel !== -1) {
+          bushRevealed = getBrushLabel(ix, iy) === sourceBrushLabel;
+        }
 
-          const revealByWard = wards.some((w) => {
-            const [wx, wy] = toGrid(w.x, w.y);
-            return (
-              w.team === sourceTeam &&
-              isBrushCell(wx, wy) &&
-              Math.hypot(w.x - cellCenterX, w.y - cellCenterY) < 260
-            );
-          });
+        if (!bushRevealed) {
+          const targetLabel = getBrushLabel(ix, iy);
+          if (targetLabel === -1) {
+            bushRevealed = true;
+          } else {
+            const cellCenterX = (ix + 0.5) * CELL;
+            const cellCenterY = (iy + 0.5) * CELL;
 
-          const revealByAlly = tokens.some((a) => {
-            const [ax, ay] = toGrid(a.x, a.y);
-            return (
-              a.team === sourceTeam &&
-              isBrushCell(ax, ay) &&
-              Math.hypot(a.x - cellCenterX, a.y - cellCenterY) < 220
-            );
-          });
+            const revealByWard = wards.some((w) => {
+              if (w.team !== sourceTeam) return false;
+              const [wx, wy] = toGrid(w.x, w.y);
+              if (getBrushLabel(wx, wy) !== targetLabel) return false;
+              return Math.hypot(w.x - cellCenterX, w.y - cellCenterY) < 260;
+            });
 
-          bushRevealed = isWard || revealByWard || revealByAlly;
+            if (revealByWard) {
+              bushRevealed = true;
+            } else {
+              const revealByAlly = tokens.some((a) => {
+                if (a.team !== sourceTeam) return false;
+                const [ax, ay] = toGrid(a.x, a.y);
+                if (getBrushLabel(ax, ay) !== targetLabel) return false;
+                return (
+                  Math.hypot(a.x - cellCenterX, a.y - cellCenterY) < 220
+                );
+              });
+
+              bushRevealed = revealByAlly;
+            }
+          }
         }
 
         brushVisibilityCache.set(key, bushRevealed);
@@ -214,7 +276,6 @@ const useFogEngine = ({
       .forEach((w) => {
         revealFOV(w.x, w.y, wardRadius[w.kind] || 250, {
           sourceTeam: visionSide,
-          isWard: true,
         });
       });
 
@@ -224,6 +285,7 @@ const useFogEngine = ({
     boardSize,
     invertBrush,
     invertWalls,
+    brushLabels,
     tokenVisionRadius,
     towerVisionRadius,
     visionSide,
@@ -279,21 +341,53 @@ const useFogEngine = ({
 
   const allyRevealsBush = useCallback(
     (x, y, viewerTeam) => {
-      const nearWard = wards.some(
-        (w) =>
-          w.team === viewerTeam &&
-          inBrushArea(w.x, w.y) &&
-          Math.hypot(w.x - x, w.y - y) < 260
-      );
-      const nearAlly = tokens.some(
-        (a) =>
-          a.team === viewerTeam &&
-          inBrushArea(a.x, a.y) &&
-          Math.hypot(a.x - x, a.y - y) < 220
-      );
-      return nearWard || nearAlly;
+      if (!brushLabels) {
+        const nearWard = wards.some(
+          (w) =>
+            w.team === viewerTeam &&
+            inBrushArea(w.x, w.y) &&
+            Math.hypot(w.x - x, w.y - y) < 260
+        );
+        const nearAlly = tokens.some(
+          (a) =>
+            a.team === viewerTeam &&
+            inBrushArea(a.x, a.y) &&
+            Math.hypot(a.x - x, a.y - y) < 220
+        );
+        return nearWard || nearAlly;
+      }
+
+      const toGridLocal = (px, py) => {
+        const ix = clamp(Math.floor((px / boardSize) * GRID), 0, GRID - 1);
+        const iy = clamp(Math.floor((py / boardSize) * GRID), 0, GRID - 1);
+        return [ix, iy];
+      };
+
+      const [ix, iy] = toGridLocal(x, y);
+      const targetIdx = iy * GRID + ix;
+      if (brushLabels[targetIdx] === -1) return false;
+
+      const targetLabel = brushLabels[targetIdx];
+
+      const revealByWard = wards.some((w) => {
+        if (w.team !== viewerTeam) return false;
+        const [wx, wy] = toGridLocal(w.x, w.y);
+        const wardIdx = wy * GRID + wx;
+        if (brushLabels[wardIdx] !== targetLabel) return false;
+        return Math.hypot(w.x - x, w.y - y) < 260;
+      });
+
+      if (revealByWard) return true;
+
+      return tokens.some((a) => {
+        if (a.team !== viewerTeam) return false;
+        const [ax, ay] = toGridLocal(a.x, a.y);
+        const allyIdx = ay * GRID + ax;
+        if (brushLabels[allyIdx] !== targetLabel) return false;
+        return Math.hypot(a.x - x, a.y - y) < 220;
+      });
     },
-    [inBrushArea, tokens, wards]
+    [boardSize, brushLabels, inBrushArea, tokens, wards]
   );
 
   useEffect(() => {
