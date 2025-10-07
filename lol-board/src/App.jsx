@@ -16,11 +16,11 @@ import ControlPanel from "./components/ControlPanel";
 import MapBoard from "./components/MapBoard";
 import { createBinaryGrid } from "./utils/createBinaryGrid";
 
-const createTowerRadii = (size) =>
+const createTowerRadii = (size, multiplier = 1) =>
   Object.fromEntries(
     Object.entries(OFFICIAL_TOWER_UNITS).map(([type, units]) => [
       type,
-      Math.round(unitsToPx(units, size)),
+      Math.round(unitsToPx(units, size) * multiplier),
     ]),
   );
 
