@@ -10,6 +10,19 @@ export const OFFICIAL_UNITS = {
 };
 
 export const wardRadiusDefault = { stealth: 260, control: 300, trap: 220 };
-export const DEFAULT_TOWER_RADIUS = 750;
+
+export const OFFICIAL_TOWER_UNITS = {
+  outer: 775,
+  inner: 800,
+  inhibitor: 850,
+  nexus: 875,
+};
+
+export const TOWER_TYPE_LABELS = {
+  outer: "Tour extérieure (T1)",
+  inner: "Tour intermédiaire (T2)",
+  inhibitor: "Tour inhibiteur (T3)",
+  nexus: "Tour du Nexus",
+};
 
 export const unitsToPx = (units, boardSize) => (boardSize * units) / OFFICIAL_UNITS.mapWidth;

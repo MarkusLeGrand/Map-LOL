@@ -255,10 +255,22 @@ const useFogEngine = ({
     };
 
     // Tours actives
+    const towerRadiusFor = (towerId) => {
+      if (!towerVisionRadius) return 0;
+      if (towerId.includes("_t1_")) return towerVisionRadius.outer;
+      if (towerId.includes("_t2_")) return towerVisionRadius.inner;
+      if (towerId.includes("_t3_") || towerId.includes("_inhib_"))
+        return towerVisionRadius.inhibitor;
+      if (towerId.includes("nexus")) return towerVisionRadius.nexus;
+      return towerVisionRadius.outer;
+    };
+
     towers
       .filter((t) => t.team === visionSide && t.enabled)
       .forEach((t) => {
-        revealFOV(t.x * boardSize, t.y * boardSize, towerVisionRadius, {
+        const radius = towerRadiusFor(t.id);
+        if (!radius) return;
+        revealFOV(t.x * boardSize, t.y * boardSize, radius, {
           sourceTeam: visionSide,
         });
       });
