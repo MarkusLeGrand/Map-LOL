@@ -99,7 +99,7 @@ export default function TacticalBoard() {
     setTokenVisionRadius(champPx);
     setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx }));
     setControlTruePx(ctrlPx);
-    setTowerVisionRadius(createTowerRadii(boardSize, unitMultiplier));
+    setTowerVisionRadius(createTowerRadii(boardSize));
   }, [boardSize, useOfficialRadii, unitMultiplier]);
 
   const { fogCanvasRef, isVisibleOnCurrentFog, inBrushArea, allyRevealsBush } = useFogEngine({
