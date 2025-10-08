@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   MAX_BOARD,
   LSK_TOWERS,
@@ -30,10 +30,8 @@ export default function TacticalBoard() {
   const dragRef = useRef({ id: null, dx: 0, dy: 0, isDup: false });
   const dragWardRef = useRef({ id: null, dx: 0, dy: 0 });
   const dragTowerRef = useRef({ id: null });
-  const zoomRef = useRef(1);
 
   const [boardSize, setBoardSize] = useState(900);
-  const [zoom, setZoom] = useState(1);
   const [visionSide, setVisionSide] = useState("blue");
   const [tool, setTool] = useState({ type: "select", team: "blue", ward: "stealth" });
   const [bgUrl, setBgUrl] = useState("/sr.jpg");
@@ -90,10 +88,6 @@ export default function TacticalBoard() {
   }, []);
 
   useEffect(() => {
-    zoomRef.current = zoom;
-  }, [zoom]);
-
-  useEffect(() => {
     const champPx = Math.round(unitsToPx(OFFICIAL_UNITS.champSight, boardSize));
     const wardPx = Math.round(unitsToPx(OFFICIAL_UNITS.wardSight, boardSize));
     const ctrlPx = Math.round(unitsToPx(OFFICIAL_UNITS.controlTrue, boardSize));
@@ -120,61 +114,14 @@ export default function TacticalBoard() {
   });
 
   const boardPosFromEvent = (e) => {
-    if (!boardRef.current) return { x: 0, y: 0 };
     const rect = boardRef.current.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const scale = zoomRef.current || 1;
     return {
-      x: Math.max(0, Math.min(boardSize, (clientX - rect.left) / scale)),
-      y: Math.max(0, Math.min(boardSize, (clientY - rect.top) / scale)),
+      x: Math.max(0, Math.min(boardSize, clientX - rect.left)),
+      y: Math.max(0, Math.min(boardSize, clientY - rect.top)),
     };
   };
-
-  const onBoardWheel = useCallback(
-    (event) => {
-      event.preventDefault();
-      const direction = event.deltaY < 0 ? 1 : -1;
-      const current = zoomRef.current;
-      const next = Number(
-        Math.min(2, Math.max(0.5, current + direction * 0.1)).toFixed(2),
-      );
-      if (next === current) return;
-
-      const boardEl = boardRef.current;
-      const containerEl = containerRef.current;
-      if (boardEl && containerEl) {
-        const rect = boardEl.getBoundingClientRect();
-        const containerRect = containerEl.getBoundingClientRect();
-        const offsetX = event.clientX - rect.left;
-        const offsetY = event.clientY - rect.top;
-        const mapX = offsetX / current;
-        const mapY = offsetY / current;
-        const pointerOffsetX = event.clientX - containerRect.left;
-        const pointerOffsetY = event.clientY - containerRect.top;
-        const nextOffsetX = mapX * next;
-        const nextOffsetY = mapY * next;
-        const maxScrollLeft = Math.max(0, boardSize * next - containerEl.clientWidth);
-        const maxScrollTop = Math.max(0, boardSize * next - containerEl.clientHeight);
-        const targetScrollLeft = Math.min(
-          Math.max(0, nextOffsetX - pointerOffsetX),
-          maxScrollLeft,
-        );
-        const targetScrollTop = Math.min(
-          Math.max(0, nextOffsetY - pointerOffsetY),
-          maxScrollTop,
-        );
-
-        requestAnimationFrame(() => {
-          containerEl.scrollLeft = targetScrollLeft;
-          containerEl.scrollTop = targetScrollTop;
-        });
-      }
-
-      setZoom(next);
-    },
-    [boardSize],
-  );
 
   const removeWardById = (id) => {
     if (tool.type !== "ward") return;
@@ -408,7 +355,6 @@ export default function TacticalBoard() {
           boardRef={boardRef}
           fogCanvasRef={fogCanvasRef}
           boardSize={boardSize}
-          zoom={zoom}
           bgUrl={bgUrl}
           showGrid={showGrid}
           showWalls={showWalls}
@@ -421,7 +367,6 @@ export default function TacticalBoard() {
           editTowers={editTowers}
           onBoardClick={onBoardClick}
           onBoardContextMenu={onBoardContextMenu}
-          onBoardWheel={onBoardWheel}
           beginDragToken={beginDragToken}
           beginDragWard={beginDragWard}
           removeWard={removeWardById}
