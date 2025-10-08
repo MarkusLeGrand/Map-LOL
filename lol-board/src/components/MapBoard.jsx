@@ -5,6 +5,7 @@ const MapBoard = ({
   boardRef,
   fogCanvasRef,
   boardSize,
+  zoom,
   bgUrl,
   showGrid,
   showWalls,
@@ -25,22 +26,32 @@ const MapBoard = ({
   isVisibleOnCurrentFog,
   inBrushArea,
   allyRevealsBush,
-}) => (
-  <main className="col-span-12 lg:col-span-9">
-    <div ref={containerRef} className="rounded-2xl overflow-hidden bg-slate-800 shadow-2xl">
-      <div className="relative" style={{ width: boardSize, height: boardSize }}>
+  onBoardWheel,
+}) => {
+  const renderedSize = boardSize * zoom;
+
+  return (
+    <main className="col-span-12 lg:col-span-9">
+      <div
+        ref={containerRef}
+        className={`rounded-2xl bg-slate-800 shadow-2xl ${
+          zoom > 1 ? "overflow-auto" : "overflow-hidden"
+        }`}
+        style={{ width: boardSize, height: boardSize }}
+        onWheel={onBoardWheel}
+      >
         <div
           ref={boardRef}
           onClick={onBoardClick}
           onContextMenu={onBoardContextMenu}
           className="relative select-none"
-          style={{ width: boardSize, height: boardSize }}
+          style={{ width: renderedSize, height: renderedSize }}
         >
           <img
             src={bgUrl}
             alt="map"
             className="absolute inset-0"
-            style={{ width: boardSize, height: boardSize, objectFit: "fill" }}
+            style={{ width: renderedSize, height: renderedSize, objectFit: "fill" }}
           />
 
           {showWalls && (
@@ -48,7 +59,7 @@ const MapBoard = ({
               src="/masks/walls.png"
               alt="walls"
               className="absolute inset-0 opacity-30 pointer-events-none"
-              style={{ width: boardSize, height: boardSize, objectFit: "fill" }}
+              style={{ width: renderedSize, height: renderedSize, objectFit: "fill" }}
             />
           )}
           {showBrush && (
@@ -56,29 +67,29 @@ const MapBoard = ({
               src="/masks/brush.png"
               alt="brush"
               className="absolute inset-0 opacity-30 pointer-events-none"
-              style={{ width: boardSize, height: boardSize, objectFit: "fill" }}
+              style={{ width: renderedSize, height: renderedSize, objectFit: "fill" }}
             />
           )}
 
           {showGrid && (
-            <svg className="absolute inset-0" width={boardSize} height={boardSize}>
+            <svg className="absolute inset-0" width={renderedSize} height={renderedSize}>
               {[...Array(10)].map((_, i) => (
                 <line
                   key={`v${i}`}
-                  x1={(i + 1) * (boardSize / 11)}
+                  x1={(i + 1) * (renderedSize / 11)}
                   y1="0"
-                  x2={(i + 1) * (boardSize / 11)}
-                  y2={boardSize}
+                  x2={(i + 1) * (renderedSize / 11)}
+                  y2={renderedSize}
                   stroke="rgba(255,255,255,.08)"
                 />
               ))}
               {[...Array(10)].map((_, i) => (
                 <line
                   key={`h${i}`}
-                  y1={(i + 1) * (boardSize / 11)}
+                  y1={(i + 1) * (renderedSize / 11)}
                   x1="0"
-                  y2={(i + 1) * (boardSize / 11)}
-                  x2={boardSize}
+                  y2={(i + 1) * (renderedSize / 11)}
+                  x2={renderedSize}
                   stroke="rgba(255,255,255,.08)"
                 />
               ))}
@@ -95,7 +106,7 @@ const MapBoard = ({
                   className={`absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full ring-2 focus:outline-none ${
                     w.team === "blue" ? "ring-blue-400" : "ring-rose-400"
                   } ${isControl ? "bg-amber-400" : w.kind === "stealth" ? "bg-emerald-400" : "bg-violet-400"}`}
-                  style={{ left: w.x, top: w.y }}
+                  style={{ left: w.x * zoom, top: w.y * zoom }}
                   onMouseDown={(e) => beginDragWard(e, w.id)}
                   onTouchStart={(e) => beginDragWard(e, w.id)}
                   onContextMenu={(e) => {
@@ -106,12 +117,12 @@ const MapBoard = ({
                 {isControl && (
                   <svg
                     className="absolute"
-                    style={{ left: 0, top: 0, width: boardSize, height: boardSize, pointerEvents: "none" }}
+                    style={{ left: 0, top: 0, width: renderedSize, height: renderedSize, pointerEvents: "none" }}
                   >
                     <circle
-                      cx={w.x}
-                      cy={w.y}
-                      r={controlTruePx}
+                      cx={w.x * zoom}
+                      cy={w.y * zoom}
+                      r={controlTruePx * zoom}
                       fill="none"
                       stroke={w.team === "blue" ? "rgba(59,130,246,0.35)" : "rgba(244,63,94,0.35)"}
                       strokeWidth="2"
@@ -142,7 +153,7 @@ const MapBoard = ({
                     ? "bg-blue-500/90 border-blue-300 text-white"
                     : "bg-rose-500/90 border-rose-300 text-white"
                 }`}
-                style={{ left: t.x, top: t.y }}
+                style={{ left: t.x * zoom, top: t.y * zoom }}
               >
                 {t.id}
               </button>
@@ -150,8 +161,8 @@ const MapBoard = ({
           })}
 
           {towers.map((tw) => {
-            const px = tw.x * boardSize;
-            const py = tw.y * boardSize;
+            const px = tw.x * boardSize * zoom;
+            const py = tw.y * boardSize * zoom;
             return (
               <button
                 key={tw.id}
@@ -177,11 +188,15 @@ const MapBoard = ({
             );
           })}
 
-          <canvas ref={fogCanvasRef} className="absolute inset-0 pointer-events-none" />
+          <canvas
+            ref={fogCanvasRef}
+            className="absolute inset-0 pointer-events-none"
+            style={{ width: renderedSize, height: renderedSize }}
+          />
         </div>
       </div>
-    </div>
-  </main>
-);
+    </main>
+  );
+};
 
 export default MapBoard;
