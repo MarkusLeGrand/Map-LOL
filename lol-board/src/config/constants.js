@@ -13,10 +13,10 @@ export const OFFICIAL_UNITS = {
 export const wardRadiusDefault = { stealth: 260, control: 300, trap: 220 };
 
 export const OFFICIAL_TOWER_UNITS = {
-  outer: 775,
-  inner: 800,
-  inhibitor: 850,
-  nexus: 875,
+  outer: 1250,
+  inner: 1350,
+  inhibitor: 1400,
+  nexus: 1375,
 };
 
 export const TOWER_TYPE_LABELS = {

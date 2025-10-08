@@ -102,6 +102,9 @@ const ControlPanel = ({
               </button>
             ))}
           </div>
+          <button onClick={clearWards} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">
+            Clear wards
+          </button>
 
         </div>
 
@@ -130,17 +133,6 @@ const ControlPanel = ({
               Voir mask Brush
             </label>
           </div>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={invertWalls} onChange={(e) => setInvertWalls(e.target.checked)} />
-              Inverser walls
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={invertBrush} onChange={(e) => setInvertBrush(e.target.checked)} />
-              Inverser brush
-            </label>
-          </div>
-
         </div>
 
         <div className="h-px bg-slate-700 my-3" />
@@ -171,9 +163,6 @@ const ControlPanel = ({
             <button onClick={saveBoardState} className="px-3 py-2 rounded-xl bg-slate-700">
               Enregistrer
             </button>
-            <button onClick={resetTowers} className="px-3 py-2 rounded-xl bg-slate-700">
-              Réinitialiser
-            </button>
           </div>
           <p className="text-xs text-slate-400">
             Cliquer une tour: activer/désactiver. En mode édition: glisser pour repositionner (puis “Enregistrer”).
@@ -183,12 +172,6 @@ const ControlPanel = ({
         <div className="h-px bg-slate-700 my-3" />
 
         <div className="flex flex-wrap gap-2">
-          <button onClick={resetPositions} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">
-            Reset positions
-          </button>
-          <button onClick={clearWards} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">
-            Clear wards
-          </button>
           <button onClick={exportState} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">
             Exporter
           </button>
