@@ -127,24 +127,15 @@ const ControlPanel = ({
         <div className="h-px bg-slate-700 my-3" />
 
         <div className="space-y-2">
-          <div className="text-sm uppercase tracking-wide text-slate-400">Tours</div>
+          <div className="text-sm uppercase tracking-wide text-slate-400">Editeur</div>
           <div className="flex gap-2 flex-wrap">
-            <button onClick={() => setAllTowersEnabled("blue", true)} className="px-3 py-2 rounded-xl bg-blue-600">
-              Activer Blue
-            </button>
-            <button onClick={() => setAllTowersEnabled("blue", false)} className="px-3 py-2 rounded-xl bg-slate-700">
-              Désactiver Blue
-            </button>
-            <button onClick={() => setAllTowersEnabled("red", false)} className="px-3 py-2 rounded-xl bg-slate-700">
-              Désactiver Red
-            </button>
           </div>
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setEditTowers((v) => !v)}
               className={`px-3 py-2 rounded-xl ${editTowers ? "bg-amber-600" : "bg-slate-700"}`}
             >
-              {editTowers ? "Quitter édition" : "Éditer les tours"}
+              {editTowers ? "Quitter édition" : "Éditer"}
             </button>
             <button onClick={saveBoardState} className="px-3 py-2 rounded-xl bg-slate-700">
               Enregistrer
