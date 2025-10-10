@@ -16,12 +16,12 @@ const ControlPanel = ({
   editTowers,
   setEditTowers,
   saveBoardState,
-  setAllTowersEnabled,
   clearWards,
   exportState,
   importState,
 }) => {
   const toolIs = (type) => tool.type === type;
+  const drawModeIs = (mode) => tool.type === "draw" && tool.mode === mode;
 
   return (
     <aside className="col-span-12 lg:col-span-3 space-y-4">
@@ -69,13 +69,17 @@ const ControlPanel = ({
           <div className="text-sm uppercase tracking-wide text-slate-400">Outils</div>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setTool({ type: "select", team: tool.team, ward: tool.ward })}
+              onClick={() =>
+                setTool((prev) => ({ ...prev, type: "select" }))
+              }
               className={`px-3 py-2 rounded-xl shadow ${toolIs("select") ? "bg-slate-600" : "bg-slate-700"}`}
             >
               Sélection / Déplacement
             </button>
             <button
-              onClick={() => setTool({ type: "ward", team: "blue", ward: tool.ward })}
+              onClick={() =>
+                setTool((prev) => ({ ...prev, type: "ward", team: "blue" }))
+              }
               className={`px-3 py-2 rounded-xl shadow ${
                 toolIs("ward") && tool.team === "blue" ? "bg-blue-600" : "bg-slate-700"
               }`}
@@ -83,7 +87,9 @@ const ControlPanel = ({
               Ward Blue
             </button>
             <button
-              onClick={() => setTool({ type: "ward", team: "red", ward: tool.ward })}
+              onClick={() =>
+                setTool((prev) => ({ ...prev, type: "ward", team: "red" }))
+              }
               className={`px-3 py-2 rounded-xl shadow ${
                 toolIs("ward") && tool.team === "red" ? "bg-rose-600" : "bg-slate-700"
               }`}
@@ -95,6 +101,37 @@ const ControlPanel = ({
             Clear wards
           </button>
 
+        </div>
+
+        <div className="h-px bg-slate-700 my-3" />
+
+        <div className="space-y-2">
+          <div className="text-sm uppercase tracking-wide text-slate-400">Annotations</div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() =>
+                setTool((prev) => ({ ...prev, type: "draw", mode: "pen" }))
+              }
+              className={`px-3 py-2 rounded-xl shadow ${
+                drawModeIs("pen") ? "bg-emerald-600" : "bg-slate-700"
+              }`}
+            >
+              🖊️ Stylo
+            </button>
+            <button
+              onClick={() =>
+                setTool((prev) => ({ ...prev, type: "draw", mode: "eraser" }))
+              }
+              className={`px-3 py-2 rounded-xl shadow ${
+                drawModeIs("eraser") ? "bg-rose-600" : "bg-slate-700"
+              }`}
+            >
+              🧽 Gomme
+            </button>
+          </div>
+          <p className="text-xs text-slate-400">
+            Le stylo permet de dessiner sur la carte, la gomme supprime les tracés proches du curseur.
+          </p>
         </div>
 
         <div className="h-px bg-slate-700 my-3" />
