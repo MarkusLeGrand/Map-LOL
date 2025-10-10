@@ -16,6 +16,10 @@ const ControlPanel = ({
   editTowers,
   setEditTowers,
   saveBoardState,
+  savedPositions,
+  selectedSavedId,
+  selectSavedPosition,
+  deleteSavedPosition,
   clearWards,
   exportState,
   importState,
@@ -162,7 +166,37 @@ const ControlPanel = ({
 
         <div className="space-y-2">
           <div className="text-sm uppercase tracking-wide text-slate-400">Editeur</div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="space-y-2">
+            <select
+              className="w-full px-3 py-2 rounded-xl bg-slate-700 text-sm disabled:opacity-60"
+              value={selectedSavedId ?? ""}
+              onChange={(e) => selectSavedPosition(e.target.value || null)}
+              disabled={!savedPositions.length}
+            >
+              <option value="">
+                {savedPositions.length
+                  ? "Choisir une position enregistrée"
+                  : "Aucune position enregistrée"}
+              </option>
+              {savedPositions.map((pos) => (
+                <option key={pos.id} value={pos.id}>
+                  {pos.name}
+                </option>
+              ))}
+            </select>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => deleteSavedPosition(selectedSavedId)}
+                disabled={!selectedSavedId}
+                className={`px-3 py-2 rounded-xl ${
+                  selectedSavedId
+                    ? "bg-rose-600 hover:bg-rose-500"
+                    : "bg-slate-700/60 cursor-not-allowed"
+                }`}
+              >
+                Supprimer
+              </button>
+            </div>
           </div>
           <div className="flex gap-2 flex-wrap">
             <button

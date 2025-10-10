@@ -3,6 +3,7 @@ import {
   MAX_BOARD,
   LSK_TOWERS,
   LSK_TOKENS,
+  LSK_SAVED_POSITIONS,
   GRID,
   OFFICIAL_UNITS,
   OFFICIAL_TOWER_UNITS,
@@ -25,6 +26,11 @@ const createTowerRadii = (size, multiplier = 1) =>
     ]),
   );
 
+const safeRandomId = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
 export default function TacticalBoard() {
   const containerRef = useRef(null);
   const boardRef = useRef(null);
@@ -40,6 +46,24 @@ export default function TacticalBoard() {
 
   const sanitizeTowers = (arr) =>
     Array.isArray(arr) ? arr.filter((t) => !t.id?.includes("_inhib_")) : [];
+
+  const hydrateSavedPositions = (entries) =>
+    Array.isArray(entries)
+      ? entries
+          .map((entry) => {
+            if (!entry || typeof entry !== "object") return null;
+            const { id, name, tokens: savedTokens, towers: savedTowers } = entry;
+            if (typeof id !== "string" || !id.trim()) return null;
+            if (typeof name !== "string" || !name.trim()) return null;
+            return {
+              id,
+              name: name.trim(),
+              tokens: normalizeTokens(savedTokens ?? []),
+              towers: sanitizeTowers(savedTowers ?? []),
+            };
+          })
+          .filter(Boolean)
+      : [];
 
   const [tokens, setTokens] = useState(() => {
     try {
@@ -61,6 +85,16 @@ export default function TacticalBoard() {
     return sanitizeTowers(defaultTowersNormalized);
   });
 
+  const [savedPositions, setSavedPositions] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(LSK_SAVED_POSITIONS));
+      return hydrateSavedPositions(stored);
+    } catch {
+      return [];
+    }
+  });
+  const [selectedSavedId, setSelectedSavedId] = useState(null);
+
   const [editTowers, setEditTowers] = useState(false);
   const [towerVisionRadius, setTowerVisionRadius] = useState(() => createTowerRadii(900));
   const [tokenVisionRadius, setTokenVisionRadius] = useState(320);
@@ -78,6 +112,10 @@ export default function TacticalBoard() {
   const wallsGrid = useMemo(() => createBinaryGrid(wallsImg, GRID), [wallsImg]);
   const brushGrid = useMemo(() => createBinaryGrid(brushImg, GRID), [brushImg]);
   const drawStateRef = useRef({ active: false, id: null, mode: null });
+
+  useEffect(() => {
+    localStorage.setItem(LSK_SAVED_POSITIONS, JSON.stringify(savedPositions));
+  }, [savedPositions]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -317,9 +355,80 @@ export default function TacticalBoard() {
   };
 
   const saveBoardState = () => {
-    localStorage.setItem(LSK_TOWERS, JSON.stringify(towers));
-    localStorage.setItem(LSK_TOKENS, JSON.stringify(tokens));
-    alert("Positions des tours et joueurs enregistrées ✅");
+    const currentName = selectedSavedId
+      ? savedPositions.find((pos) => pos.id === selectedSavedId)?.name ?? ""
+      : "";
+    const nameInput = prompt("Nom pour cette position :", currentName);
+    if (nameInput === null) return;
+    const name = nameInput.trim();
+    if (!name) {
+      alert("Nom invalide");
+      return;
+    }
+
+    const entryBase = {
+      name,
+      tokens: tokens.map((token) => ({ ...token })),
+      towers: towers.map((tower) => ({ ...tower })),
+    };
+
+    let finalId = selectedSavedId;
+    setSavedPositions((prev) => {
+      const next = [...prev];
+      if (finalId) {
+        const idx = next.findIndex((pos) => pos.id === finalId);
+        if (idx >= 0) {
+          next[idx] = { ...entryBase, id: finalId };
+          return next;
+        }
+      }
+
+      const existingByNameIndex = next.findIndex(
+        (pos) => pos.name.toLowerCase() === name.toLowerCase(),
+      );
+      if (existingByNameIndex >= 0) {
+        finalId = next[existingByNameIndex].id;
+        next[existingByNameIndex] = { ...entryBase, id: finalId };
+        return next;
+      }
+
+      finalId = safeRandomId();
+      next.push({ ...entryBase, id: finalId });
+      return next;
+    });
+
+    if (finalId) {
+      setSelectedSavedId(finalId);
+    }
+
+    localStorage.setItem(LSK_TOWERS, JSON.stringify(entryBase.towers));
+    localStorage.setItem(LSK_TOKENS, JSON.stringify(entryBase.tokens));
+    alert(`Positions enregistrées sous "${name}" ✅`);
+  };
+
+  const selectSavedPosition = (id) => {
+    if (!id) {
+      setSelectedSavedId(null);
+      return;
+    }
+    const entry = savedPositions.find((pos) => pos.id === id);
+    if (!entry) return;
+    setSelectedSavedId(id);
+    setTokens(normalizeTokens(entry.tokens));
+    setTowers(sanitizeTowers(entry.towers));
+    localStorage.setItem(LSK_TOWERS, JSON.stringify(entry.towers ?? []));
+    localStorage.setItem(LSK_TOKENS, JSON.stringify(entry.tokens ?? []));
+  };
+
+  const deleteSavedPosition = (id) => {
+    if (!id) return;
+    const entry = savedPositions.find((pos) => pos.id === id);
+    if (!entry) return;
+    if (!window.confirm(`Supprimer la position "${entry.name}" ?`)) return;
+    setSavedPositions((prev) => prev.filter((pos) => pos.id !== id));
+    if (selectedSavedId === id) {
+      setSelectedSavedId(null);
+    }
   };
 
   const clearWards = () => setWards([]);
@@ -377,6 +486,10 @@ export default function TacticalBoard() {
           editTowers={editTowers}
           setEditTowers={setEditTowers}
           saveBoardState={saveBoardState}
+          savedPositions={savedPositions}
+          selectedSavedId={selectedSavedId}
+          selectSavedPosition={selectSavedPosition}
+          deleteSavedPosition={deleteSavedPosition}
           clearWards={clearWards}
           exportState={exportState}
           importState={importState}

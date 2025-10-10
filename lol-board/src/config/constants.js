@@ -1,6 +1,7 @@
 export const MAX_BOARD = 1100;
 export const LSK_TOWERS = "lolboard_towers_v1";
 export const LSK_TOKENS = "lolboard_tokens_v1";
+export const LSK_SAVED_POSITIONS = "lolboard_saved_positions_v1";
 export const GRID = 384; // 256 (rapide), 384 (reco), 512 (qualité)
 
 export const OFFICIAL_UNITS = {
