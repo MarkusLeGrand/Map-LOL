@@ -204,7 +204,7 @@ export default function TacticalBoard() {
   };
 
   const beginDragWard = (e, id) => {
-    if (tool.type !== "ward") return;
+    if (tool.type !== "select") return;
     if (e.button !== undefined && e.button !== 0) return;
     const p = boardPosFromEvent(e);
     const w = wards.find((wd) => wd.id === id);
@@ -364,6 +364,7 @@ export default function TacticalBoard() {
           towers={towers}
           visionSide={visionSide}
           controlTruePx={controlTruePx}
+          wardRadius={wardRadius}
           editTowers={editTowers}
           onBoardClick={onBoardClick}
           onBoardContextMenu={onBoardContextMenu}

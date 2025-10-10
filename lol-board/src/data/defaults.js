@@ -30,6 +30,7 @@ export const defaultTowersNormalized = [
 
 export const defaultTokens = (size) => {
   const pad = 0.07 * size;
+  const roles = ["TOP", "JGL", "MID", "ADC", "SUPP"];
   const blue = [
     { x: pad, y: size - pad },
     { x: pad + 60, y: size - pad - 60 },
@@ -45,7 +46,17 @@ export const defaultTokens = (size) => {
     { x: size - pad - 90, y: pad + 180 },
   ];
   return [
-    ...blue.map((p, i) => ({ id: `B${i + 1}`, team: "blue", ...p })),
-    ...red.map((p, i) => ({ id: `R${i + 1}`, team: "red", ...p })),
+    ...blue.map((p, i) => ({
+      id: `blue-${roles[i].toLowerCase()}`,
+      role: roles[i],
+      team: "blue",
+      ...p,
+    })),
+    ...red.map((p, i) => ({
+      id: `red-${roles[i].toLowerCase()}`,
+      role: roles[i],
+      team: "red",
+      ...p,
+    })),
   ];
 };
