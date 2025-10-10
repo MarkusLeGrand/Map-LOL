@@ -129,9 +129,6 @@ const ControlPanel = ({
               🧽 Gomme
             </button>
           </div>
-          <p className="text-xs text-slate-400">
-            Le stylo permet de dessiner sur la carte, la gomme supprime les tracés proches du curseur.
-          </p>
         </div>
 
         <div className="h-px bg-slate-700 my-3" />
