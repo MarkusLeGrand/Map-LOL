@@ -59,6 +59,14 @@ const ControlPanel = ({
           >
             Vision Globale
           </button>
+          <button
+            onClick={() => setVisionSide("both")}
+            className={`px-3 py-2 rounded-xl shadow ${
+              visionSide === "both" ? "bg-violet-500 text-white" : "bg-slate-700"
+            }`}
+          >
+            Vision Red/Blue
+          </button>
         </div>
 
         <div className="h-px bg-slate-700 my-3" />
@@ -105,6 +113,12 @@ const ControlPanel = ({
           <button onClick={clearWards} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">
             Clear wards
           </button>
+          <button
+            onClick={resetPositions}
+            className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600"
+          >
+            Reset positions joueurs
+          </button>
 
         </div>
 
@@ -131,6 +145,24 @@ const ControlPanel = ({
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={showBrush} onChange={(e) => setShowBrush(e.target.checked)} />
               Voir mask Brush
+            </label>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={invertWalls}
+                onChange={(e) => setInvertWalls(e.target.checked)}
+              />
+              Inverser Walls
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={invertBrush}
+                onChange={(e) => setInvertBrush(e.target.checked)}
+              />
+              Inverser Brush
             </label>
           </div>
         </div>
@@ -162,6 +194,9 @@ const ControlPanel = ({
             </button>
             <button onClick={saveBoardState} className="px-3 py-2 rounded-xl bg-slate-700">
               Enregistrer
+            </button>
+            <button onClick={resetTowers} className="px-3 py-2 rounded-xl bg-slate-700">
+              Reset tours
             </button>
           </div>
           <p className="text-xs text-slate-400">

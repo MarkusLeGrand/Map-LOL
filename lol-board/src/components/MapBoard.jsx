@@ -26,8 +26,17 @@ const MapBoard = ({
   isVisibleOnCurrentFog,
   inBrushArea,
   allyRevealsBush,
-}) => (
-  <main className="col-span-12 lg:col-span-9">
+}) => {
+  const viewerTeams =
+    visionSide === "global"
+      ? ["blue", "red"]
+      : visionSide === "both"
+      ? ["blue", "red"]
+      : [visionSide];
+  const showAllWards = visionSide === "global" || visionSide === "both";
+
+  return (
+    <main className="col-span-12 lg:col-span-9">
     <div ref={containerRef} className="rounded-2xl overflow-hidden bg-slate-800 shadow-2xl">
       <div className="relative" style={{ width: boardSize, height: boardSize }}>
         <div
@@ -87,6 +96,8 @@ const MapBoard = ({
           )}
 
           {wards.map((w) => {
+            const canSeeWard = showAllWards || viewerTeams.includes(w.team);
+            if (!canSeeWard) return null;
             const isControl = w.kind === "control";
             const wardSightRadius = wardRadius?.[w.kind];
             const showVisionCircle = visionSide == "global" && wardSightRadius;
@@ -143,12 +154,17 @@ const MapBoard = ({
           })}
 
           {tokens.map((t) => {
-            const enemy = visionSide !== "global" && t.team !== visionSide;
+            const enemy = visionSide !== "global" && !viewerTeams.includes(t.team);
             let show = true;
             if (enemy) {
               const fogVisible = isVisibleOnCurrentFog(t.x, t.y);
               if (!fogVisible) show = false;
-              if (show && inBrushArea(t.x, t.y) && !allyRevealsBush(t.x, t.y, visionSide)) show = false;
+              if (
+                show &&
+                inBrushArea(t.x, t.y) &&
+                !viewerTeams.some((team) => allyRevealsBush(t.x, t.y, team))
+              )
+                show = false;
             }
             if (!show) return null;
             return (
@@ -201,6 +217,7 @@ const MapBoard = ({
       </div>
     </div>
   </main>
-);
+  );
+};
 
 export default MapBoard;

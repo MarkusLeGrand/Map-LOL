@@ -257,31 +257,39 @@ const useFogEngine = ({
       return towerVisionRadius.outer;
     };
 
-    towers
-      .filter((t) => t.team === visionSide && t.enabled)
-      .forEach((t) => {
-        const radius = towerRadiusFor(t.id);
-        if (!radius) return;
-        revealFOV(t.x * boardSize, t.y * boardSize, radius, {
-          sourceTeam: visionSide,
+    const viewerTeams = visionSide === "both" ? ["blue", "red"] : [visionSide];
+
+    viewerTeams.forEach((team) => {
+      towers
+        .filter((t) => t.team === team && t.enabled)
+        .forEach((t) => {
+          const radius = towerRadiusFor(t.id);
+          if (!radius) return;
+          revealFOV(t.x * boardSize, t.y * boardSize, radius, {
+            sourceTeam: team,
+          });
         });
-      });
+    });
 
     // Champions
-    tokens
-      .filter((t) => t.team === visionSide)
-      .forEach((t) => {
-        revealFOV(t.x, t.y, tokenVisionRadius, { sourceTeam: visionSide });
-      });
+    viewerTeams.forEach((team) => {
+      tokens
+        .filter((t) => t.team === team)
+        .forEach((t) => {
+          revealFOV(t.x, t.y, tokenVisionRadius, { sourceTeam: team });
+        });
+    });
 
     // Wards
-    wards
-      .filter((w) => w.team === visionSide)
-      .forEach((w) => {
-        revealFOV(w.x, w.y, wardRadius[w.kind] || 250, {
-          sourceTeam: visionSide,
+    viewerTeams.forEach((team) => {
+      wards
+        .filter((w) => w.team === team)
+        .forEach((w) => {
+          revealFOV(w.x, w.y, wardRadius[w.kind] || 250, {
+            sourceTeam: team,
+          });
         });
-      });
+    });
 
     lastFogDataRef.current = ctx.getImageData(0, 0, boardSize, boardSize);
     ctx.globalCompositeOperation = "source-over";

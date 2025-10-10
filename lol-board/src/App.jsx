@@ -15,6 +15,7 @@ import useFogEngine from "./hooks/useFogEngine";
 import ControlPanel from "./components/ControlPanel";
 import MapBoard from "./components/MapBoard";
 import { createBinaryGrid } from "./utils/createBinaryGrid";
+import { normalizeTokens } from "./utils/normalizeTokens";
 
 const createTowerRadii = (size, multiplier = 1) =>
   Object.fromEntries(
@@ -43,11 +44,11 @@ export default function TacticalBoard() {
   const [tokens, setTokens] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(LSK_TOKENS));
-      if (Array.isArray(saved) && saved.length) return saved;
+      if (Array.isArray(saved) && saved.length) return normalizeTokens(saved);
     } catch {
       // ignore malformed persisted data
     }
-    return defaultTokens(900);
+    return normalizeTokens(defaultTokens(900));
   });
   const [wards, setWards] = useState([]);
   const [towers, setTowers] = useState(() => {
@@ -281,7 +282,7 @@ export default function TacticalBoard() {
 
   const resetPositions = () => {
     localStorage.removeItem(LSK_TOKENS);
-    setTokens(defaultTokens(boardSize));
+    setTokens(normalizeTokens(defaultTokens(boardSize)));
   };
   const clearWards = () => setWards([]);
 
@@ -305,7 +306,7 @@ export default function TacticalBoard() {
     if (!txt) return;
     try {
       const obj = JSON.parse(txt);
-      if (obj.tokens) setTokens(obj.tokens);
+      if (obj.tokens) setTokens(normalizeTokens(obj.tokens));
       if (obj.wards) setWards(obj.wards);
       if (obj.visionSide) setVisionSide(obj.visionSide === "off" ? "blue" : obj.visionSide);
       if (obj.towers) setTowers(sanitizeTowers(obj.towers));
