@@ -34,7 +34,7 @@ export default function TacticalBoard() {
 
   const [boardSize, setBoardSize] = useState(900);
   const [visionSide, setVisionSide] = useState("blue");
-  const [tool, setTool] = useState({ type: "select", team: "blue", ward: "stealth" });
+  const [tool, setTool] = useState({ type: "select", team: "blue", ward: "stealth", mode: "pen" });
   const [bgUrl, setBgUrl] = useState("/sr.jpg");
   const [showGrid, setShowGrid] = useState(false);
 
@@ -68,6 +68,7 @@ export default function TacticalBoard() {
   const [controlTruePx, setControlTruePx] = useState(45);
   const [showWalls, setShowWalls] = useState(false);
   const [showBrush, setShowBrush] = useState(false);
+  const [drawings, setDrawings] = useState([]);
   const invertWalls = false;
   const invertBrush = false;
 
@@ -76,6 +77,7 @@ export default function TacticalBoard() {
 
   const wallsGrid = useMemo(() => createBinaryGrid(wallsImg, GRID), [wallsImg]);
   const brushGrid = useMemo(() => createBinaryGrid(brushImg, GRID), [brushImg]);
+  const drawStateRef = useRef({ active: false, id: null, mode: null });
 
   useEffect(() => {
     const el = containerRef.current;
@@ -160,6 +162,55 @@ export default function TacticalBoard() {
         { id: crypto.randomUUID(), team: tool.team, kind: tool.ward, x: p.x, y: p.y },
       ]);
     }
+  };
+
+  const erasePathsAtPoint = (paths, point) =>
+    paths.filter((path) =>
+      path.points.every((pt) => Math.hypot(pt.x - point.x, pt.y - point.y) > 20),
+    );
+
+  const handleBoardPointerDown = (e) => {
+    if (tool.type !== "draw") return;
+    if (e.button !== undefined && e.button !== 0) return;
+    if (e.cancelable) e.preventDefault();
+    const point = boardPosFromEvent(e);
+
+    if (tool.mode === "pen") {
+      const id = crypto.randomUUID();
+      drawStateRef.current = { active: true, id, mode: "pen" };
+      setDrawings((prev) => [...prev, { id, points: [point] }]);
+    } else if (tool.mode === "eraser") {
+      drawStateRef.current = { active: true, id: null, mode: "eraser" };
+      setDrawings((prev) => erasePathsAtPoint(prev, point));
+    }
+  };
+
+  const handleBoardPointerMove = (e) => {
+    if (tool.type !== "draw") return;
+    const state = drawStateRef.current;
+    if (!state.active) return;
+    if (e.cancelable) e.preventDefault();
+
+    if (e.buttons !== undefined && e.buttons === 0) {
+      drawStateRef.current = { active: false, id: null, mode: null };
+      return;
+    }
+
+    const point = boardPosFromEvent(e);
+    if (state.mode === "pen" && state.id) {
+      setDrawings((prev) =>
+        prev.map((path) =>
+          path.id === state.id ? { ...path, points: [...path.points, point] } : path,
+        ),
+      );
+    } else if (state.mode === "eraser") {
+      setDrawings((prev) => erasePathsAtPoint(prev, point));
+    }
+  };
+
+  const handleBoardPointerUp = () => {
+    if (!drawStateRef.current.active) return;
+    drawStateRef.current = { active: false, id: null, mode: null };
   };
 
   const onBoardContextMenu = (e) => {
@@ -271,10 +322,6 @@ export default function TacticalBoard() {
     alert("Positions des tours et joueurs enregistrées ✅");
   };
 
-  const setAllTowersEnabled = (team, value) => {
-    setTowers((arr) => arr.map((t) => (t.team === team ? { ...t, enabled: value } : t)));
-  };
-
   const clearWards = () => setWards([]);
 
   const exportState = () => {
@@ -330,7 +377,6 @@ export default function TacticalBoard() {
           editTowers={editTowers}
           setEditTowers={setEditTowers}
           saveBoardState={saveBoardState}
-          setAllTowersEnabled={setAllTowersEnabled}
           clearWards={clearWards}
           exportState={exportState}
           importState={importState}
@@ -345,6 +391,7 @@ export default function TacticalBoard() {
           showGrid={showGrid}
           showWalls={showWalls}
           showBrush={showBrush}
+          drawings={drawings}
           tokens={tokens}
           wards={wards}
           towers={towers}
@@ -354,6 +401,9 @@ export default function TacticalBoard() {
           editTowers={editTowers}
           onBoardClick={onBoardClick}
           onBoardContextMenu={onBoardContextMenu}
+          onBoardPointerDown={handleBoardPointerDown}
+          onBoardPointerMove={handleBoardPointerMove}
+          onBoardPointerUp={handleBoardPointerUp}
           beginDragToken={beginDragToken}
           beginDragWard={beginDragWard}
           removeWard={removeWardById}

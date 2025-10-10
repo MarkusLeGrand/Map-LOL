@@ -9,6 +9,7 @@ const MapBoard = ({
   showGrid,
   showWalls,
   showBrush,
+  drawings,
   tokens,
   wards,
   towers,
@@ -18,6 +19,9 @@ const MapBoard = ({
   editTowers,
   onBoardClick,
   onBoardContextMenu,
+  onBoardPointerDown,
+  onBoardPointerMove,
+  onBoardPointerUp,
   beginDragToken,
   beginDragWard,
   removeWard,
@@ -43,6 +47,11 @@ const MapBoard = ({
           ref={boardRef}
           onClick={onBoardClick}
           onContextMenu={onBoardContextMenu}
+          onPointerDown={onBoardPointerDown}
+          onPointerMove={onBoardPointerMove}
+          onPointerUp={onBoardPointerUp}
+          onPointerLeave={onBoardPointerUp}
+          onPointerCancel={onBoardPointerUp}
           className="relative select-none"
           style={{ width: boardSize, height: boardSize }}
         >
@@ -90,6 +99,26 @@ const MapBoard = ({
                   y2={(i + 1) * (boardSize / 11)}
                   x2={boardSize}
                   stroke="rgba(255,255,255,.08)"
+                />
+              ))}
+            </svg>
+          )}
+
+          {!!drawings.length && (
+            <svg
+              className="absolute inset-0 pointer-events-none"
+              width={boardSize}
+              height={boardSize}
+            >
+              {drawings.map((path) => (
+                <polyline
+                  key={path.id}
+                  points={path.points.map((p) => `${p.x},${p.y}`).join(" ")}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.85)"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
               ))}
             </svg>
