@@ -68,8 +68,8 @@ export default function TacticalBoard() {
   const [controlTruePx, setControlTruePx] = useState(45);
   const [showWalls, setShowWalls] = useState(false);
   const [showBrush, setShowBrush] = useState(false);
-  const [invertWalls, setInvertWalls] = useState(false);
-  const [invertBrush, setInvertBrush] = useState(false);
+  const invertWalls = false;
+  const invertBrush = false;
 
   const wallsImg = useImage("/masks/walls.png");
   const brushImg = useImage("/masks/brush.png");
@@ -271,19 +271,10 @@ export default function TacticalBoard() {
     alert("Positions des tours et joueurs enregistrées ✅");
   };
 
-  const resetTowers = () => {
-    localStorage.removeItem(LSK_TOWERS);
-    setTowers(sanitizeTowers(defaultTowersNormalized));
-  };
-
   const setAllTowersEnabled = (team, value) => {
     setTowers((arr) => arr.map((t) => (t.team === team ? { ...t, enabled: value } : t)));
   };
 
-  const resetPositions = () => {
-    localStorage.removeItem(LSK_TOKENS);
-    setTokens(normalizeTokens(defaultTokens(boardSize)));
-  };
   const clearWards = () => setWards([]);
 
   const exportState = () => {
@@ -336,16 +327,10 @@ export default function TacticalBoard() {
           setShowWalls={setShowWalls}
           showBrush={showBrush}
           setShowBrush={setShowBrush}
-          invertWalls={invertWalls}
-          setInvertWalls={setInvertWalls}
-          invertBrush={invertBrush}
-          setInvertBrush={setInvertBrush}
           editTowers={editTowers}
           setEditTowers={setEditTowers}
           saveBoardState={saveBoardState}
-          resetTowers={resetTowers}
           setAllTowersEnabled={setAllTowersEnabled}
-          resetPositions={resetPositions}
           clearWards={clearWards}
           exportState={exportState}
           importState={importState}
