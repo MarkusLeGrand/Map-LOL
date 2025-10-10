@@ -14,6 +14,7 @@ const MapBoard = ({
   towers,
   visionSide,
   controlTruePx,
+  wardRadius,
   editTowers,
   onBoardClick,
   onBoardContextMenu,
@@ -87,6 +88,8 @@ const MapBoard = ({
 
           {wards.map((w) => {
             const isControl = w.kind === "control";
+            const wardSightRadius = wardRadius?.[w.kind];
+            const showVisionCircle = visionSide == "global" && wardSightRadius;
             return (
               <React.Fragment key={w.id}>
                 <button
@@ -103,6 +106,22 @@ const MapBoard = ({
                     removeWard(w.id);
                   }}
                 />
+                {showVisionCircle && (
+                  <svg
+                    className="absolute"
+                    style={{ left: 0, top: 0, width: boardSize, height: boardSize, pointerEvents: "none" }}
+                  >
+                    <circle
+                      cx={w.x}
+                      cy={w.y}
+                      r={wardSightRadius}
+                      fill={w.team === "blue" ? "rgba(59,130,246,0.12)" : "rgba(244,63,94,0.12)"}
+                      stroke={w.team === "blue" ? "rgba(59,130,246,0.5)" : "rgba(244,63,94,0.5)"}
+                      strokeWidth="2"
+                      strokeDasharray="8 6"
+                    />
+                  </svg>
+                )}
                 {isControl && (
                   <svg
                     className="absolute"
@@ -144,7 +163,7 @@ const MapBoard = ({
                 }`}
                 style={{ left: t.x, top: t.y }}
               >
-                {t.id}
+                {t.role ?? t.id}
               </button>
             );
           })}
