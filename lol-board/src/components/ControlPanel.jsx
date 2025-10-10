@@ -13,16 +13,10 @@ const ControlPanel = ({
   setShowWalls,
   showBrush,
   setShowBrush,
-  invertWalls,
-  setInvertWalls,
-  invertBrush,
-  setInvertBrush,
   editTowers,
   setEditTowers,
   saveBoardState,
-  resetTowers,
   setAllTowersEnabled,
-  resetPositions,
   clearWards,
   exportState,
   importState,
@@ -97,27 +91,8 @@ const ControlPanel = ({
               Ward Red
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {["stealth", "control", "trap"].map((k) => (
-              <button
-                key={k}
-                onClick={() => setTool((t) => ({ ...t, ward: k }))}
-                className={`px-3 py-1.5 rounded-xl text-sm shadow ${
-                  tool.ward === k ? "bg-amber-600" : "bg-slate-700"
-                }`}
-              >
-                {k}
-              </button>
-            ))}
-          </div>
           <button onClick={clearWards} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">
             Clear wards
-          </button>
-          <button
-            onClick={resetPositions}
-            className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600"
-          >
-            Reset positions joueurs
           </button>
 
         </div>
@@ -147,24 +122,6 @@ const ControlPanel = ({
               Voir mask Brush
             </label>
           </div>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={invertWalls}
-                onChange={(e) => setInvertWalls(e.target.checked)}
-              />
-              Inverser Walls
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={invertBrush}
-                onChange={(e) => setInvertBrush(e.target.checked)}
-              />
-              Inverser Brush
-            </label>
-          </div>
         </div>
 
         <div className="h-px bg-slate-700 my-3" />
@@ -177,9 +134,6 @@ const ControlPanel = ({
             </button>
             <button onClick={() => setAllTowersEnabled("blue", false)} className="px-3 py-2 rounded-xl bg-slate-700">
               Désactiver Blue
-            </button>
-            <button onClick={() => setAllTowersEnabled("red", true)} className="px-3 py-2 rounded-xl bg-rose-600">
-              Activer Red
             </button>
             <button onClick={() => setAllTowersEnabled("red", false)} className="px-3 py-2 rounded-xl bg-slate-700">
               Désactiver Red
@@ -194,9 +148,6 @@ const ControlPanel = ({
             </button>
             <button onClick={saveBoardState} className="px-3 py-2 rounded-xl bg-slate-700">
               Enregistrer
-            </button>
-            <button onClick={resetTowers} className="px-3 py-2 rounded-xl bg-slate-700">
-              Reset tours
             </button>
           </div>
           <p className="text-xs text-slate-400">
