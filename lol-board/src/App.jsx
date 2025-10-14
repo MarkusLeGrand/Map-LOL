@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   MAX_BOARD,
   LSK_TOWERS,
@@ -133,6 +133,7 @@ export default function TacticalBoard() {
     }
     return sanitizeTowers(defaultTowersNormalized);
   });
+  const towersRef = useRef(towers);
 
   const [savedPositions, setSavedPositions] = useState(() => {
     try {
@@ -154,16 +155,57 @@ export default function TacticalBoard() {
   const [drawings, setDrawings] = useState([]);
 
   const basePositionRef = useRef(null);
-  if (!basePositionRef.current) {
+  const baseInitializedRef = useRef(false);
+  if (!baseInitializedRef.current) {
     basePositionRef.current = {
       id: null,
       name: "Position de base",
-      tokens: normalizeTokens(defaultTokens(900)),
-      towers: sanitizeTowers(defaultTowersNormalized),
-      wards: [],
-      drawings: [],
+      tokens: tokens.map((token) => ({ ...token })),
+      towers: towers.map((tower) => ({ ...tower })),
+      wards: wards.map((ward) => ({ ...ward })),
+      drawings: drawings.map((path) => ({
+        ...path,
+        points: Array.isArray(path.points)
+          ? path.points.map((pt) => ({ ...pt }))
+          : [],
+      })),
     };
+    baseInitializedRef.current = true;
   }
+
+  useEffect(() => {
+    towersRef.current = towers;
+  }, [towers]);
+
+  const captureBaseSnapshot = useCallback(
+    () => ({
+      id: null,
+      name: "Position de base",
+      tokens: tokens.map((token) => ({ ...token })),
+      towers: towers.map((tower) => ({ ...tower })),
+      wards: wards.map((ward) => ({ ...ward })),
+      drawings: drawings.map((path) => ({
+        ...path,
+        points: Array.isArray(path.points)
+          ? path.points.map((pt) => ({ ...pt }))
+          : [],
+      })),
+    }),
+    [drawings, tokens, towers, wards],
+  );
+
+  useEffect(() => {
+    if (selectedSavedId) return;
+    basePositionRef.current = captureBaseSnapshot();
+  }, [captureBaseSnapshot, selectedSavedId]);
+
+  const persistTowers = (next) => {
+    try {
+      localStorage.setItem(LSK_TOWERS, JSON.stringify(next));
+    } catch {
+      // ignore persistence failures (e.g. private mode)
+    }
+  };
 
   const lastAppliedPositionRef = useRef(null);
   const invertWalls = false;
@@ -401,7 +443,11 @@ export default function TacticalBoard() {
   };
 
   const toggleTowerEnable = (tid) => {
-    setTowers((arr) => arr.map((t) => (t.id === tid ? { ...t, enabled: !t.enabled } : t)));
+    setTowers((arr) => {
+      const next = arr.map((t) => (t.id === tid ? { ...t, enabled: !t.enabled } : t));
+      persistTowers(next);
+      return next;
+    });
   };
 
   const beginDragTower = (e, tid) => {
@@ -429,6 +475,7 @@ export default function TacticalBoard() {
     dragTowerRef.current = { id: null };
     window.removeEventListener("mousemove", onDragMoveTower);
     window.removeEventListener("mouseup", endDragTower);
+    persistTowers(towersRef.current);
   };
 
   const applyPositionSnapshot = (snapshot) => {
