@@ -47,12 +47,59 @@ export default function TacticalBoard() {
   const sanitizeTowers = (arr) =>
     Array.isArray(arr) ? arr.filter((t) => !t.id?.includes("_inhib_")) : [];
 
+  const cloneWards = (items) =>
+    Array.isArray(items)
+      ? items
+          .map((ward) => {
+            if (!ward || typeof ward !== "object") return null;
+            const { x, y } = ward;
+            if (typeof x !== "number" || typeof y !== "number") return null;
+            return {
+              id: typeof ward.id === "string" ? ward.id : safeRandomId(),
+              team: typeof ward.team === "string" ? ward.team : "blue",
+              kind: typeof ward.kind === "string" ? ward.kind : "stealth",
+              x,
+              y,
+            };
+          })
+          .filter(Boolean)
+      : [];
+
+  const cloneDrawings = (items) =>
+    Array.isArray(items)
+      ? items
+          .map((path) => {
+            if (!path || typeof path !== "object") return null;
+            const points = Array.isArray(path.points)
+              ? path.points
+                  .map((pt) =>
+                    pt && typeof pt === "object" && typeof pt.x === "number" && typeof pt.y === "number"
+                      ? { x: pt.x, y: pt.y }
+                      : null,
+                  )
+                  .filter(Boolean)
+              : [];
+            return {
+              id: typeof path.id === "string" ? path.id : safeRandomId(),
+              points,
+            };
+          })
+          .filter(Boolean)
+      : [];
+
   const hydrateSavedPositions = (entries) =>
     Array.isArray(entries)
       ? entries
           .map((entry) => {
             if (!entry || typeof entry !== "object") return null;
-            const { id, name, tokens: savedTokens, towers: savedTowers } = entry;
+            const {
+              id,
+              name,
+              tokens: savedTokens,
+              towers: savedTowers,
+              wards: savedWards,
+              drawings: savedDrawings,
+            } = entry;
             if (typeof id !== "string" || !id.trim()) return null;
             if (typeof name !== "string" || !name.trim()) return null;
             return {
@@ -60,6 +107,8 @@ export default function TacticalBoard() {
               name: name.trim(),
               tokens: normalizeTokens(savedTokens ?? []),
               towers: sanitizeTowers(savedTowers ?? []),
+              wards: cloneWards(savedWards ?? []),
+              drawings: cloneDrawings(savedDrawings ?? []),
             };
           })
           .filter(Boolean)
@@ -103,6 +152,20 @@ export default function TacticalBoard() {
   const [showWalls, setShowWalls] = useState(false);
   const [showBrush, setShowBrush] = useState(false);
   const [drawings, setDrawings] = useState([]);
+
+  const basePositionRef = useRef(null);
+  if (!basePositionRef.current) {
+    basePositionRef.current = {
+      id: null,
+      name: "Position de base",
+      tokens: normalizeTokens(defaultTokens(900)),
+      towers: sanitizeTowers(defaultTowersNormalized),
+      wards: [],
+      drawings: [],
+    };
+  }
+
+  const lastAppliedPositionRef = useRef(null);
   const invertWalls = false;
   const invertBrush = false;
 
@@ -112,6 +175,20 @@ export default function TacticalBoard() {
   const wallsGrid = useMemo(() => createBinaryGrid(wallsImg, GRID), [wallsImg]);
   const brushGrid = useMemo(() => createBinaryGrid(brushImg, GRID), [brushImg]);
   const drawStateRef = useRef({ active: false, id: null, mode: null });
+
+  useEffect(() => {
+    if (lastAppliedPositionRef.current) return;
+    lastAppliedPositionRef.current = {
+      id: selectedSavedId,
+      name: selectedSavedId
+        ? savedPositions.find((pos) => pos.id === selectedSavedId)?.name ?? null
+        : basePositionRef.current.name,
+      tokens: tokens.map((token) => ({ ...token })),
+      towers: towers.map((tower) => ({ ...tower })),
+      wards: cloneWards(wards),
+      drawings: cloneDrawings(drawings),
+    };
+  }, [selectedSavedId, savedPositions, tokens, towers, wards, drawings]);
 
   useEffect(() => {
     localStorage.setItem(LSK_SAVED_POSITIONS, JSON.stringify(savedPositions));
@@ -354,6 +431,36 @@ export default function TacticalBoard() {
     window.removeEventListener("mouseup", endDragTower);
   };
 
+  const applyPositionSnapshot = (snapshot) => {
+    if (!snapshot || typeof snapshot !== "object") return;
+    const nextTokens = normalizeTokens(snapshot.tokens ?? []);
+    const nextTowers = sanitizeTowers(snapshot.towers ?? []);
+    const nextWards = cloneWards(snapshot.wards ?? []);
+    const nextDrawings = cloneDrawings(snapshot.drawings ?? []);
+
+    setTokens(nextTokens);
+    setTowers(nextTowers);
+    setWards(nextWards);
+    setDrawings(nextDrawings);
+
+    localStorage.setItem(LSK_TOWERS, JSON.stringify(nextTowers));
+    localStorage.setItem(LSK_TOKENS, JSON.stringify(nextTokens));
+
+    lastAppliedPositionRef.current = {
+      id: snapshot.id ?? null,
+      name: snapshot.name ?? null,
+      tokens: nextTokens.map((token) => ({ ...token })),
+      towers: nextTowers.map((tower) => ({ ...tower })),
+      wards: nextWards.map((ward) => ({ ...ward })),
+      drawings: nextDrawings.map((path) => ({
+        ...path,
+        points: Array.isArray(path.points)
+          ? path.points.map((pt) => ({ ...pt }))
+          : [],
+      })),
+    };
+  };
+
   const saveBoardState = () => {
     const currentName = selectedSavedId
       ? savedPositions.find((pos) => pos.id === selectedSavedId)?.name ?? ""
@@ -370,6 +477,8 @@ export default function TacticalBoard() {
       name,
       tokens: tokens.map((token) => ({ ...token })),
       towers: towers.map((tower) => ({ ...tower })),
+      wards: cloneWards(wards),
+      drawings: cloneDrawings(drawings),
     };
 
     let finalId = selectedSavedId;
@@ -403,21 +512,47 @@ export default function TacticalBoard() {
 
     localStorage.setItem(LSK_TOWERS, JSON.stringify(entryBase.towers));
     localStorage.setItem(LSK_TOKENS, JSON.stringify(entryBase.tokens));
+    lastAppliedPositionRef.current = {
+      id: finalId ?? null,
+      name,
+      tokens: entryBase.tokens.map((token) => ({ ...token })),
+      towers: entryBase.towers.map((tower) => ({ ...tower })),
+      wards: entryBase.wards.map((ward) => ({ ...ward })),
+      drawings: entryBase.drawings.map((path) => ({
+        ...path,
+        points: path.points.map((pt) => ({ ...pt })),
+      })),
+    };
     alert(`Positions enregistrées sous "${name}" ✅`);
   };
 
   const selectSavedPosition = (id) => {
     if (!id) {
       setSelectedSavedId(null);
+      applyPositionSnapshot(basePositionRef.current);
       return;
     }
     const entry = savedPositions.find((pos) => pos.id === id);
     if (!entry) return;
     setSelectedSavedId(id);
-    setTokens(normalizeTokens(entry.tokens));
-    setTowers(sanitizeTowers(entry.towers));
-    localStorage.setItem(LSK_TOWERS, JSON.stringify(entry.towers ?? []));
-    localStorage.setItem(LSK_TOKENS, JSON.stringify(entry.tokens ?? []));
+    applyPositionSnapshot(entry);
+  };
+
+  const resetSelectedPosition = () => {
+    if (selectedSavedId) {
+      const entry = savedPositions.find((pos) => pos.id === selectedSavedId);
+      if (entry) {
+        applyPositionSnapshot(entry);
+        return;
+      }
+    } else {
+      applyPositionSnapshot(basePositionRef.current);
+      return;
+    }
+
+    if (lastAppliedPositionRef.current) {
+      applyPositionSnapshot(lastAppliedPositionRef.current);
+    }
   };
 
   const deleteSavedPosition = (id) => {
@@ -486,6 +621,7 @@ export default function TacticalBoard() {
           editTowers={editTowers}
           setEditTowers={setEditTowers}
           saveBoardState={saveBoardState}
+          resetSelectedPosition={resetSelectedPosition}
           savedPositions={savedPositions}
           selectedSavedId={selectedSavedId}
           selectSavedPosition={selectSavedPosition}
