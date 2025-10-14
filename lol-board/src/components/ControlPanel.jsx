@@ -16,6 +16,7 @@ const ControlPanel = ({
   editTowers,
   setEditTowers,
   saveBoardState,
+  resetSelectedPosition,
   savedPositions,
   selectedSavedId,
   selectSavedPosition,
@@ -166,25 +167,23 @@ const ControlPanel = ({
 
         <div className="space-y-2">
           <div className="text-sm uppercase tracking-wide text-slate-400">Editeur</div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <select
-              className="w-full px-3 py-2 rounded-xl bg-slate-700 text-sm disabled:opacity-60"
+              className="w-full px-3 py-2 rounded-xl bg-slate-700 text-sm"
               value={selectedSavedId ?? ""}
               onChange={(e) => selectSavedPosition(e.target.value || null)}
-              disabled={!savedPositions.length}
             >
-              <option value="">
-                {savedPositions.length
-                  ? "Choisir une position enregistrée"
-                  : "Aucune position enregistrée"}
-              </option>
+              <option value="">Position de base</option>
               {savedPositions.map((pos) => (
                 <option key={pos.id} value={pos.id}>
                   {pos.name}
                 </option>
               ))}
             </select>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-wrap gap-2">
+              <button onClick={saveBoardState} className="px-3 py-2 rounded-xl bg-slate-700">
+                Enregistrer
+              </button>
               <button
                 onClick={() => deleteSavedPosition(selectedSavedId)}
                 disabled={!selectedSavedId}
@@ -196,17 +195,20 @@ const ControlPanel = ({
               >
                 Supprimer
               </button>
+              <button
+                onClick={resetSelectedPosition}
+                className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600"
+              >
+                Reset
+              </button>
             </div>
-          </div>
-          <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setEditTowers((v) => !v)}
-              className={`px-3 py-2 rounded-xl ${editTowers ? "bg-amber-600" : "bg-slate-700"}`}
+              className={`w-full px-3 py-2 rounded-xl ${
+                editTowers ? "bg-amber-600" : "bg-slate-700 hover:bg-slate-600"
+              }`}
             >
               {editTowers ? "Quitter édition" : "Éditer"}
-            </button>
-            <button onClick={saveBoardState} className="px-3 py-2 rounded-xl bg-slate-700">
-              Enregistrer
             </button>
           </div>
           <p className="text-xs text-slate-400">
