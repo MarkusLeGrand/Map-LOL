@@ -269,6 +269,7 @@ export default function TacticalBoard() {
     towerVisionRadius,
     tokenVisionRadius,
     wardRadius,
+    controlTruePx,
     invertWalls,
     invertBrush,
   });
@@ -325,6 +326,10 @@ export default function TacticalBoard() {
     paths.filter((path) =>
       path.points.every((pt) => Math.hypot(pt.x - point.x, pt.y - point.y) > 20),
     );
+
+  const clearDrawings = useCallback(() => {
+    setDrawings([]);
+  }, []);
 
   const handleBoardPointerDown = (e) => {
     if (tool.type !== "draw") return;
@@ -680,33 +685,33 @@ export default function TacticalBoard() {
 
         <MapBoard
           containerRef={containerRef}
-          boardRef={boardRef}
-          fogCanvasRef={fogCanvasRef}
-          boardSize={boardSize}
-          bgUrl={bgUrl}
-          showGrid={showGrid}
-          showWalls={showWalls}
-          showBrush={showBrush}
-          drawings={drawings}
-          tokens={tokens}
-          wards={wards}
-          towers={towers}
-          visionSide={visionSide}
-          controlTruePx={controlTruePx}
-          wardRadius={wardRadius}
-          editTowers={editTowers}
-          onBoardClick={onBoardClick}
-          onBoardContextMenu={onBoardContextMenu}
-          onBoardPointerDown={handleBoardPointerDown}
-          onBoardPointerMove={handleBoardPointerMove}
-          onBoardPointerUp={handleBoardPointerUp}
-          beginDragToken={beginDragToken}
-          beginDragWard={beginDragWard}
-          removeWard={removeWardById}
-          beginDragTower={beginDragTower}
-          toggleTowerEnable={toggleTowerEnable}
-          isVisibleOnCurrentFog={isVisibleOnCurrentFog}
-          inBrushArea={inBrushArea}
+            boardRef={boardRef}
+            fogCanvasRef={fogCanvasRef}
+            boardSize={boardSize}
+            bgUrl={bgUrl}
+            showGrid={showGrid}
+            showWalls={showWalls}
+            showBrush={showBrush}
+            drawings={drawings}
+            tokens={tokens}
+            wards={wards}
+            towers={towers}
+            visionSide={visionSide}
+            controlTruePx={controlTruePx}
+            wardRadius={wardRadius}
+            editTowers={editTowers}
+            onBoardClick={onBoardClick}
+            onBoardContextMenu={onBoardContextMenu}
+            onBoardPointerDown={handleBoardPointerDown}
+            onBoardPointerMove={handleBoardPointerMove}
+            onBoardPointerUp={handleBoardPointerUp}
+            beginDragToken={beginDragToken}
+            beginDragWard={beginDragWard}
+            removeWard={removeWardById}
+            beginDragTower={beginDragTower}
+            toggleTowerEnable={toggleTowerEnable}
+            isVisibleOnCurrentFog={isVisibleOnCurrentFog}
+            inBrushArea={inBrushArea}
           allyRevealsBush={allyRevealsBush}
         />
       </div>

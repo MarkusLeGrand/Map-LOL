@@ -14,6 +14,7 @@ const useFogEngine = ({
   towerVisionRadius,
   tokenVisionRadius,
   wardRadius,
+  controlTruePx,
   invertWalls,
   invertBrush,
 }) => {
@@ -68,8 +69,9 @@ const useFogEngine = ({
 
   const suppressedWardIds = useMemo(() => {
     if (!Array.isArray(wards) || !wards.length) return new Set();
-    const detectionRadius =
-      (wardRadius && (wardRadius.pink ?? wardRadius.control ?? wardRadius.stealth)) || 0;
+    const detectionRadius = controlTruePx ||
+      (wardRadius && (wardRadius.pink ?? wardRadius.control ?? wardRadius.stealth)) ||
+      0;
     if (!detectionRadius) return new Set();
 
     const pinksByTeam = wards.reduce(
@@ -96,7 +98,7 @@ const useFogEngine = ({
     });
 
     return result;
-  }, [wardRadius, wards]);
+  }, [controlTruePx, wardRadius, wards]);
 
   const drawFog = useCallback(() => {
     const canvas = fogCanvasRef.current;
