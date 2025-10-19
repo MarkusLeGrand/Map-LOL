@@ -139,7 +139,7 @@ const MapBoard = ({
             if (!canSeeWard) return null;
             const isControl = w.kind === "control" || isPink;
             const wardSightRadius = wardRadius?.[w.kind];
-            const showVisionCircle = visionSide == "global" && wardSightRadius && !isPink;
+            const showVisionCircle = visionSide == "global" && wardSightRadius;
             const sizeClass = isPink ? "w-5 h-5" : "w-4 h-4";
             const baseColorClass = isPink
               ? w.team === "blue"
@@ -148,7 +148,6 @@ const MapBoard = ({
               : w.kind === "stealth"
               ? "bg-emerald-400"
               : "bg-violet-400";
-            const showControlCircle = visionSide === "global" && isControl;
             return (
               <React.Fragment key={w.id}>
                 <button
@@ -186,22 +185,6 @@ const MapBoard = ({
                       stroke={w.team === "blue" ? "rgba(59,130,246,0.5)" : "rgba(244,63,94,0.5)"}
                       strokeWidth="2"
                       strokeDasharray="8 6"
-                    />
-                  </svg>
-                )}
-                {showControlCircle && (
-                  <svg
-                    className="absolute"
-                    style={{ left: 0, top: 0, width: boardSize, height: boardSize, pointerEvents: "none" }}
-                  >
-                    <circle
-                      cx={w.x}
-                      cy={w.y}
-                      r={controlTruePx}
-                      fill="none"
-                      stroke={w.team === "blue" ? "rgba(59,130,246,0.35)" : "rgba(244,63,94,0.35)"}
-                      strokeWidth="2"
-                      strokeDasharray="6 6"
                     />
                   </svg>
                 )}
