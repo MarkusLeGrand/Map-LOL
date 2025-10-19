@@ -38,7 +38,6 @@ const MapBoard = ({
       ? ["blue", "red"]
       : [visionSide];
   const showAllWards = visionSide === "global" || visionSide === "both";
-
   return (
     <main className="col-span-12 lg:col-span-9">
       <div
@@ -131,18 +130,25 @@ const MapBoard = ({
           )}
 
           {wards.map((w) => {
-            const canSeeWard = showAllWards || viewerTeams.includes(w.team);
-            if (!canSeeWard) return null;
             const isPink = w.kind === "pink";
+            const canSeeWard =
+              showAllWards ||
+              viewerTeams.includes(w.team) ||
+              (isPink && typeof isVisibleOnCurrentFog === "function" &&
+                isVisibleOnCurrentFog(w.x, w.y));
+            if (!canSeeWard) return null;
             const isControl = w.kind === "control" || isPink;
             const wardSightRadius = wardRadius?.[w.kind];
             const showVisionCircle = visionSide == "global" && wardSightRadius && !isPink;
             const sizeClass = isPink ? "w-5 h-5" : "w-4 h-4";
             const baseColorClass = isPink
-              ? "bg-fuchsia-400"
+              ? w.team === "blue"
+                ? "bg-blue-400"
+                : "bg-rose-400"
               : w.kind === "stealth"
               ? "bg-emerald-400"
               : "bg-violet-400";
+            const showControlCircle = visionSide === "global" && isControl;
             return (
               <React.Fragment key={w.id}>
                 <button
@@ -183,7 +189,7 @@ const MapBoard = ({
                     />
                   </svg>
                 )}
-                {isControl && (
+                {showControlCircle && (
                   <svg
                     className="absolute"
                     style={{ left: 0, top: 0, width: boardSize, height: boardSize, pointerEvents: "none" }}
