@@ -316,7 +316,7 @@ export default function TacticalBoard() {
     if (tool.type === "ward") {
       setWards((ws) => [
         ...ws,
-        { id: crypto.randomUUID(), team: tool.team, kind: tool.ward, x: p.x, y: p.y },
+        { id: safeRandomId(), team: tool.team, kind: tool.ward, x: p.x, y: p.y },
       ]);
     }
   };
@@ -333,7 +333,7 @@ export default function TacticalBoard() {
     const point = boardPosFromEvent(e);
 
     if (tool.mode === "pen") {
-      const id = crypto.randomUUID();
+      const id = safeRandomId();
       drawStateRef.current = { active: true, id, mode: "pen" };
       setDrawings((prev) => [...prev, { id, points: [point] }]);
     } else if (tool.mode === "eraser") {
