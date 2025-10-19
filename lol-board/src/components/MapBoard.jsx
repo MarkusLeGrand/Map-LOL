@@ -29,6 +29,7 @@ const MapBoard = ({
   isVisibleOnCurrentFog,
   inBrushArea,
   allyRevealsBush,
+  className = "",
 }) => {
   const viewerTeams =
     visionSide === "global"
@@ -41,7 +42,7 @@ const MapBoard = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full flex-1 rounded-2xl overflow-hidden bg-slate-800 shadow-2xl"
+      className={`relative w-full flex-1 rounded-2xl overflow-hidden bg-slate-800 shadow-2xl ${className}`}
     >
       <div className="relative mx-auto" style={{ width: boardSize, height: boardSize }}>
         <div
@@ -127,7 +128,11 @@ const MapBoard = ({
 
           {wards.map((w) => {
             const isPink = w.kind === "pink";
-            const canSeeWard = showAllWards || isPink || viewerTeams.includes(w.team);
+            const enemyWard = !showAllWards && !viewerTeams.includes(w.team);
+            let canSeeWard = showAllWards || viewerTeams.includes(w.team);
+            if (!canSeeWard && enemyWard && isPink) {
+              canSeeWard = isVisibleOnCurrentFog(w.x, w.y);
+            }
             if (!canSeeWard) return null;
             const isControl = w.kind === "control" || isPink;
             const wardSightRadius = wardRadius?.[w.kind];

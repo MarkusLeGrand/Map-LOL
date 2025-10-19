@@ -30,7 +30,7 @@ const ControlPanel = ({
     tool.type === "ward" && tool.team === team && tool.ward === kind;
 
   return (
-    <aside className="col-span-12 lg:col-span-3 space-y-4">
+    <aside className="w-full flex-none space-y-4 lg:w-80">
       <div className="rounded-2xl bg-slate-800/70 p-4 shadow-lg">
         <h2 className="text-xl font-semibold mb-3">Contrôles</h2>
 

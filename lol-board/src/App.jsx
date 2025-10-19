@@ -648,7 +648,7 @@ export default function TacticalBoard() {
 
   return (
     <div className="min-h-screen w-full bg-slate-900 text-slate-100 p-4">
-      <div className="max-w-7xl mx-auto grid grid-cols-12 gap-4">
+      <div className="mx-auto flex max-w-[1800px] flex-col gap-4 lg:flex-row lg:items-start">
         <ControlPanel
           visionSide={visionSide}
           setVisionSide={setVisionSide}
@@ -674,45 +674,48 @@ export default function TacticalBoard() {
           exportState={exportState}
           importState={importState}
         />
-        <section className="col-span-12 lg:col-span-9 flex flex-col gap-4 lg:flex-row">
-          <MapBoard
-            containerRef={containerRef}
-            boardRef={boardRef}
-            fogCanvasRef={fogCanvasRef}
-            boardSize={boardSize}
-            bgUrl={bgUrl}
-            showGrid={showGrid}
-            showWalls={showWalls}
-            showBrush={showBrush}
-            drawings={drawings}
-            tokens={tokens}
-            wards={wards}
-            towers={towers}
-            visionSide={visionSide}
-            wardRadius={wardRadius}
-            editTowers={editTowers}
-            onBoardClick={onBoardClick}
-            onBoardContextMenu={onBoardContextMenu}
-            onBoardPointerDown={handleBoardPointerDown}
-            onBoardPointerMove={handleBoardPointerMove}
-            onBoardPointerUp={handleBoardPointerUp}
-            beginDragToken={beginDragToken}
-            beginDragWard={beginDragWard}
-            removeWard={removeWardById}
-            beginDragTower={beginDragTower}
-            toggleTowerEnable={toggleTowerEnable}
-            isVisibleOnCurrentFog={isVisibleOnCurrentFog}
-            inBrushArea={inBrushArea}
-            allyRevealsBush={allyRevealsBush}
-          />
+        <div className="flex-1 w-full overflow-x-auto">
+          <section className="flex min-w-full flex-col gap-4 lg:min-w-[1200px] lg:flex-row lg:items-start lg:gap-4">
+            <MapBoard
+              className="lg:min-w-[900px]"
+              containerRef={containerRef}
+              boardRef={boardRef}
+              fogCanvasRef={fogCanvasRef}
+              boardSize={boardSize}
+              bgUrl={bgUrl}
+              showGrid={showGrid}
+              showWalls={showWalls}
+              showBrush={showBrush}
+              drawings={drawings}
+              tokens={tokens}
+              wards={wards}
+              towers={towers}
+              visionSide={visionSide}
+              wardRadius={wardRadius}
+              editTowers={editTowers}
+              onBoardClick={onBoardClick}
+              onBoardContextMenu={onBoardContextMenu}
+              onBoardPointerDown={handleBoardPointerDown}
+              onBoardPointerMove={handleBoardPointerMove}
+              onBoardPointerUp={handleBoardPointerUp}
+              beginDragToken={beginDragToken}
+              beginDragWard={beginDragWard}
+              removeWard={removeWardById}
+              beginDragTower={beginDragTower}
+              toggleTowerEnable={toggleTowerEnable}
+              isVisibleOnCurrentFog={isVisibleOnCurrentFog}
+              inBrushArea={inBrushArea}
+              allyRevealsBush={allyRevealsBush}
+            />
 
-          <AnnotationPanel
-            tool={tool}
-            setTool={setTool}
-            clearDrawings={clearDrawings}
-            hasDrawings={drawings.length > 0}
-          />
-        </section>
+            <AnnotationPanel
+              tool={tool}
+              setTool={setTool}
+              clearDrawings={clearDrawings}
+              hasDrawings={drawings.length > 0}
+            />
+          </section>
+        </div>
       </div>
     </div>
   );
