@@ -14,6 +14,7 @@ const MapBoard = ({
   wards,
   towers,
   visionSide,
+  controlTruePx,
   wardRadius,
   editTowers,
   onBoardClick,
@@ -29,7 +30,6 @@ const MapBoard = ({
   isVisibleOnCurrentFog,
   inBrushArea,
   allyRevealsBush,
-  className = "",
 }) => {
   const viewerTeams =
     visionSide === "global"
@@ -40,11 +40,15 @@ const MapBoard = ({
   const showAllWards = visionSide === "global" || visionSide === "both";
 
   return (
-    <div
-      ref={containerRef}
-      className={`relative w-full flex-1 rounded-2xl overflow-hidden bg-slate-800 shadow-2xl ${className}`}
-    >
-      <div className="relative mx-auto" style={{ width: boardSize, height: boardSize }}>
+    <main className="col-span-12 lg:col-span-9">
+      <div
+        ref={containerRef}
+        className="relative rounded-2xl overflow-hidden bg-slate-800 shadow-2xl"
+      >
+        <div className="pointer-events-none absolute top-4 right-4">
+          <h2 className="text-xl font-semibold">Annotation</h2>
+        </div>
+        <div className="relative" style={{ width: boardSize, height: boardSize }}>
         <div
           ref={boardRef}
           onClick={onBoardClick}
@@ -127,18 +131,12 @@ const MapBoard = ({
           )}
 
           {wards.map((w) => {
-            const isPink = w.kind === "pink";
-            const enemyWard = !showAllWards && !viewerTeams.includes(w.team);
-            let canSeeWard = showAllWards || viewerTeams.includes(w.team);
-            if (!canSeeWard && enemyWard && isPink) {
-              canSeeWard = isVisibleOnCurrentFog(w.x, w.y);
-            }
+            const canSeeWard = showAllWards || viewerTeams.includes(w.team);
             if (!canSeeWard) return null;
+            const isPink = w.kind === "pink";
             const isControl = w.kind === "control" || isPink;
             const wardSightRadius = wardRadius?.[w.kind];
-            const showVisionCircle = visionSide === "global" && wardSightRadius;
-            const showTrueSightCircle =
-              visionSide === "global" && isControl && wardSightRadius;
+            const showVisionCircle = visionSide == "global" && wardSightRadius && !isPink;
             const sizeClass = isPink ? "w-5 h-5" : "w-4 h-4";
             const baseColorClass = isPink
               ? "bg-fuchsia-400"
@@ -185,7 +183,7 @@ const MapBoard = ({
                     />
                   </svg>
                 )}
-                {showTrueSightCircle && (
+                {isControl && (
                   <svg
                     className="absolute"
                     style={{ left: 0, top: 0, width: boardSize, height: boardSize, pointerEvents: "none" }}
@@ -193,7 +191,7 @@ const MapBoard = ({
                     <circle
                       cx={w.x}
                       cy={w.y}
-                      r={wardSightRadius}
+                      r={controlTruePx}
                       fill="none"
                       stroke={w.team === "blue" ? "rgba(59,130,246,0.35)" : "rgba(244,63,94,0.35)"}
                       strokeWidth="2"
@@ -268,6 +266,7 @@ const MapBoard = ({
         </div>
       </div>
     </div>
+  </main>
   );
 };
 
