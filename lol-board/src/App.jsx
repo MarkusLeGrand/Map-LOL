@@ -316,7 +316,7 @@ export default function TacticalBoard() {
     if (tool.type === "ward") {
       setWards((ws) => [
         ...ws,
-        { id: safeRandomId(), team: tool.team, kind: tool.ward, x: p.x, y: p.y },
+        { id: crypto.randomUUID(), team: tool.team, kind: tool.ward, x: p.x, y: p.y },
       ]);
     }
   };
@@ -333,7 +333,7 @@ export default function TacticalBoard() {
     const point = boardPosFromEvent(e);
 
     if (tool.mode === "pen") {
-      const id = safeRandomId();
+      const id = crypto.randomUUID();
       drawStateRef.current = { active: true, id, mode: "pen" };
       setDrawings((prev) => [...prev, { id, points: [point] }]);
     } else if (tool.mode === "eraser") {
@@ -651,73 +651,64 @@ export default function TacticalBoard() {
 
   return (
     <div className="min-h-screen w-full bg-slate-900 text-slate-100 p-4">
-      <div className="mx-auto grid max-w-7xl grid-cols-12 gap-4">
-        <div className="col-span-12 lg:col-span-3">
-          <ControlPanel
-            visionSide={visionSide}
-            setVisionSide={setVisionSide}
-            tool={tool}
-            setTool={setTool}
-            bgUrl={bgUrl}
-            setBgUrl={setBgUrl}
-            showGrid={showGrid}
-            setShowGrid={setShowGrid}
-            showWalls={showWalls}
-            setShowWalls={setShowWalls}
-            showBrush={showBrush}
-            setShowBrush={setShowBrush}
-            editTowers={editTowers}
-            setEditTowers={setEditTowers}
-            saveBoardState={saveBoardState}
-            resetSelectedPosition={resetSelectedPosition}
-            savedPositions={savedPositions}
-            selectedSavedId={selectedSavedId}
-            selectSavedPosition={selectSavedPosition}
-            deleteSavedPosition={deleteSavedPosition}
-            clearWards={clearWards}
-            exportState={exportState}
-            importState={importState}
-          />
-        </div>
-        <section className="col-span-12 flex flex-col gap-4 lg:col-span-9 lg:flex-row">
-          <MapBoard
-            containerRef={containerRef}
-            boardRef={boardRef}
-            fogCanvasRef={fogCanvasRef}
-            boardSize={boardSize}
-            bgUrl={bgUrl}
-            showGrid={showGrid}
-            showWalls={showWalls}
-            showBrush={showBrush}
-            drawings={drawings}
-            tokens={tokens}
-            wards={wards}
-            towers={towers}
-            visionSide={visionSide}
-            wardRadius={wardRadius}
-            editTowers={editTowers}
-            onBoardClick={onBoardClick}
-            onBoardContextMenu={onBoardContextMenu}
-            onBoardPointerDown={handleBoardPointerDown}
-            onBoardPointerMove={handleBoardPointerMove}
-            onBoardPointerUp={handleBoardPointerUp}
-            beginDragToken={beginDragToken}
-            beginDragWard={beginDragWard}
-            removeWard={removeWardById}
-            beginDragTower={beginDragTower}
-            toggleTowerEnable={toggleTowerEnable}
-            isVisibleOnCurrentFog={isVisibleOnCurrentFog}
-            inBrushArea={inBrushArea}
-            allyRevealsBush={allyRevealsBush}
-          />
+      <div className="max-w-7xl mx-auto grid grid-cols-12 gap-4">
+        <ControlPanel
+          visionSide={visionSide}
+          setVisionSide={setVisionSide}
+          tool={tool}
+          setTool={setTool}
+          bgUrl={bgUrl}
+          setBgUrl={setBgUrl}
+          showGrid={showGrid}
+          setShowGrid={setShowGrid}
+          showWalls={showWalls}
+          setShowWalls={setShowWalls}
+          showBrush={showBrush}
+          setShowBrush={setShowBrush}
+          editTowers={editTowers}
+          setEditTowers={setEditTowers}
+          saveBoardState={saveBoardState}
+          resetSelectedPosition={resetSelectedPosition}
+          savedPositions={savedPositions}
+          selectedSavedId={selectedSavedId}
+          selectSavedPosition={selectSavedPosition}
+          deleteSavedPosition={deleteSavedPosition}
+          clearWards={clearWards}
+          exportState={exportState}
+          importState={importState}
+        />
 
-          <AnnotationPanel
-            tool={tool}
-            setTool={setTool}
-            clearDrawings={clearDrawings}
-            hasDrawings={drawings.length > 0}
-          />
-        </section>
+        <MapBoard
+          containerRef={containerRef}
+          boardRef={boardRef}
+          fogCanvasRef={fogCanvasRef}
+          boardSize={boardSize}
+          bgUrl={bgUrl}
+          showGrid={showGrid}
+          showWalls={showWalls}
+          showBrush={showBrush}
+          drawings={drawings}
+          tokens={tokens}
+          wards={wards}
+          towers={towers}
+          visionSide={visionSide}
+          controlTruePx={controlTruePx}
+          wardRadius={wardRadius}
+          editTowers={editTowers}
+          onBoardClick={onBoardClick}
+          onBoardContextMenu={onBoardContextMenu}
+          onBoardPointerDown={handleBoardPointerDown}
+          onBoardPointerMove={handleBoardPointerMove}
+          onBoardPointerUp={handleBoardPointerUp}
+          beginDragToken={beginDragToken}
+          beginDragWard={beginDragWard}
+          removeWard={removeWardById}
+          beginDragTower={beginDragTower}
+          toggleTowerEnable={toggleTowerEnable}
+          isVisibleOnCurrentFog={isVisibleOnCurrentFog}
+          inBrushArea={inBrushArea}
+          allyRevealsBush={allyRevealsBush}
+        />
       </div>
     </div>
   );
