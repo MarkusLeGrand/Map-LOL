@@ -139,7 +139,7 @@ const MapBoard = ({
             if (!canSeeWard) return null;
             const isControl = w.kind === "control" || isPink;
             const wardSightRadius = wardRadius?.[w.kind];
-            const showVisionCircle = visionSide == "global" && wardSightRadius && !isPink;
+            const showVisionCircle = visionSide === "global" && wardSightRadius;
             const sizeClass = isPink ? "w-5 h-5" : "w-4 h-4";
             const baseColorClass = isPink
               ? w.team === "blue"
