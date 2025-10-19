@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GRID } from "../config/constants";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -20,6 +20,7 @@ const useFogEngine = ({
   const fogCanvasRef = useRef(null);
   const lastFogDataRef = useRef(null);
   const rafRef = useRef(0);
+  const [, setFogRevision] = useState(0);
 
   const brushLabels = useMemo(() => {
     if (!brushGrid) return null;
@@ -64,6 +65,38 @@ const useFogEngine = ({
 
     return labels;
   }, [brushGrid, invertBrush]);
+
+  const suppressedWardIds = useMemo(() => {
+    if (!Array.isArray(wards) || !wards.length) return new Set();
+    const detectionRadius =
+      (wardRadius && (wardRadius.pink ?? wardRadius.control ?? wardRadius.stealth)) || 0;
+    if (!detectionRadius) return new Set();
+
+    const pinksByTeam = wards.reduce(
+      (acc, ward) => {
+        if (ward?.kind !== "pink" || !ward.team) return acc;
+        acc[ward.team] = acc[ward.team] || [];
+        acc[ward.team].push(ward);
+        return acc;
+      },
+      {},
+    );
+
+    const result = new Set();
+    wards.forEach((ward) => {
+      if (!ward || ward.kind === "pink" || !ward.team) return;
+      const opponents = ward.team === "blue" ? pinksByTeam.red ?? [] : pinksByTeam.blue ?? [];
+      if (!opponents.length) return;
+      const suppressed = opponents.some(
+        (pink) => Math.hypot((pink?.x ?? 0) - ward.x, (pink?.y ?? 0) - ward.y) <= detectionRadius,
+      );
+      if (suppressed) {
+        result.add(ward.id);
+      }
+    });
+
+    return result;
+  }, [wardRadius, wards]);
 
   const drawFog = useCallback(() => {
     const canvas = fogCanvasRef.current;
@@ -163,6 +196,7 @@ const useFogEngine = ({
 
             const revealByWard = wards.some((w) => {
               if (w.team !== sourceTeam) return false;
+              if (suppressedWardIds.has(w.id)) return false;
               const [wx, wy] = toGrid(w.x, w.y);
               if (getBrushLabel(wx, wy) !== targetLabel) return false;
               return Math.hypot(w.x - cellCenterX, w.y - cellCenterY) < 260;
@@ -283,7 +317,7 @@ const useFogEngine = ({
     // Wards
     viewerTeams.forEach((team) => {
       wards
-        .filter((w) => w.team === team)
+        .filter((w) => w.team === team && !suppressedWardIds.has(w.id))
         .forEach((w) => {
           revealFOV(w.x, w.y, wardRadius[w.kind] || 250, {
             sourceTeam: team,
@@ -307,6 +341,7 @@ const useFogEngine = ({
     towers,
     wallsGrid,
     brushGrid,
+    suppressedWardIds,
   ]);
 
   const isVisibleOnCurrentFog = useCallback(
@@ -357,6 +392,7 @@ const useFogEngine = ({
         const nearWard = wards.some(
           (w) =>
             w.team === viewerTeam &&
+            !suppressedWardIds.has(w.id) &&
             inBrushArea(w.x, w.y) &&
             Math.hypot(w.x - x, w.y - y) < 260
         );
@@ -383,6 +419,7 @@ const useFogEngine = ({
 
       const revealByWard = wards.some((w) => {
         if (w.team !== viewerTeam) return false;
+        if (suppressedWardIds.has(w.id)) return false;
         const [wx, wy] = toGridLocal(w.x, w.y);
         const wardIdx = wy * GRID + wx;
         if (brushLabels[wardIdx] !== targetLabel) return false;
@@ -399,12 +436,15 @@ const useFogEngine = ({
         return Math.hypot(a.x - x, a.y - y) < 220;
       });
     },
-    [boardSize, brushLabels, inBrushArea, tokens, wards]
+    [boardSize, brushLabels, inBrushArea, tokens, wards, suppressedWardIds]
   );
 
   useEffect(() => {
     cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(drawFog);
+    rafRef.current = requestAnimationFrame(() => {
+      drawFog();
+      setFogRevision((v) => v + 1);
+    });
     return () => cancelAnimationFrame(rafRef.current);
   }, [drawFog]);
 
