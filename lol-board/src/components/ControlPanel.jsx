@@ -26,7 +26,6 @@ const ControlPanel = ({
   importState,
 }) => {
   const toolIs = (type) => tool.type === type;
-  const drawModeIs = (mode) => tool.type === "draw" && tool.mode === mode;
   const wardToolIs = (team, kind) =>
     tool.type === "ward" && tool.team === team && tool.ward === kind;
 
@@ -128,34 +127,6 @@ const ControlPanel = ({
             Clear wards
           </button>
 
-        </div>
-
-        <div className="h-px bg-slate-700 my-3" />
-
-        <div className="space-y-2">
-          <div className="text-sm uppercase tracking-wide text-slate-400">Annotations</div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() =>
-                setTool((prev) => ({ ...prev, type: "draw", mode: "pen" }))
-              }
-              className={`px-3 py-2 rounded-xl shadow ${
-                drawModeIs("pen") ? "bg-emerald-600" : "bg-slate-700"
-              }`}
-            >
-              🖊️ Stylo
-            </button>
-            <button
-              onClick={() =>
-                setTool((prev) => ({ ...prev, type: "draw", mode: "eraser" }))
-              }
-              className={`px-3 py-2 rounded-xl shadow ${
-                drawModeIs("eraser") ? "bg-rose-600" : "bg-slate-700"
-              }`}
-            >
-              🧽 Gomme
-            </button>
-          </div>
         </div>
 
         <div className="h-px bg-slate-700 my-3" />

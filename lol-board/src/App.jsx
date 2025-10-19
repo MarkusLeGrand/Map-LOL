@@ -15,6 +15,7 @@ import useImage from "./hooks/useImage";
 import useFogEngine from "./hooks/useFogEngine";
 import ControlPanel from "./components/ControlPanel";
 import MapBoard from "./components/MapBoard";
+import AnnotationPanel from "./components/AnnotationPanel";
 import { createBinaryGrid } from "./utils/createBinaryGrid";
 import { normalizeTokens } from "./utils/normalizeTokens";
 
@@ -149,7 +150,6 @@ export default function TacticalBoard() {
   const [towerVisionRadius, setTowerVisionRadius] = useState(() => createTowerRadii(900));
   const [tokenVisionRadius, setTokenVisionRadius] = useState(320);
   const [wardRadius, setWardRadius] = useState(wardRadiusDefault);
-  const [controlTruePx, setControlTruePx] = useState(45);
   const [showWalls, setShowWalls] = useState(false);
   const [showBrush, setShowBrush] = useState(false);
   const [drawings, setDrawings] = useState([]);
@@ -250,11 +250,8 @@ export default function TacticalBoard() {
   useEffect(() => {
     const champPx = Math.round(unitsToPx(OFFICIAL_UNITS.champSight, boardSize));
     const wardPx = Math.round(unitsToPx(OFFICIAL_UNITS.wardSight, boardSize));
-    const ctrlPx = Math.round(unitsToPx(OFFICIAL_UNITS.controlTrue, boardSize));
-
     setTokenVisionRadius(champPx);
     setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx, pink: wardPx }));
-    setControlTruePx(ctrlPx);
     setTowerVisionRadius(createTowerRadii(boardSize));
   }, [boardSize]);
 
@@ -325,6 +322,8 @@ export default function TacticalBoard() {
     paths.filter((path) =>
       path.points.every((pt) => Math.hypot(pt.x - point.x, pt.y - point.y) > 20),
     );
+
+  const clearDrawings = useCallback(() => setDrawings([]), []);
 
   const handleBoardPointerDown = (e) => {
     if (tool.type !== "draw") return;
@@ -624,7 +623,6 @@ export default function TacticalBoard() {
       towerVisionRadius,
       tokenVisionRadius,
       wardRadius,
-      controlTruePx,
     };
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
     alert("Copié dans le presse-papiers ✅");
@@ -643,7 +641,6 @@ export default function TacticalBoard() {
         setTowerVisionRadius((prev) => ({ ...prev, ...obj.towerVisionRadius }));
       if (obj.tokenVisionRadius) setTokenVisionRadius(obj.tokenVisionRadius);
       if (obj.wardRadius) setWardRadius(obj.wardRadius);
-      if (obj.controlTruePx) setControlTruePx(obj.controlTruePx);
     } catch {
       alert("JSON invalide");
     }
@@ -677,38 +674,45 @@ export default function TacticalBoard() {
           exportState={exportState}
           importState={importState}
         />
+        <section className="col-span-12 lg:col-span-9 flex flex-col gap-4 lg:flex-row">
+          <MapBoard
+            containerRef={containerRef}
+            boardRef={boardRef}
+            fogCanvasRef={fogCanvasRef}
+            boardSize={boardSize}
+            bgUrl={bgUrl}
+            showGrid={showGrid}
+            showWalls={showWalls}
+            showBrush={showBrush}
+            drawings={drawings}
+            tokens={tokens}
+            wards={wards}
+            towers={towers}
+            visionSide={visionSide}
+            wardRadius={wardRadius}
+            editTowers={editTowers}
+            onBoardClick={onBoardClick}
+            onBoardContextMenu={onBoardContextMenu}
+            onBoardPointerDown={handleBoardPointerDown}
+            onBoardPointerMove={handleBoardPointerMove}
+            onBoardPointerUp={handleBoardPointerUp}
+            beginDragToken={beginDragToken}
+            beginDragWard={beginDragWard}
+            removeWard={removeWardById}
+            beginDragTower={beginDragTower}
+            toggleTowerEnable={toggleTowerEnable}
+            isVisibleOnCurrentFog={isVisibleOnCurrentFog}
+            inBrushArea={inBrushArea}
+            allyRevealsBush={allyRevealsBush}
+          />
 
-        <MapBoard
-          containerRef={containerRef}
-          boardRef={boardRef}
-          fogCanvasRef={fogCanvasRef}
-          boardSize={boardSize}
-          bgUrl={bgUrl}
-          showGrid={showGrid}
-          showWalls={showWalls}
-          showBrush={showBrush}
-          drawings={drawings}
-          tokens={tokens}
-          wards={wards}
-          towers={towers}
-          visionSide={visionSide}
-          controlTruePx={controlTruePx}
-          wardRadius={wardRadius}
-          editTowers={editTowers}
-          onBoardClick={onBoardClick}
-          onBoardContextMenu={onBoardContextMenu}
-          onBoardPointerDown={handleBoardPointerDown}
-          onBoardPointerMove={handleBoardPointerMove}
-          onBoardPointerUp={handleBoardPointerUp}
-          beginDragToken={beginDragToken}
-          beginDragWard={beginDragWard}
-          removeWard={removeWardById}
-          beginDragTower={beginDragTower}
-          toggleTowerEnable={toggleTowerEnable}
-          isVisibleOnCurrentFog={isVisibleOnCurrentFog}
-          inBrushArea={inBrushArea}
-          allyRevealsBush={allyRevealsBush}
-        />
+          <AnnotationPanel
+            tool={tool}
+            setTool={setTool}
+            clearDrawings={clearDrawings}
+            hasDrawings={drawings.length > 0}
+          />
+        </section>
       </div>
     </div>
   );
