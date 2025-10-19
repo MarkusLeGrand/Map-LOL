@@ -127,17 +127,24 @@ const MapBoard = ({
           {wards.map((w) => {
             const canSeeWard = showAllWards || viewerTeams.includes(w.team);
             if (!canSeeWard) return null;
-            const isControl = w.kind === "control";
+            const isPink = w.kind === "pink";
+            const isControl = w.kind === "control" || isPink;
             const wardSightRadius = wardRadius?.[w.kind];
             const showVisionCircle = visionSide == "global" && wardSightRadius;
+            const sizeClass = isPink ? "w-5 h-5" : "w-4 h-4";
+            const baseColorClass = isPink
+              ? "bg-fuchsia-400"
+              : w.kind === "stealth"
+              ? "bg-emerald-400"
+              : "bg-violet-400";
             return (
               <React.Fragment key={w.id}>
                 <button
                   type="button"
                   title={`${w.team} ${w.kind}`}
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full ring-2 focus:outline-none ${
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 ${sizeClass} rounded-full ring-2 focus:outline-none flex items-center justify-center text-[10px] font-bold ${
                     w.team === "blue" ? "ring-blue-400" : "ring-rose-400"
-                  } ${isControl ? "bg-amber-400" : w.kind === "stealth" ? "bg-emerald-400" : "bg-violet-400"}`}
+                  } ${isControl && !isPink ? "bg-amber-400" : baseColorClass}`}
                   style={{ left: w.x, top: w.y }}
                   onMouseDown={(e) => beginDragWard(e, w.id)}
                   onTouchStart={(e) => beginDragWard(e, w.id)}
@@ -146,6 +153,14 @@ const MapBoard = ({
                     removeWard(w.id);
                   }}
                 />
+                {isPink && (
+                  <span
+                    className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-[10px] font-black text-slate-900"
+                    style={{ left: w.x, top: w.y }}
+                  >
+                    P
+                  </span>
+                )}
                 {showVisionCircle && (
                   <svg
                     className="absolute"

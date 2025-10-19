@@ -27,6 +27,8 @@ const ControlPanel = ({
 }) => {
   const toolIs = (type) => tool.type === type;
   const drawModeIs = (mode) => tool.type === "draw" && tool.mode === mode;
+  const wardToolIs = (team, kind) =>
+    tool.type === "ward" && tool.team === team && tool.ward === kind;
 
   return (
     <aside className="col-span-12 lg:col-span-3 space-y-4">
@@ -83,23 +85,43 @@ const ControlPanel = ({
             </button>
             <button
               onClick={() =>
-                setTool((prev) => ({ ...prev, type: "ward", team: "blue" }))
+                setTool((prev) => ({ ...prev, type: "ward", team: "blue", ward: "stealth" }))
               }
               className={`px-3 py-2 rounded-xl shadow ${
-                toolIs("ward") && tool.team === "blue" ? "bg-blue-600" : "bg-slate-700"
+                wardToolIs("blue", "stealth") ? "bg-blue-600" : "bg-slate-700"
               }`}
             >
               Ward Blue
             </button>
             <button
               onClick={() =>
-                setTool((prev) => ({ ...prev, type: "ward", team: "red" }))
+                setTool((prev) => ({ ...prev, type: "ward", team: "red", ward: "stealth" }))
               }
               className={`px-3 py-2 rounded-xl shadow ${
-                toolIs("ward") && tool.team === "red" ? "bg-rose-600" : "bg-slate-700"
+                wardToolIs("red", "stealth") ? "bg-rose-600" : "bg-slate-700"
               }`}
             >
               Ward Red
+            </button>
+            <button
+              onClick={() =>
+                setTool((prev) => ({ ...prev, type: "ward", team: "blue", ward: "pink" }))
+              }
+              className={`px-3 py-2 rounded-xl shadow ${
+                wardToolIs("blue", "pink") ? "bg-fuchsia-500" : "bg-slate-700"
+              }`}
+            >
+              Pink Blue
+            </button>
+            <button
+              onClick={() =>
+                setTool((prev) => ({ ...prev, type: "ward", team: "red", ward: "pink" }))
+              }
+              className={`px-3 py-2 rounded-xl shadow ${
+                wardToolIs("red", "pink") ? "bg-pink-500" : "bg-slate-700"
+              }`}
+            >
+              Pink Red
             </button>
           </div>
           <button onClick={clearWards} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600">

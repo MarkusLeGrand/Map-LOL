@@ -11,7 +11,7 @@ export const OFFICIAL_UNITS = {
   controlTrue: 660,
 };
 
-export const wardRadiusDefault = { stealth: 260, control: 300, trap: 220 };
+export const wardRadiusDefault = { stealth: 260, control: 300, trap: 220, pink: 300 };
 
 export const OFFICIAL_TOWER_UNITS = {
   outer: 1250,

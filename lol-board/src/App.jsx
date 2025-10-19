@@ -253,7 +253,7 @@ export default function TacticalBoard() {
     const ctrlPx = Math.round(unitsToPx(OFFICIAL_UNITS.controlTrue, boardSize));
 
     setTokenVisionRadius(champPx);
-    setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx }));
+    setWardRadius((r) => ({ ...r, stealth: wardPx, control: wardPx, pink: wardPx }));
     setControlTruePx(ctrlPx);
     setTowerVisionRadius(createTowerRadii(boardSize));
   }, [boardSize]);
