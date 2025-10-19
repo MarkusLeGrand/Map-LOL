@@ -41,14 +41,8 @@ const MapBoard = ({
 
   return (
     <main className="col-span-12 lg:col-span-9">
-      <div
-        ref={containerRef}
-        className="relative rounded-2xl overflow-hidden bg-slate-800 shadow-2xl"
-      >
-        <div className="pointer-events-none absolute top-4 right-4">
-          <h2 className="text-xl font-semibold">Annotation</h2>
-        </div>
-        <div className="relative" style={{ width: boardSize, height: boardSize }}>
+    <div ref={containerRef} className="rounded-2xl overflow-hidden bg-slate-800 shadow-2xl">
+      <div className="relative" style={{ width: boardSize, height: boardSize }}>
         <div
           ref={boardRef}
           onClick={onBoardClick}
@@ -136,7 +130,7 @@ const MapBoard = ({
             const isPink = w.kind === "pink";
             const isControl = w.kind === "control" || isPink;
             const wardSightRadius = wardRadius?.[w.kind];
-            const showVisionCircle = visionSide == "global" && wardSightRadius && !isPink;
+            const showVisionCircle = visionSide == "global" && wardSightRadius;
             const sizeClass = isPink ? "w-5 h-5" : "w-4 h-4";
             const baseColorClass = isPink
               ? "bg-fuchsia-400"
