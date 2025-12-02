@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import type { Token, Tower, Ward, WardType, VisionMode } from "../types";
+import { DISPLAY_CONFIG, getTeamColors, getTowerColors } from "../config/displayConfig";
 
 interface MapBoardProps {
     boardSize: number;
@@ -197,7 +198,8 @@ export function MapBoard({
             {showTowers && towers.map((tower) => {
                 const x = tower.x * boardSize;
                 const y = tower.y * boardSize;
-                const size = 28;
+                const size = DISPLAY_CONFIG.SIZES.TOWER;
+                const colors = getTowerColors(tower.team, tower.active);
 
                 return (
                     <div
@@ -211,14 +213,8 @@ export function MapBoard({
                             height: size,
                         }}
                     >
-                        <div 
-                            className={`w-full h-full rounded-lg border-2 flex items-center justify-center text-xs font-bold ${
-                                tower.active
-                                    ? tower.team === 'blue' 
-                                        ? 'bg-blue-600 border-blue-400' 
-                                        : 'bg-red-600 border-red-400'
-                                    : 'bg-gray-600 border-gray-400 opacity-40'
-                            }`}
+                        <div
+                            className={`w-full h-full ${DISPLAY_CONFIG.ROUNDED.TOWER} ${DISPLAY_CONFIG.BORDER_WIDTH} flex items-center justify-center ${DISPLAY_CONFIG.TEXT.TOWER_LABEL_SIZE} font-bold ${colors.background} ${colors.border} ${!tower.active ? `opacity-${Math.round(DISPLAY_CONFIG.OPACITY.TOWER_DESTROYED * 100)}` : ''}`}
                             title={`${tower.team} ${tower.type} - ${tower.active ? 'Active' : 'Detruite'}`}
                         >
                             {getTowerLabel(tower.type)}
@@ -230,7 +226,8 @@ export function MapBoard({
             {tokens.filter(token => token.isVisible !== false).map((token) => {
                 const x = token.x * boardSize;
                 const y = token.y * boardSize;
-                const size = 32;
+                const size = DISPLAY_CONFIG.SIZES.CHAMPION_TOKEN;
+                const teamColors = getTeamColors(token.team);
 
                 return (
                     <div
@@ -242,15 +239,11 @@ export function MapBoard({
                             top: y - size / 2,
                             width: size,
                             height: size,
-                            zIndex: 10,
+                            zIndex: DISPLAY_CONFIG.Z_INDEX.CHAMPION,
                         }}
                     >
                         <div
-                            className={`w-full h-full rounded-full border-2 flex items-center justify-center text-[8px] font-bold ${
-                                token.team === 'blue'
-                                    ? 'bg-blue-500 border-blue-300'
-                                    : 'bg-red-500 border-red-300'
-                            }`}
+                            className={`w-full h-full ${DISPLAY_CONFIG.ROUNDED.CHAMPION} ${DISPLAY_CONFIG.BORDER_WIDTH} flex items-center justify-center ${DISPLAY_CONFIG.TEXT.CHAMPION_ROLE_SIZE} font-bold ${teamColors.primary} ${teamColors.border}`}
                         >
                             {token.role.charAt(0)}
                         </div>
@@ -262,7 +255,9 @@ export function MapBoard({
             {wards.map(ward => {
                 const x = ward.x * boardSize;
                 const y = ward.y * boardSize;
-                const size = 24;
+                const size = ward.type === 'vision' ? DISPLAY_CONFIG.SIZES.VISION_WARD : DISPLAY_CONFIG.SIZES.CONTROL_WARD;
+                const teamColors = getTeamColors(ward.team);
+                const wardBg = ward.type === 'vision' ? DISPLAY_CONFIG.COLORS.WARDS.VISION.background : DISPLAY_CONFIG.COLORS.WARDS.CONTROL.background;
 
                 return (
                     <div
@@ -274,8 +269,8 @@ export function MapBoard({
                             top: y - size / 2,
                             width: size,
                             height: size,
-                            zIndex: 15,
-                            opacity: ward.disabled ? 0.3 : 1,
+                            zIndex: DISPLAY_CONFIG.Z_INDEX.WARD,
+                            opacity: ward.disabled ? DISPLAY_CONFIG.OPACITY.WARD_DISABLED : 1,
                         }}
                         title={ward.disabled ? 'Désactivée par Control Ward' : ''}
                     >
@@ -286,18 +281,14 @@ export function MapBoard({
                                 style={{
                                     width: ward.visionRadius * boardSize * 2,
                                     height: ward.visionRadius * boardSize * 2,
-                                    borderColor: ward.team === 'blue' ? 'rgba(147, 197, 253, 0.4)' : 'rgba(252, 165, 165, 0.4)',
+                                    borderColor: teamColors.visionCircle,
                                 }}
                             />
                         )}
 
                         {/* Icône ward */}
                         <div
-                            className={`w-full h-full rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
-                                ward.type === 'vision'
-                                    ? `bg-yellow-400 ${ward.team === 'blue' ? 'border-blue-300' : 'border-red-300'}`
-                                    : `bg-pink-500 ${ward.team === 'blue' ? 'border-blue-300' : 'border-red-300'}`
-                            }`}
+                            className={`w-full h-full ${DISPLAY_CONFIG.ROUNDED.WARD} ${DISPLAY_CONFIG.BORDER_WIDTH} flex items-center justify-center ${DISPLAY_CONFIG.TEXT.WARD_SYMBOL_SIZE} font-bold ${wardBg} ${teamColors.border}`}
                         />
                     </div>
                 );

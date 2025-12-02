@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Token, Tower, VisionMode, Ward } from '../types';
+import { VISION_RANGES } from '../config/visionRanges';
 
 interface FogOfWarProps {
     boardSize: number;
@@ -95,7 +96,7 @@ export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, on
         ctx.clearRect(0, 0, boardSize, boardSize);
 
         // Valeurs
-        const championVisionRange = boardSize * 0.08;
+        const championVisionRange = boardSize * VISION_RANGES.CHAMPION;
 
         const sources: Array<{ x: number; y: number; range: number; inBrush: boolean }> = [];
 

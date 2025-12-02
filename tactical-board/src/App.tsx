@@ -4,6 +4,7 @@ import { FogOfWar } from "./components/FogOfWar";
 import { defaultTokens } from "./data/defaultTokens";
 import { defaultTowers } from "./data/defaultTowers";
 import type { Token, Tower, VisionMode, Ward, WardType } from "./types";
+import { VISION_RANGES } from "./config/visionRanges";
 
 export default function App() {
     const [boardSize, setBoardSize] = useState(800);
@@ -57,7 +58,7 @@ export default function App() {
             team: selectedTeam,
             type: placingWard,
             active: true,
-            visionRadius: placingWard === 'vision' ? 0.05 : 0.055,
+            visionRadius: placingWard === 'vision' ? VISION_RANGES.VISION_WARD : VISION_RANGES.CONTROL_WARD,
             disabled: false,
         };
 
@@ -149,7 +150,7 @@ export default function App() {
 
                     // Même brush si proche ET tous deux dans brush
                     const dist = Math.sqrt((token.x - ward.x) ** 2 + (token.y - ward.y) ** 2);
-                    return wardInBrush && dist < 0.05;
+                    return wardInBrush && dist < VISION_RANGES.SAME_BRUSH_RADIUS;
                 });
 
                 if (hasControlWardInBrush) {
@@ -168,7 +169,7 @@ export default function App() {
 
                             // Même brush si proche et tous deux dans brush
                             const dist = Math.sqrt((token.x - t.x) ** 2 + (token.y - t.y) ** 2);
-                            if (tInBrush && dist < 0.05) {
+                            if (tInBrush && dist < VISION_RANGES.SAME_BRUSH_RADIUS) {
                                 allyInSameBrush = true;
                             }
                         }
