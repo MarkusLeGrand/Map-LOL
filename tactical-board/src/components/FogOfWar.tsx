@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Token, Tower, VisionMode } from '../types';
+import type { Token, Tower, VisionMode, Ward } from '../types';
 
 interface FogOfWarProps {
     boardSize: number;
     tokens: Token[];
     towers: Tower[];
+    wards?: Ward[];
     visionMode: VisionMode;
     onVisionUpdate?: (visionData: ImageData, brushData: ImageData) => void;
 }
 
-export function FogOfWar({ boardSize, tokens, towers, visionMode, onVisionUpdate }: FogOfWarProps) {
+export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, onVisionUpdate }: FogOfWarProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [wallsImg] = useState(() => {
         const img = new Image();
@@ -137,6 +138,26 @@ export function FogOfWar({ boardSize, tokens, towers, visionMode, onVisionUpdate
             }
         });
 
+        // Wards (seulement les actives et non désactivées)
+        wards.forEach(ward => {
+            if (!ward.active || ward.disabled) return;
+            const shouldShow =
+                visionMode === 'both' ||
+                (visionMode === 'blue' && ward.team === 'blue') ||
+                (visionMode === 'red' && ward.team === 'red');
+
+            if (shouldShow) {
+                const x = ward.x * boardSize;
+                const y = ward.y * boardSize;
+                sources.push({
+                    x,
+                    y,
+                    range: ward.visionRadius * boardSize,
+                    inBrush: isBrush(x, y)
+                });
+            }
+        });
+
         // Dessiner masque de vision sur canvas temporaire
         const visionCanvas = document.createElement('canvas');
         visionCanvas.width = boardSize;
@@ -188,7 +209,7 @@ export function FogOfWar({ boardSize, tokens, towers, visionMode, onVisionUpdate
             onVisionUpdate(visionData, brushData);
         }
 
-    }, [boardSize, tokens, towers, visionMode, wallsImg, brushImg, onVisionUpdate]);
+    }, [boardSize, tokens, towers, wards, visionMode, wallsImg, brushImg, onVisionUpdate]);
 
     if (visionMode === 'off') return null;
 

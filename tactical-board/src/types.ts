@@ -18,3 +18,18 @@ export interface Tower {
 }
 
 export type VisionMode = 'off' | 'blue' | 'red' | 'both';
+
+export interface Ward {
+    id: string;
+    x: number;
+    y: number;
+    team: 'blue' | 'red';
+    type: 'vision' | 'control';
+    active: boolean;
+    visionRadius: number;
+    placedAt?: number;
+    duration?: number;
+    disabled: boolean;
+}
+
+export type WardType = 'vision' | 'control';

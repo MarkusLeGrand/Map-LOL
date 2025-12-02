@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import type { Token, Tower } from "../types";
+import type { Token, Tower, Ward, WardType, VisionMode } from "../types";
 
 interface MapBoardProps {
     boardSize: number;
@@ -12,19 +12,31 @@ interface MapBoardProps {
     showWalls: boolean;
     showBrush: boolean;
     showTowers: boolean;
+    wards: Ward[];
+    placingWard: WardType | null;
+    onWardPlace: (x: number, y: number) => void;
+    onWardRemove: (id: string) => void;
+    onWardMove: (id: string, x: number, y: number) => void;
+    visionMode: VisionMode;
 }
 
-export function MapBoard({ 
-    boardSize, 
-    showGrid, 
-    gridSize, 
+export function MapBoard({
+    boardSize,
+    showGrid,
+    gridSize,
     tokens,
     towers,
     onTokenMove,
     onTowerToggle,
     showWalls,
     showBrush,
-    showTowers
+    showTowers,
+    wards,
+    placingWard,
+    onWardPlace,
+    onWardRemove,
+    onWardMove,
+    visionMode
 }: MapBoardProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [mapImage] = useState(() => {
@@ -46,6 +58,7 @@ export function MapBoard({
     });
 
     const [draggingToken, setDraggingToken] = useState<string | null>(null);
+    const [draggingWard, setDraggingWard] = useState<string | null>(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -96,18 +109,27 @@ export function MapBoard({
         setDraggingToken(id);
     };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!draggingToken) return;
+    const handleWardMouseDown = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (placingWard) return; // Ne pas déplacer en mode placement
+        setDraggingWard(id);
+    };
 
+    const handleMouseMove = (e: React.MouseEvent) => {
         const rect = e.currentTarget.getBoundingClientRect();
         const x = (e.clientX - rect.left) / boardSize;
         const y = (e.clientY - rect.top) / boardSize;
 
-        onTokenMove(draggingToken, x, y);
+        if (draggingToken) {
+            onTokenMove(draggingToken, x, y);
+        } else if (draggingWard) {
+            onWardMove(draggingWard, x, y);
+        }
     };
 
     const handleMouseUp = () => {
         setDraggingToken(null);
+        setDraggingWard(null);
     };
 
     const getTowerLabel = (type: Tower['type']) => {
@@ -119,13 +141,51 @@ export function MapBoard({
         }
     };
 
+    const handleClick = (e: React.MouseEvent) => {
+        if (!placingWard) return;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / boardSize;
+        const y = (e.clientY - rect.top) / boardSize;
+        onWardPlace(x, y);
+    };
+
+    const handleContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (!placingWard) return;
+
+        // Clic droit : chercher et supprimer la ward la plus proche
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickX = (e.clientX - rect.left) / boardSize;
+        const clickY = (e.clientY - rect.top) / boardSize;
+
+        // Trouver la ward la plus proche dans un rayon de 0.02 (2%)
+        const clickRadius = 0.02;
+        let closestWardId: string | null = null;
+        let closestDist = clickRadius;
+
+        wards.forEach(ward => {
+            const dist = Math.sqrt((ward.x - clickX) ** 2 + (ward.y - clickY) ** 2);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closestWardId = ward.id;
+            }
+        });
+
+        if (closestWardId) {
+            onWardRemove(closestWardId);
+        }
+    };
+
     return (
-        <div 
+        <div
             className="relative"
             style={{ width: boardSize, height: boardSize }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onClick={handleClick}
+            onContextMenu={handleContextMenu}
         >
             <canvas
                 ref={canvasRef}
@@ -170,7 +230,7 @@ export function MapBoard({
             {tokens.filter(token => token.isVisible !== false).map((token) => {
                 const x = token.x * boardSize;
                 const y = token.y * boardSize;
-                const size = 20;
+                const size = 32;
 
                 return (
                     <div
@@ -194,6 +254,51 @@ export function MapBoard({
                         >
                             {token.role.charAt(0)}
                         </div>
+                    </div>
+                );
+            })}
+
+            {/* Wards */}
+            {wards.map(ward => {
+                const x = ward.x * boardSize;
+                const y = ward.y * boardSize;
+                const size = 24;
+
+                return (
+                    <div
+                        key={ward.id}
+                        onMouseDown={(e) => handleWardMouseDown(e, ward.id)}
+                        className={`absolute select-none ${placingWard ? 'pointer-events-none' : 'cursor-move'}`}
+                        style={{
+                            left: x - size / 2,
+                            top: y - size / 2,
+                            width: size,
+                            height: size,
+                            zIndex: 15,
+                            opacity: ward.disabled ? 0.3 : 1,
+                        }}
+                        title={ward.disabled ? 'Désactivée par Control Ward' : ''}
+                    >
+                        {/* Cercle de vision en pointillé (uniquement si fog off) */}
+                        {visionMode === 'off' && (
+                            <div
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed pointer-events-none"
+                                style={{
+                                    width: ward.visionRadius * boardSize * 2,
+                                    height: ward.visionRadius * boardSize * 2,
+                                    borderColor: ward.team === 'blue' ? 'rgba(147, 197, 253, 0.4)' : 'rgba(252, 165, 165, 0.4)',
+                                }}
+                            />
+                        )}
+
+                        {/* Icône ward */}
+                        <div
+                            className={`w-full h-full rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
+                                ward.type === 'vision'
+                                    ? `bg-yellow-400 ${ward.team === 'blue' ? 'border-blue-300' : 'border-red-300'}`
+                                    : `bg-pink-500 ${ward.team === 'blue' ? 'border-blue-300' : 'border-red-300'}`
+                            }`}
+                        />
                     </div>
                 );
             })}
