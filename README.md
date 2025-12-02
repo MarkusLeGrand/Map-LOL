@@ -6,7 +6,7 @@ todo:
 - all maps (by drakes)
 - objectif ( tu les ajoutes et tu choisis le temps (spawn ou 43s))
 - camp up toggle
-- zoom in one zone 
+- zoom in one zone
 - save position 
-- nommer des position 
+- nommer des position (banana bush) ou tu mets ta souris 
 - solution pour designe des waves 

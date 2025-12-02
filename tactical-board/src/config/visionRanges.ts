@@ -5,18 +5,18 @@
 
 export const VISION_RANGES = {
     // Champions
-    CHAMPION: 0.08, // 8% du board
+    CHAMPION: 0.085, // 1350unit
 
     // Wards
-    VISION_WARD: 0.07,   // 5% du board (jaune)
-    CONTROL_WARD: 0.07, // 5.5% du board (rose/pink)
-
+    VISION_WARD: 0.055,   // 900 OK
+    CONTROL_WARD: 0.055, // 900 OK
+    
     // Tours (par type)
     TOWERS: {
-        outer:  0.084375,      // T1 - Tours extérieures
-        inner: 0.11,      // T2 - Tours intérieures
-        inhibitor: 0.11,  // T3 - Tours d'inhibiteur
-        nexus: 0.11,      // T4 - Tours du nexus
+        outer:  0.09,      // 1350
+        inner: 0.09,      // 1350
+        inhibitor: 0.095,  // 1350
+        nexus: 0.10,      // 1350
     },
 
     // Distance pour détection "même brush" (proximité)

@@ -5,7 +5,7 @@ export const defaultTowers: Tower[] = [
     // BLUE TEAM - Top Lane
     { id: 'blue-top-outer', x: 0.07, y: 0.3, team: 'blue', type: 'outer', active: true, visionRadius: VISION_RANGES.TOWERS.outer },
     { id: 'blue-top-inner', x: 0.11, y: 0.55, team: 'blue', type: 'inner', active: true, visionRadius: VISION_RANGES.TOWERS.inner },
-    { id: 'blue-top-inhibitor', x: 0.08, y: 0.72, team: 'blue', type: 'inhibitor', active: true, visionRadius: VISION_RANGES.TOWERS.inhibitor },
+    { id: 'blue-top-inhibitor', x: 0.08, y: 0.71, team: 'blue', type: 'inhibitor', active: true, visionRadius: VISION_RANGES.TOWERS.inhibitor },
 
     // BLUE TEAM - Mid Lane
     { id: 'blue-mid-outer', x: 0.4, y: 0.57, team: 'blue', type: 'outer', active: true, visionRadius: VISION_RANGES.TOWERS.outer },
@@ -38,5 +38,5 @@ export const defaultTowers: Tower[] = [
 
     // RED NEXUS
     { id: 'red-nexus-1', x: 0.85, y: 0.13, team: 'red', type: 'nexus', active: true, visionRadius: VISION_RANGES.TOWERS.nexus },
-    { id: 'red-nexus-2', x: 0.87, y: 0.16, team: 'red', type: 'nexus', active: true, visionRadius: VISION_RANGES.TOWERS.nexus },
+    { id: 'red-nexus-2', x: 0.88, y: 0.15, team: 'red', type: 'nexus', active: true, visionRadius: VISION_RANGES.TOWERS.nexus },
 ];
