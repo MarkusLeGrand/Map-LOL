@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import type { Token, Tower, Ward, WardType, VisionMode, Drawing, DrawMode, DrawingPoint } from "../types";
+import type { Token, Tower, Ward, WardType, VisionMode, Drawing, DrawMode,} from "../types";
 import { DISPLAY_CONFIG, getTeamColors, getTowerColors } from "../config/displayConfig";
 
 interface MapBoardProps {
