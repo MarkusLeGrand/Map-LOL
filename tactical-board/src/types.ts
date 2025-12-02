@@ -16,3 +16,5 @@ export interface Tower {
     active: boolean;
     visionRadius: number;
 }
+
+export type VisionMode = 'off' | 'blue' | 'red' | 'both';

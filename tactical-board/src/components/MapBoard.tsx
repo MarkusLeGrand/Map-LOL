@@ -167,7 +167,7 @@ export function MapBoard({
                 );
             })}
 
-            {tokens.map((token) => {
+            {tokens.filter(token => token.isVisible !== false).map((token) => {
                 const x = token.x * boardSize;
                 const y = token.y * boardSize;
                 const size = 20;
@@ -185,10 +185,10 @@ export function MapBoard({
                             zIndex: 10,
                         }}
                     >
-                        <div 
+                        <div
                             className={`w-full h-full rounded-full border-2 flex items-center justify-center text-[8px] font-bold ${
-                                token.team === 'blue' 
-                                    ? 'bg-blue-500 border-blue-300' 
+                                token.team === 'blue'
+                                    ? 'bg-blue-500 border-blue-300'
                                     : 'bg-red-500 border-red-300'
                             }`}
                         >
