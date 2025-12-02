@@ -3,7 +3,7 @@ import { MapBoard } from "./components/MapBoard";
 import { FogOfWar } from "./components/FogOfWar";
 import { defaultTokens } from "./data/defaultTokens";
 import { defaultTowers } from "./data/defaultTowers";
-import type { Token, Tower, VisionMode, Ward, WardType } from "./types";
+import type { Token, Tower, VisionMode, Ward, WardType, Drawing, DrawMode } from "./types";
 import { VISION_RANGES } from "./config/visionRanges";
 
 export default function App() {
@@ -19,6 +19,8 @@ export default function App() {
     const [wards, setWards] = useState<Ward[]>([]);
     const [placingWard, setPlacingWard] = useState<WardType | null>(null);
     const [selectedTeam, setSelectedTeam] = useState<'blue' | 'red'>('blue');
+    const [drawings, setDrawings] = useState<Drawing[]>([]);
+    const [drawMode, setDrawMode] = useState<DrawMode>(null);
 
     const GRID = 10;
 
@@ -76,6 +78,19 @@ export default function App() {
 
     const handleClearAllWards = useCallback(() => {
         setWards([]);
+    }, []);
+
+    // Handlers pour le dessin
+    const handleDrawingAdd = useCallback((drawing: Drawing) => {
+        setDrawings(prev => [...prev, drawing]);
+    }, []);
+
+    const handleDrawingRemove = useCallback((id: string) => {
+        setDrawings(prev => prev.filter(d => d.id !== id));
+    }, []);
+
+    const handleClearAllDrawings = useCallback(() => {
+        setDrawings([]);
     }, []);
 
     // Calculer quelles wards sont désactivées par Control Wards ennemies
@@ -246,49 +261,54 @@ export default function App() {
         <div className="w-screen h-screen bg-gray-900 text-white flex">
             
             <div className="w-64 bg-gray-800 p-4 flex flex-col gap-4 border-r border-gray-700 overflow-y-auto">
-                <h2 className="text-xl font-bold">Vue de la map</h2>
-                
+                <h2 className="text-xl font-bold">Map View</h2>
+
                 <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold">Zoom: {boardSize}px</label>
-                    <input 
-                        type="range" 
-                        min="600" 
-                        max="949" 
+                    <input
+                        type="range"
+                        min="600"
+                        max="949"
                         value={boardSize}
                         onChange={(e) => setBoardSize(Number(e.target.value))}
                         className="w-full"
                     />
                 </div>
 
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                        type="checkbox" 
-                        checked={showGrid}
-                        onChange={(e) => setShowGrid(e.target.checked)}
-                        className="w-4 h-4"
-                    />
-                    <span>Afficher grille</span>
-                </label>
+                <div className="flex flex-col gap-2">
+                    <button
+                        onClick={() => setShowGrid(!showGrid)}
+                        className={`px-3 py-2 rounded transition-colors ${
+                            showGrid
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                    >
+                        {showGrid ? '✓ ' : ''}Show Grid
+                    </button>
 
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                        type="checkbox" 
-                        checked={showWalls}
-                        onChange={(e) => setShowWalls(e.target.checked)}
-                        className="w-4 h-4"
-                    />
-                    <span>Afficher murs</span>
-                </label>
+                    <button
+                        onClick={() => setShowWalls(!showWalls)}
+                        className={`px-3 py-2 rounded transition-colors ${
+                            showWalls
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                    >
+                        {showWalls ? '✓ ' : ''}Show Walls
+                    </button>
 
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={showBrush}
-                        onChange={(e) => setShowBrush(e.target.checked)}
-                        className="w-4 h-4"
-                    />
-                    <span>Afficher herbes</span>
-                </label>
+                    <button
+                        onClick={() => setShowBrush(!showBrush)}
+                        className={`px-3 py-2 rounded transition-colors ${
+                            showBrush
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                    >
+                        {showBrush ? '✓ ' : ''}Show Brush
+                    </button>
+                </div>
 
                 <hr className="border-gray-700" />
 
@@ -303,7 +323,7 @@ export default function App() {
                                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                         }`}
                     >
-                        Vision Bleue
+                        Blue Vision
                     </button>
 
                     <button
@@ -314,7 +334,7 @@ export default function App() {
                                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                         }`}
                     >
-                        Vision Rouge
+                        Red Vision
                     </button>
 
                     <button
@@ -325,81 +345,54 @@ export default function App() {
                                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                         }`}
                     >
-                        Vision Les Deux
+                        Both Vision
                     </button>
                 </div>
 
                 {visionMode !== 'off' && (
                     <div className="text-xs text-gray-400">
-                        Mode actif: {visionMode} (cliquez pour désactiver)
+                        Active mode: {visionMode} (click to disable)
                     </div>
                 )}
 
                 <hr className="border-gray-700" />
 
-                <h3 className="text-lg font-bold">Wards</h3>
+                <h3 className="text-lg font-bold">Drawing</h3>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2">
                     <button
-                        onClick={() => setSelectedTeam('blue')}
-                        className={`flex-1 px-3 py-2 rounded transition-colors ${
-                            selectedTeam === 'blue'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                    >
-                        Blue
-                    </button>
-                    <button
-                        onClick={() => setSelectedTeam('red')}
-                        className={`flex-1 px-3 py-2 rounded transition-colors ${
-                            selectedTeam === 'red'
+                        onClick={() => setDrawMode(drawMode === 'pen' ? null : 'pen')}
+                        className={`px-3 py-2 rounded transition-colors ${
+                            drawMode === 'pen'
                                 ? 'bg-red-500 text-white'
                                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                         }`}
                     >
-                        Red
+                        {drawMode === 'pen' ? '✓ ' : ''}Pen
                     </button>
-                </div>
 
-                <div className="flex flex-col gap-2">
                     <button
-                        onClick={() => setPlacingWard(placingWard === 'vision' ? null : 'vision')}
+                        onClick={() => setDrawMode(drawMode === 'eraser' ? null : 'eraser')}
                         className={`px-3 py-2 rounded transition-colors ${
-                            placingWard === 'vision'
-                                ? 'bg-yellow-500 text-black'
+                            drawMode === 'eraser'
+                                ? 'bg-orange-500 text-white'
                                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                         }`}
                     >
-                        {placingWard === 'vision' ? '✓ ' : ''}Vision Ward (Jaune)
+                        {drawMode === 'eraser' ? '✓ ' : ''}Eraser
                     </button>
 
                     <button
-                        onClick={() => setPlacingWard(placingWard === 'control' ? null : 'control')}
-                        className={`px-3 py-2 rounded transition-colors ${
-                            placingWard === 'control'
-                                ? 'bg-pink-500 text-white'
-                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                    >
-                        {placingWard === 'control' ? '✓ ' : ''}Control Ward (Rose)
-                    </button>
-
-                    <button
-                        onClick={handleClearAllWards}
+                        onClick={handleClearAllDrawings}
                         className="px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white"
                     >
-                        Clear All Wards
+                        Clear All Drawings
                     </button>
                 </div>
 
-                <div className="text-xs text-gray-400">
-                    {wards.filter(w => w.team === 'blue').length} blue wards | {wards.filter(w => w.team === 'red').length} red wards
-                </div>
-
-                {placingWard && (
+                {drawMode && (
                     <div className="text-xs text-yellow-400">
-                        Clic droit sur la map pour placer
+                        {drawMode === 'pen' ? 'Click and drag to draw' : 'Click on a drawing to erase'}
                     </div>
                 )}
             </div>
@@ -423,6 +416,10 @@ export default function App() {
                         onWardRemove={handleWardRemove}
                         onWardMove={handleWardMove}
                         visionMode={visionMode}
+                        drawings={drawings}
+                        drawMode={drawMode}
+                        onDrawingAdd={handleDrawingAdd}
+                        onDrawingRemove={handleDrawingRemove}
                     />
                     <FogOfWar
                         boardSize={boardSize}
@@ -436,57 +433,90 @@ export default function App() {
             </div>
 
             <div className="w-80 bg-gray-800 p-4 border-l border-gray-700 overflow-y-auto">
-                <h2 className="text-xl font-bold mb-4">Joueurs</h2>
-                
-                <div className="space-y-4">
-                    <div>
-                        <h3 className="text-blue-400 font-semibold mb-2">Equipe Bleue</h3>
-                        <div className="space-y-2">
-                            {tokens.filter(t => t.team === 'blue').map(token => (
-                                <div key={token.id} className="bg-gray-700 p-2 rounded text-sm">
-                                    <div className="font-semibold">{token.role}</div>
-                                    <div className="text-gray-400 text-xs">
-                                        Grid: ({(token.x * GRID).toFixed(1)}, {(token.y * GRID).toFixed(1)})
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                <h2 className="text-xl font-bold mb-4">Wards</h2>
+
+                <div className="flex gap-2 mb-4">
+                    <button
+                        onClick={() => setSelectedTeam('blue')}
+                        className={`flex-1 px-3 py-2 rounded transition-colors ${
+                            selectedTeam === 'blue'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                    >
+                        Blue
+                    </button>
+                    <button
+                        onClick={() => setSelectedTeam('red')}
+                        className={`flex-1 px-3 py-2 rounded transition-colors ${
+                            selectedTeam === 'red'
+                                ? 'bg-red-500 text-white'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                    >
+                        Red
+                    </button>
+                </div>
+
+                <div className="flex flex-col gap-2 mb-4">
+                    <button
+                        onClick={() => setPlacingWard(placingWard === 'vision' ? null : 'vision')}
+                        className={`px-3 py-2 rounded transition-colors ${
+                            placingWard === 'vision'
+                                ? 'bg-yellow-500 text-black'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                    >
+                        {placingWard === 'vision' ? '✓ ' : ''}Vision Ward (Yellow)
+                    </button>
+
+                    <button
+                        onClick={() => setPlacingWard(placingWard === 'control' ? null : 'control')}
+                        className={`px-3 py-2 rounded transition-colors ${
+                            placingWard === 'control'
+                                ? 'bg-pink-500 text-white'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                    >
+                        {placingWard === 'control' ? '✓ ' : ''}Control Ward (Pink)
+                    </button>
+
+                    <button
+                        onClick={handleClearAllWards}
+                        className="px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white"
+                    >
+                        Clear All Wards
+                    </button>
+                </div>
+
+                <div className="text-xs text-center mb-2">
+                    <span className="text-blue-400">{wards.filter(w => w.team === 'blue').length} blue wards</span>
+                    {' | '}
+                    <span className="text-red-400">{wards.filter(w => w.team === 'red').length} red wards</span>
+                </div>
+
+                {placingWard && (
+                    <div className="text-xs text-yellow-400 mb-4">
+                        Left click on map to place
                     </div>
+                )}
 
-                    <div>
-                        <h3 className="text-red-400 font-semibold mb-2">Equipe Rouge</h3>
-                        <div className="space-y-2">
-                            {tokens.filter(t => t.team === 'red').map(token => (
-                                <div key={token.id} className="bg-gray-700 p-2 rounded text-sm">
-                                    <div className="font-semibold">{token.role}</div>
-                                    <div className="text-gray-400 text-xs">
-                                        Grid: ({(token.x * GRID).toFixed(1)}, {(token.y * GRID).toFixed(1)})
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                <hr className="border-gray-700" />
 
-                    <hr className="border-gray-700" />
+                <div className="mt-4">
+                    <h3 className="text-lg font-bold mb-2">Towers</h3>
 
-                    <div>
-                        <h3 className="text-lg font-bold mb-2">Tours</h3>
-                        
-                        <button
-                            onClick={toggleAllTowers}
-                            className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded mb-3"
-                        >
-                            {towers.every(t => t.active) ? 'Desactiver toutes' : 'Activer toutes'}
-                        </button>
+                    <button
+                        onClick={toggleAllTowers}
+                        className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded mb-3"
+                    >
+                        {towers.every(t => t.active) ? 'Disable All' : 'Enable All'}
+                    </button>
 
-                        <div className="space-y-1 text-sm">
-                            <div className="text-blue-400">
-                                Bleu: {towers.filter(t => t.team === 'blue' && t.active).length} / {towers.filter(t => t.team === 'blue').length}
-                            </div>
-                            <div className="text-red-400">
-                                Rouge: {towers.filter(t => t.team === 'red' && t.active).length} / {towers.filter(t => t.team === 'red').length}
-                            </div>
-                        </div>
+                    <div className="text-xs text-center">
+                        <span className="text-blue-400">{towers.filter(t => t.team === 'blue' && t.active).length} / {towers.filter(t => t.team === 'blue').length} blue</span>
+                        {' | '}
+                        <span className="text-red-400">{towers.filter(t => t.team === 'red' && t.active).length} / {towers.filter(t => t.team === 'red').length} red</span>
                     </div>
                 </div>
             </div>

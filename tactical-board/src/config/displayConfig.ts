@@ -89,9 +89,19 @@ export const DISPLAY_CONFIG = {
     // =========================
     Z_INDEX: {
         FOG: 100,          // Fog of war au-dessus de tout
+        DRAWING: 50,       // Dessins au-dessus du fog
         WARD: 15,          // Wards au-dessus des tokens
         CHAMPION: 10,      // Champions
         TOWER: 5,          // Tours en dessous
+    },
+
+    // =========================
+    // DESSIN (STYLO)
+    // =========================
+    DRAWING: {
+        PEN_WIDTH: 3,           // Largeur du trait en pixels
+        PEN_COLOR: '#FF0000',   // Couleur rouge par défaut
+        ERASER_RADIUS: 0.015,   // Rayon de la gomme (1.5% du board)
     },
 
     // =========================

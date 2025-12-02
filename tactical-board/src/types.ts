@@ -33,3 +33,17 @@ export interface Ward {
 }
 
 export type WardType = 'vision' | 'control';
+
+export interface DrawingPoint {
+    x: number;  // 0-1 (percentage)
+    y: number;  // 0-1 (percentage)
+}
+
+export interface Drawing {
+    id: string;
+    points: DrawingPoint[];
+    color: string;
+    width: number;
+}
+
+export type DrawMode = 'pen' | 'eraser' | null;

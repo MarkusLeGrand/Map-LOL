@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import type { Token, Tower, Ward, WardType, VisionMode } from "../types";
+import type { Token, Tower, Ward, WardType, VisionMode, Drawing, DrawMode, DrawingPoint } from "../types";
 import { DISPLAY_CONFIG, getTeamColors, getTowerColors } from "../config/displayConfig";
 
 interface MapBoardProps {
@@ -19,6 +19,10 @@ interface MapBoardProps {
     onWardRemove: (id: string) => void;
     onWardMove: (id: string, x: number, y: number) => void;
     visionMode: VisionMode;
+    drawings: Drawing[];
+    drawMode: DrawMode;
+    onDrawingAdd: (drawing: Drawing) => void;
+    onDrawingRemove: (id: string) => void;
 }
 
 export function MapBoard({
@@ -37,7 +41,11 @@ export function MapBoard({
     onWardPlace,
     onWardRemove,
     onWardMove,
-    visionMode
+    visionMode,
+    drawings,
+    drawMode,
+    onDrawingAdd,
+    onDrawingRemove
 }: MapBoardProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [mapImage] = useState(() => {
@@ -60,6 +68,8 @@ export function MapBoard({
 
     const [draggingToken, setDraggingToken] = useState<string | null>(null);
     const [draggingWard, setDraggingWard] = useState<string | null>(null);
+    const [currentDrawing, setCurrentDrawing] = useState<{ x: number; y: number }[]>([]);
+    const [isDrawing, setIsDrawing] = useState(false);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -125,12 +135,59 @@ export function MapBoard({
             onTokenMove(draggingToken, x, y);
         } else if (draggingWard) {
             onWardMove(draggingWard, x, y);
+        } else if (isDrawing && drawMode === 'pen') {
+            // Ajouter un point au dessin en cours
+            setCurrentDrawing(prev => [...prev, { x, y }]);
+        }
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        // Ne pas dessiner si on est en mode placement de ward
+        if (placingWard) return;
+
+        if (drawMode === 'pen') {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / boardSize;
+            const y = (e.clientY - rect.top) / boardSize;
+            setIsDrawing(true);
+            setCurrentDrawing([{ x, y }]);
+        } else if (drawMode === 'eraser') {
+            // Mode gomme : trouver et supprimer le dessin cliqué
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = (e.clientX - rect.left) / boardSize;
+            const clickY = (e.clientY - rect.top) / boardSize;
+
+            const eraserRadius = DISPLAY_CONFIG.DRAWING.ERASER_RADIUS;
+            const drawingToRemove = drawings.find(drawing => {
+                return drawing.points.some(point => {
+                    const dist = Math.sqrt((point.x - clickX) ** 2 + (point.y - clickY) ** 2);
+                    return dist < eraserRadius;
+                });
+            });
+
+            if (drawingToRemove) {
+                onDrawingRemove(drawingToRemove.id);
+            }
         }
     };
 
     const handleMouseUp = () => {
         setDraggingToken(null);
         setDraggingWard(null);
+
+        // Finaliser le dessin si on était en train de dessiner
+        if (isDrawing && drawMode === 'pen' && currentDrawing.length > 1) {
+            const newDrawing: Drawing = {
+                id: `drawing-${Date.now()}-${Math.random()}`,
+                points: currentDrawing,
+                color: DISPLAY_CONFIG.DRAWING.PEN_COLOR,
+                width: DISPLAY_CONFIG.DRAWING.PEN_WIDTH,
+            };
+            onDrawingAdd(newDrawing);
+        }
+
+        setIsDrawing(false);
+        setCurrentDrawing([]);
     };
 
     const getTowerLabel = (type: Tower['type']) => {
@@ -183,6 +240,7 @@ export function MapBoard({
             className="relative"
             style={{ width: boardSize, height: boardSize }}
             onMouseMove={handleMouseMove}
+            onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onClick={handleClick}
@@ -293,6 +351,57 @@ export function MapBoard({
                     </div>
                 );
             })}
+
+            {/* Dessins */}
+            <svg
+                className="absolute top-0 left-0 pointer-events-none"
+                style={{ width: boardSize, height: boardSize, zIndex: DISPLAY_CONFIG.Z_INDEX.DRAWING }}
+                width={boardSize}
+                height={boardSize}
+            >
+                {/* Dessins finalisés */}
+                {drawings.map(drawing => {
+                    if (drawing.points.length < 2) return null;
+
+                    const pathData = drawing.points
+                        .map((point, i) => {
+                            const x = point.x * boardSize;
+                            const y = point.y * boardSize;
+                            return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
+                        })
+                        .join(' ');
+
+                    return (
+                        <path
+                            key={drawing.id}
+                            d={pathData}
+                            stroke={drawing.color}
+                            strokeWidth={drawing.width}
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    );
+                })}
+
+                {/* Dessin en cours */}
+                {isDrawing && currentDrawing.length > 1 && (
+                    <path
+                        d={currentDrawing
+                            .map((point, i) => {
+                                const x = point.x * boardSize;
+                                const y = point.y * boardSize;
+                                return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
+                            })
+                            .join(' ')}
+                        stroke={DISPLAY_CONFIG.DRAWING.PEN_COLOR}
+                        strokeWidth={DISPLAY_CONFIG.DRAWING.PEN_WIDTH}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                )}
+            </svg>
         </div>
     );
 }
