@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import type { Token, Tower, Ward, WardType, VisionMode, Drawing, DrawMode } from '../types';
+import type { Token, Tower, Ward, WardType, VisionMode, Drawing, DrawMode, JungleCamp as JungleCampType } from '../types';
 import { DISPLAY_CONFIG } from '../config/displayConfig';
 import { MapCanvas } from './map/MapCanvas';
 import { TowerElement } from './map/TowerElement';
 import { TokenElement } from './map/TokenElement';
 import { WardElement } from './map/WardElement';
 import { DrawingLayer } from './map/DrawingLayer';
+import { JungleCamp } from './map/JungleCamp';
 import { calculateDistance } from '../utils/visionCalculations';
 
 interface MapBoardProps {
@@ -29,6 +30,9 @@ interface MapBoardProps {
     drawMode: DrawMode;
     onDrawingAdd: (drawing: Drawing) => void;
     onDrawingRemove: (id: string) => void;
+    jungleCamps: JungleCampType[];
+    onJungleCampToggle: (id: string) => void;
+    showJungleCamps: boolean;
 }
 
 export function MapBoard({
@@ -52,6 +56,9 @@ export function MapBoard({
     drawMode,
     onDrawingAdd,
     onDrawingRemove,
+    jungleCamps,
+    onJungleCampToggle,
+    showJungleCamps,
 }: MapBoardProps) {
     const [mapImage] = useState(() => {
         const img = new Image();
@@ -245,6 +252,16 @@ export function MapBoard({
                     visionMode={visionMode}
                     placingWard={placingWard}
                     onMouseDown={handleWardMouseDown}
+                />
+            ))}
+
+            {showJungleCamps && jungleCamps.map(camp => (
+                <JungleCamp
+                    key={camp.id}
+                    camp={camp}
+                    mapWidth={boardSize}
+                    mapHeight={boardSize}
+                    onClick={onJungleCampToggle}
                 />
             ))}
 

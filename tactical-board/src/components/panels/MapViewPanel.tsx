@@ -10,6 +10,8 @@ interface MapViewPanelProps {
     onShowWallsToggle: () => void;
     showBrush: boolean;
     onShowBrushToggle: () => void;
+    showJungleCamps: boolean;
+    onShowJungleCampsToggle: () => void;
     visionMode: VisionMode;
     onVisionModeToggle: (mode: 'blue' | 'red' | 'both') => void;
     drawMode: DrawMode;
@@ -26,6 +28,8 @@ export function MapViewPanel({
     onShowWallsToggle,
     showBrush,
     onShowBrushToggle,
+    showJungleCamps,
+    onShowJungleCampsToggle,
     visionMode,
     onVisionModeToggle,
     drawMode,
@@ -75,6 +79,10 @@ export function MapViewPanel({
 
                 <Button onClick={onShowBrushToggle} variant="green" active={showBrush}>
                     {showBrush && '✓ '}Show Brush
+                </Button>
+
+                <Button onClick={onShowJungleCampsToggle} variant="green" active={showJungleCamps}>
+                    {showJungleCamps && '✓ '}Show Jungle Camps
                 </Button>
             </div>
 

@@ -39,12 +39,16 @@ export default function App() {
         setWards,
         drawings,
         setDrawings,
+        jungleCamps,
+        setJungleCamps,
         placingWard,
         setPlacingWard,
         selectedTeam,
         setSelectedTeam,
         drawMode,
         setDrawMode,
+        showJungleCamps,
+        setShowJungleCamps,
     } = gameState;
 
     const { handleTokenMove } = useTokenHandlers({ setTokens });
@@ -98,6 +102,10 @@ export default function App() {
         setShowBrush(!showBrush);
     }, [showBrush, setShowBrush]);
 
+    const handleToggleJungleCamps = useCallback(() => {
+        setShowJungleCamps(!showJungleCamps);
+    }, [showJungleCamps, setShowJungleCamps]);
+
     const handleDrawModeChange = useCallback((mode: DrawMode) => {
         setDrawMode(mode);
     }, [setDrawMode]);
@@ -115,6 +123,8 @@ export default function App() {
                 onShowWallsToggle={handleToggleWalls}
                 showBrush={showBrush}
                 onShowBrushToggle={handleToggleBrush}
+                showJungleCamps={showJungleCamps}
+                onShowJungleCampsToggle={handleToggleJungleCamps}
                 visionMode={visionMode}
                 onVisionModeToggle={handleToggleVisionMode}
                 drawMode={drawMode}
@@ -145,6 +155,15 @@ export default function App() {
                         drawMode={drawMode}
                         onDrawingAdd={handleDrawingAdd}
                         onDrawingRemove={handleDrawingRemove}
+                        jungleCamps={jungleCamps}
+                        onJungleCampToggle={(id) => {
+                            setJungleCamps(camps =>
+                                camps.map(camp =>
+                                    camp.id === id ? { ...camp, active: !camp.active } : camp
+                                )
+                            );
+                        }}
+                        showJungleCamps={showJungleCamps}
                     />
                     <FogOfWar
                         boardSize={boardSize}

@@ -47,3 +47,13 @@ export interface Drawing {
 }
 
 export type DrawMode = 'pen' | 'eraser' | null;
+
+export interface JungleCamp {
+    id: string;
+    x: number;
+    y: number;
+    team: 'blue' | 'red' | 'neutral';
+    type: 'baron' | 'dragon' | 'herald' | 'blue-buff' | 'red-buff' | 'gromp' | 'wolves' | 'raptors' | 'krugs';
+    active: boolean;
+    respawnTime?: number;
+}
