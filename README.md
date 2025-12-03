@@ -6,7 +6,9 @@ todo:
 - all maps (by drakes)
 - objectif ( tu les ajoutes et tu choisis le temps (spawn ou 43s))
 - camp up toggle
+    button afficher les camps
+    et comme les tours tu click pour les desactiver
 - zoom in one zone
+    zoom en scrollant 
 - save position 
-- nommer des position (banana bush) ou tu mets ta souris 
 - solution pour designe des waves 
