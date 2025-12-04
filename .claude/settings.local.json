@@ -3,7 +3,8 @@
     "allow": [
       "Bash(dir /B \"c:\\Users\\leokt\\Documents\\Map-LOL\\tactical-board\\src\\components\")",
       "Bash(dir /B \"c:\\Users\\leokt\\Documents\\Map-LOL\\tactical-board\\src\\data\")",
-      "Bash(dir /B \"c:\\Users\\leokt\\Documents\\Map-LOL\\tactical-board\\src\")"
+      "Bash(dir /B \"c:\\Users\\leokt\\Documents\\Map-LOL\\tactical-board\\src\")",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

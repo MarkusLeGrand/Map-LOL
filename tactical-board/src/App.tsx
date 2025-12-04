@@ -41,6 +41,8 @@ export default function App() {
         setDrawings,
         jungleCamps,
         setJungleCamps,
+        inhibitors,
+        setInhibitors,
         placingWard,
         setPlacingWard,
         selectedTeam,
@@ -49,14 +51,29 @@ export default function App() {
         setDrawMode,
         showJungleCamps,
         setShowJungleCamps,
+        showCoordinates,
+        setShowCoordinates,
+        showTowers,
+        setShowTowers,
     } = gameState;
 
     const { handleTokenMove } = useTokenHandlers({ setTokens });
 
-    const { handleTowerToggle, toggleAllTowers } = useTowerHandlers({
+    const { handleTowerToggle } = useTowerHandlers({
         towers,
         setTowers,
     });
+
+    const toggleAllTowersAndInhibitors = useCallback(() => {
+        const allActive = towers.every(t => t.active) && inhibitors.every(i => i.active);
+        setTowers(towers => towers.map(t => ({ ...t, active: !allActive })));
+        setInhibitors(inhibs => inhibs.map(i => ({ ...i, active: !allActive })));
+    }, [towers, inhibitors, setTowers, setInhibitors]);
+
+    const toggleAllJungleCamps = useCallback(() => {
+        const allActive = jungleCamps.every(c => c.active);
+        setJungleCamps(camps => camps.map(c => ({ ...c, active: !allActive })));
+    }, [jungleCamps, setJungleCamps]);
 
     const { handleWardPlace, handleWardRemove, handleWardMove, handleClearAllWards } = useWardHandlers({
         setWards,
@@ -102,6 +119,14 @@ export default function App() {
         setShowBrush(!showBrush);
     }, [showBrush, setShowBrush]);
 
+    const handleToggleCoordinates = useCallback(() => {
+        setShowCoordinates(!showCoordinates);
+    }, [showCoordinates, setShowCoordinates]);
+
+    const handleToggleTowers = useCallback(() => {
+        setShowTowers(!showTowers);
+    }, [showTowers, setShowTowers]);
+
     const handleToggleJungleCamps = useCallback(() => {
         setShowJungleCamps(!showJungleCamps);
     }, [showJungleCamps, setShowJungleCamps]);
@@ -123,8 +148,8 @@ export default function App() {
                 onShowWallsToggle={handleToggleWalls}
                 showBrush={showBrush}
                 onShowBrushToggle={handleToggleBrush}
-                showJungleCamps={showJungleCamps}
-                onShowJungleCampsToggle={handleToggleJungleCamps}
+                showCoordinates={showCoordinates}
+                onShowCoordinatesToggle={handleToggleCoordinates}
                 visionMode={visionMode}
                 onVisionModeToggle={handleToggleVisionMode}
                 drawMode={drawMode}
@@ -144,7 +169,7 @@ export default function App() {
                         onTowerToggle={handleTowerToggle}
                         showWalls={showWalls}
                         showBrush={showBrush}
-                        showTowers={true}
+                        showTowers={showTowers}
                         wards={visibleWards}
                         placingWard={placingWard}
                         onWardPlace={handleWardPlace}
@@ -164,6 +189,15 @@ export default function App() {
                             );
                         }}
                         showJungleCamps={showJungleCamps}
+                        showCoordinates={showCoordinates}
+                        inhibitors={inhibitors}
+                        onInhibitorToggle={(id) => {
+                            setInhibitors(inhibs =>
+                                inhibs.map(inhib =>
+                                    inhib.id === id ? { ...inhib, active: !inhib.active } : inhib
+                                )
+                            );
+                        }}
                     />
                     <FogOfWar
                         boardSize={boardSize}
@@ -184,7 +218,14 @@ export default function App() {
                 wards={wards}
                 onClearAllWards={handleClearAllWards}
                 towers={towers}
-                onToggleAllTowers={toggleAllTowers}
+                onToggleAllTowers={toggleAllTowersAndInhibitors}
+                jungleCamps={jungleCamps}
+                onToggleAllJungleCamps={toggleAllJungleCamps}
+                inhibitors={inhibitors}
+                showTowers={showTowers}
+                onShowTowersToggle={handleToggleTowers}
+                showJungleCamps={showJungleCamps}
+                onShowJungleCampsToggle={handleToggleJungleCamps}
             />
         </div>
     );

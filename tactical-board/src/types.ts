@@ -53,7 +53,17 @@ export interface JungleCamp {
     x: number;
     y: number;
     team: 'blue' | 'red' | 'neutral';
-    type: 'baron' | 'dragon' | 'herald' | 'blue-buff' | 'red-buff' | 'gromp' | 'wolves' | 'raptors' | 'krugs';
+    type: 'baron' | 'dragon' | 'herald' | 'blue-buff' | 'red-buff' | 'gromp' | 'wolves' | 'raptors' | 'krugs' |'carap';
+    active: boolean;
+    respawnTime?: number;
+}
+
+export interface Inhibitor {
+    id: string;
+    x: number;
+    y: number;
+    team: 'blue' | 'red';
+    lane: 'top' | 'mid' | 'bot';
     active: boolean;
     respawnTime?: number;
 }

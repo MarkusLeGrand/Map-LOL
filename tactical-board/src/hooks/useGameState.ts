@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import type { Token, Tower, Ward, VisionMode, Drawing, DrawMode, WardType, JungleCamp } from '../types';
+import type { Token, Tower, Ward, VisionMode, Drawing, DrawMode, WardType, JungleCamp, Inhibitor } from '../types';
 import { defaultTokens } from '../data/defaultTokens';
 import { defaultTowers } from '../data/defaultTowers';
 import { defaultJungleCamps } from '../data/defaultJungleCamps';
+import { defaultInhibitors } from '../data/defaultInhibitors';
 
 export function useGameState() {
     const [boardSize, setBoardSize] = useState(800);
@@ -18,11 +19,15 @@ export function useGameState() {
     const [wards, setWards] = useState<Ward[]>([]);
     const [drawings, setDrawings] = useState<Drawing[]>([]);
     const [jungleCamps, setJungleCamps] = useState<JungleCamp[]>(defaultJungleCamps);
+    const [inhibitors, setInhibitors] = useState<Inhibitor[]>(defaultInhibitors);
 
     const [placingWard, setPlacingWard] = useState<WardType | null>(null);
     const [selectedTeam, setSelectedTeam] = useState<'blue' | 'red'>('blue');
     const [drawMode, setDrawMode] = useState<DrawMode>(null);
     const [showJungleCamps, setShowJungleCamps] = useState(true);
+    const [showCoordinates, setShowCoordinates] = useState(false);
+    const [showTowers, setShowTowers] = useState(true);
+    const [showInhibitors, setShowInhibitors] = useState(true);
 
     return {
         boardSize,
@@ -49,6 +54,8 @@ export function useGameState() {
         setDrawings,
         jungleCamps,
         setJungleCamps,
+        inhibitors,
+        setInhibitors,
         placingWard,
         setPlacingWard,
         selectedTeam,
@@ -57,5 +64,11 @@ export function useGameState() {
         setDrawMode,
         showJungleCamps,
         setShowJungleCamps,
+        showCoordinates,
+        setShowCoordinates,
+        showTowers,
+        setShowTowers,
+        showInhibitors,
+        setShowInhibitors,
     };
 }

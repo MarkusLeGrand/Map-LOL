@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Token, Tower, Ward, WardType, VisionMode, Drawing, DrawMode, JungleCamp as JungleCampType } from '../types';
+import type { Token, Tower, Ward, WardType, VisionMode, Drawing, DrawMode, JungleCamp as JungleCampType, Inhibitor } from '../types';
 import { DISPLAY_CONFIG } from '../config/displayConfig';
 import { MapCanvas } from './map/MapCanvas';
 import { TowerElement } from './map/TowerElement';
@@ -7,6 +7,7 @@ import { TokenElement } from './map/TokenElement';
 import { WardElement } from './map/WardElement';
 import { DrawingLayer } from './map/DrawingLayer';
 import { JungleCamp } from './map/JungleCamp';
+import { InhibitorElement } from './map/InhibitorElement';
 import { calculateDistance } from '../utils/visionCalculations';
 
 interface MapBoardProps {
@@ -33,6 +34,9 @@ interface MapBoardProps {
     jungleCamps: JungleCampType[];
     onJungleCampToggle: (id: string) => void;
     showJungleCamps: boolean;
+    showCoordinates: boolean;
+    inhibitors: Inhibitor[];
+    onInhibitorToggle: (id: string) => void;
 }
 
 export function MapBoard({
@@ -59,6 +63,9 @@ export function MapBoard({
     jungleCamps,
     onJungleCampToggle,
     showJungleCamps,
+    showCoordinates,
+    inhibitors,
+    onInhibitorToggle,
 }: MapBoardProps) {
     const [mapImage] = useState(() => {
         const img = new Image();
@@ -241,6 +248,7 @@ export function MapBoard({
                     token={token}
                     boardSize={boardSize}
                     onMouseDown={handleTokenMouseDown}
+                    showCoordinates={showCoordinates}
                 />
             ))}
 
@@ -262,6 +270,16 @@ export function MapBoard({
                     mapWidth={boardSize}
                     mapHeight={boardSize}
                     onClick={onJungleCampToggle}
+                />
+            ))}
+
+            {inhibitors.map(inhibitor => (
+                <InhibitorElement
+                    key={inhibitor.id}
+                    inhibitor={inhibitor}
+                    mapWidth={boardSize}
+                    mapHeight={boardSize}
+                    onClick={onInhibitorToggle}
                 />
             ))}
 
