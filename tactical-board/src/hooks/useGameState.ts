@@ -28,6 +28,7 @@ export function useGameState() {
     const [showCoordinates, setShowCoordinates] = useState(false);
     const [showTowers, setShowTowers] = useState(true);
     const [showInhibitors, setShowInhibitors] = useState(true);
+    const [selectedGridCells, setSelectedGridCells] = useState<Set<string>>(new Set());
 
     return {
         boardSize,
@@ -70,5 +71,7 @@ export function useGameState() {
         setShowTowers,
         showInhibitors,
         setShowInhibitors,
+        selectedGridCells,
+        setSelectedGridCells,
     };
 }

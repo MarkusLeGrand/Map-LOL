@@ -8,6 +8,7 @@ import { WardElement } from './map/WardElement';
 import { DrawingLayer } from './map/DrawingLayer';
 import { JungleCamp } from './map/JungleCamp';
 import { InhibitorElement } from './map/InhibitorElement';
+import { GridOverlay } from './map/GridOverlay';
 import { calculateDistance } from '../utils/visionCalculations';
 
 interface MapBoardProps {
@@ -38,6 +39,8 @@ interface MapBoardProps {
     inhibitors: Inhibitor[];
     onInhibitorToggle: (id: string) => void;
     showInhibitors: boolean;
+    selectedGridCells: Set<string>;
+    onGridCellToggle: (cellKey: string) => void;
 }
 
 export function MapBoard({
@@ -68,6 +71,8 @@ export function MapBoard({
     inhibitors,
     onInhibitorToggle,
     showInhibitors,
+    selectedGridCells,
+    onGridCellToggle,
 }: MapBoardProps) {
     const [mapImage] = useState(() => {
         const img = new Image();
@@ -177,14 +182,22 @@ export function MapBoard({
     }
 
     function handleClick(e: React.MouseEvent) {
-        if (!placingWard) {
-            return;
-        }
-
         const rect = e.currentTarget.getBoundingClientRect();
         const x = (e.clientX - rect.left) / boardSize;
         const y = (e.clientY - rect.top) / boardSize;
-        onWardPlace(x, y);
+
+        if (placingWard) {
+            onWardPlace(x, y);
+            return;
+        }
+
+        // Grid cell selection mode - only when grid is shown and no other mode is active
+        if (showGrid && !drawMode && !draggingToken && !draggingWard) {
+            const cellX = Math.floor(x * gridSize);
+            const cellY = Math.floor(y * gridSize);
+            const cellKey = `${cellX},${cellY}`;
+            onGridCellToggle(cellKey);
+        }
     }
 
     function handleContextMenu(e: React.MouseEvent) {
@@ -234,6 +247,14 @@ export function MapBoard({
                 wallsImage={wallsImage}
                 brushImage={brushImage}
             />
+
+            {showGrid && (
+                <GridOverlay
+                    boardSize={boardSize}
+                    gridSize={gridSize}
+                    selectedCells={selectedGridCells}
+                />
+            )}
 
             {showTowers && towers.map((tower) => (
                 <TowerElement

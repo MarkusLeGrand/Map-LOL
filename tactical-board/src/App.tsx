@@ -57,6 +57,8 @@ export default function App() {
         setShowTowers,
         showInhibitors,
         setShowInhibitors,
+        selectedGridCells,
+        setSelectedGridCells,
     } = gameState;
 
     const { handleTokenMove } = useTokenHandlers({ setTokens });
@@ -139,6 +141,18 @@ export default function App() {
         setDrawMode(mode);
     }, [setDrawMode]);
 
+    const handleGridCellToggle = useCallback((cellKey: string) => {
+        setSelectedGridCells(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(cellKey)) {
+                newSet.delete(cellKey);
+            } else {
+                newSet.add(cellKey);
+            }
+            return newSet;
+        });
+    }, [setSelectedGridCells]);
+
     const activeWards = wardsWithDisabledStatus.filter(w => !w.disabled);
 
     return (
@@ -203,6 +217,8 @@ export default function App() {
                             );
                         }}
                         showInhibitors={showInhibitors}
+                        selectedGridCells={selectedGridCells}
+                        onGridCellToggle={handleGridCellToggle}
                     />
                     <FogOfWar
                         boardSize={boardSize}
