@@ -25,29 +25,27 @@ export function Button({
 
     if (active) {
         if (variant === 'blue') {
-            buttonClasses += 'bg-blue-500 text-white ';
+            buttonClasses += 'bg-blue-700 text-white ';
         } else if (variant === 'red') {
-            buttonClasses += 'bg-red-500 text-white ';
+            buttonClasses += 'bg-red-700 text-white ';
         } else if (variant === 'purple') {
-            buttonClasses += 'bg-purple-500 text-white ';
+            buttonClasses += 'bg-purple-700 text-white ';
         } else if (variant === 'green') {
-            buttonClasses += 'bg-green-500 text-white ';
+            buttonClasses += 'bg-green-700 text-white ';
         } else if (variant === 'yellow') {
-            buttonClasses += 'bg-yellow-500 text-black ';
+            buttonClasses += 'bg-yellow-700 text-black ';
         } else if (variant === 'pink') {
-            buttonClasses += 'bg-pink-500 text-white ';
+            buttonClasses += 'bg-pink-700 text-white ';
         } else if (variant === 'orange') {
-            buttonClasses += 'bg-orange-500 text-white ';
+            buttonClasses += 'bg-orange-700 text-white ';
         } else if (variant === 'danger') {
-            buttonClasses += 'bg-red-600 text-white hover:bg-red-700 ';
+            buttonClasses += 'bg-red-800 text-white hover:bg-red-900 ';
         } else {
             buttonClasses += 'bg-gray-600 text-white ';
         }
     } else {
         if (variant === 'danger') {
-            buttonClasses += 'bg-red-600 hover:bg-red-700 text-white ';
-        } else if (variant === 'purple') {
-            buttonClasses += 'bg-purple-600 hover:bg-purple-700 text-white ';
+            buttonClasses += 'bg-red-800 hover:bg-red-900 text-white ';
         } else {
             buttonClasses += 'bg-gray-700 text-gray-300 hover:bg-gray-600 ';
         }

@@ -72,7 +72,7 @@ export function WardsPanel({
 
     return (
         <div className="w-80 bg-gray-800 p-4 border-l border-gray-700 overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Wards</h2>
+            <h2 className="text-xl font-bold mb-4 text-center">Wards</h2>
 
             <div className="flex gap-2 mb-4">
                 <Button
@@ -107,15 +107,9 @@ export function WardsPanel({
                 </Button>
             </div>
 
-            {placingWard && (
-                <div className="text-xs text-yellow-400 mb-4">
-                    Left click on map to place
-                </div>
-            )}
-
             <hr className="border-gray-700 mb-4" />
 
-            <h2 className="text-xl font-bold mb-4">Buildings</h2>
+            <h2 className="text-xl font-bold mb-4 text-center">Buildings</h2>
 
             <div className="flex flex-col gap-2 mb-4">
                 <Button onClick={onShowTowersToggle} variant="green" active={showTowers}>
@@ -129,7 +123,7 @@ export function WardsPanel({
 
             <hr className="border-gray-700 mb-4" />
 
-            <h2 className="text-xl font-bold mb-4">Jungle Camps</h2>
+            <h2 className="text-xl font-bold mb-4 text-center">Jungle Camps</h2>
 
             <div className="flex flex-col gap-2 mb-4">
                 <Button onClick={onShowJungleCampsToggle} variant="green" active={showJungleCamps}>
@@ -143,53 +137,44 @@ export function WardsPanel({
 
             <hr className="border-gray-700 mb-4" />
 
-            <h2 className="text-xl font-bold mb-4">Game States</h2>
+            <h2 className="text-xl font-bold mb-4 text-center">Game Status</h2>
 
-            <div className="bg-gray-900 rounded p-3 mb-4">
-                <h3 className="text-sm font-bold mb-2 text-gray-300">Objectives</h3>
-
-                <div className="text-xs space-y-1">
-                    <div className="flex justify-between">
-                        <span className="text-gray-400">Towers:</span>
-                        <span>
-                            <span className="text-blue-400">{blueTowerCount}/{totalBlueTowers}</span>
-                            {' - '}
-                            <span className="text-red-400">{redTowerCount}/{totalRedTowers}</span>
-                        </span>
-                    </div>
-
-                    <div className="flex justify-between">
-                        <span className="text-gray-400">Inhibitors:</span>
-                        <span>
-                            <span className="text-blue-400">{blueInhibitorCount}/3</span>
-                            {' - '}
-                            <span className="text-red-400">{redInhibitorCount}/3</span>
-                        </span>
-                    </div>
-
-                    <div className="flex justify-between">
-                        <span className="text-gray-400">Wards:</span>
-                        <span>
-                            <span className="text-blue-400">{blueWardCount}</span>
-                            {' - '}
-                            <span className="text-red-400">{redWardCount}</span>
-                        </span>
-                    </div>
-
-                    <div className="flex justify-between">
-                        <span className="text-gray-400">Jungle Camps:</span>
-                        <span>
-                            <span className="text-blue-400">{blueCampsCount}/{totalBlueCamps}</span>
-                            {' - '}
-                            <span className="text-red-400">{redCampsCount}/{totalRedCamps}</span>
-                        </span>
-                    </div>
-
-                    <div className="flex justify-between">
-                        <span className="text-gray-400">Neutral Objectives:</span>
-                        <span className="text-purple-400">{neutralCampsCount}/{totalNeutralCamps}</span>
-                    </div>
-                </div>
+            <div className="bg-gray-900 rounded overflow-hidden mb-4">
+                <table className="w-full text-xs">
+                    <thead>
+                        <tr className="border-b border-gray-700">
+                            <th className="text-left p-2 text-gray-400 font-semibold"></th>
+                            <th className="text-center p-2 text-blue-400 font-semibold">Blue</th>
+                            <th className="text-center p-2 text-red-400 font-semibold">Red</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr className="border-b border-gray-800">
+                            <td className="p-2 text-gray-400">Towers</td>
+                            <td className="p-2 text-center text-blue-400">{blueTowerCount}/{totalBlueTowers}</td>
+                            <td className="p-2 text-center text-red-400">{redTowerCount}/{totalRedTowers}</td>
+                        </tr>
+                        <tr className="border-b border-gray-800">
+                            <td className="p-2 text-gray-400">Inhibitors</td>
+                            <td className="p-2 text-center text-blue-400">{blueInhibitorCount}/3</td>
+                            <td className="p-2 text-center text-red-400">{redInhibitorCount}/3</td>
+                        </tr>
+                        <tr className="border-b border-gray-800">
+                            <td className="p-2 text-gray-400">Wards</td>
+                            <td className="p-2 text-center text-blue-400">{blueWardCount}</td>
+                            <td className="p-2 text-center text-red-400">{redWardCount}</td>
+                        </tr>
+                        <tr className="border-b border-gray-800">
+                            <td className="p-2 text-gray-400">Jungle</td>
+                            <td className="p-2 text-center text-blue-400">{blueCampsCount}/{totalBlueCamps}</td>
+                            <td className="p-2 text-center text-red-400">{redCampsCount}/{totalRedCamps}</td>
+                        </tr>
+                        <tr>
+                            <td className="p-2 text-gray-400">Neutral</td>
+                            <td className="p-2 text-center text-purple-400" colSpan={2}>{neutralCampsCount}/{totalNeutralCamps}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     );

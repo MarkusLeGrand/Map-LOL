@@ -11,11 +11,11 @@ interface InhibitorElementProps {
 const getInhibitorColors = (team: Inhibitor['team']) => {
     const baseColors = {
         blue: {
-            background: 'bg-blue-600',
+            background: 'bg-blue-700',
             border: 'border-blue-400',
         },
         red: {
-            background: 'bg-red-600',
+            background: 'bg-red-700',
             border: 'border-red-400',
         },
     };

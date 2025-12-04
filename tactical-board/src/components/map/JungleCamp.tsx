@@ -11,16 +11,16 @@ interface JungleCampProps {
 const getCampColors = (team: JungleCampType['team']) => {
     const baseColors = {
         blue: {
-            background: 'bg-blue-600',
+            background: 'bg-blue-700',
             border: 'border-blue-400',
         },
         red: {
-            background: 'bg-red-600',
+            background: 'bg-red-700',
             border: 'border-red-400',
         },
         neutral: {
-            background: 'bg-purple-500',
-            border: 'border-purple-300',
+            background: 'bg-purple-700',
+            border: 'border-purple-400',
         },
     };
     return baseColors[team];

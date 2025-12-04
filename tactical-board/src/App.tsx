@@ -55,6 +55,8 @@ export default function App() {
         setShowCoordinates,
         showTowers,
         setShowTowers,
+        showInhibitors,
+        setShowInhibitors,
     } = gameState;
 
     const { handleTokenMove } = useTokenHandlers({ setTokens });
@@ -124,8 +126,10 @@ export default function App() {
     }, [showCoordinates, setShowCoordinates]);
 
     const handleToggleTowers = useCallback(() => {
-        setShowTowers(!showTowers);
-    }, [showTowers, setShowTowers]);
+        const newValue = !showTowers;
+        setShowTowers(newValue);
+        setShowInhibitors(newValue);
+    }, [showTowers, setShowTowers, setShowInhibitors]);
 
     const handleToggleJungleCamps = useCallback(() => {
         setShowJungleCamps(!showJungleCamps);
@@ -198,6 +202,7 @@ export default function App() {
                                 )
                             );
                         }}
+                        showInhibitors={showInhibitors}
                     />
                     <FogOfWar
                         boardSize={boardSize}

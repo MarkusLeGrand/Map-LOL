@@ -53,8 +53,8 @@ export function MapViewPanel({
     }
 
     return (
-        <div className="w-64 bg-gray-800 p-4 flex flex-col gap-4 border-r border-gray-700 overflow-y-auto">
-            <h2 className="text-xl font-bold">Map View</h2>
+        <div className="w-80 bg-gray-800 p-4 flex flex-col gap-4 border-r border-gray-700 overflow-y-auto">
+            <h2 className="text-xl font-bold text-center">Map View</h2>
 
             <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold">Zoom: {boardSize}px</label>
@@ -88,7 +88,7 @@ export function MapViewPanel({
 
             <hr className="border-gray-700" />
 
-            <h3 className="text-lg font-bold">Fog of War</h3>
+            <h2 className="text-xl font-bold text-center">Fog of War</h2>
 
             <div className="flex flex-col gap-2">
                 <Button
@@ -116,18 +116,12 @@ export function MapViewPanel({
                 </Button>
             </div>
 
-            {visionMode !== 'off' && (
-                <div className="text-xs text-gray-400">
-                    Active mode: {visionMode} (click to disable)
-                </div>
-            )}
-
             <hr className="border-gray-700" />
 
-            <h3 className="text-lg font-bold">Drawing</h3>
+            <h2 className="text-xl font-bold text-center">Drawing</h2>
 
             <div className="flex flex-col gap-2">
-                <Button onClick={handlePenClick} variant="red" active={drawMode === 'pen'}>
+                <Button onClick={handlePenClick} variant="green" active={drawMode === 'pen'}>
                     {drawMode === 'pen' && '✓ '}Pen
                 </Button>
 
@@ -139,17 +133,6 @@ export function MapViewPanel({
                     Clear All Drawings
                 </Button>
             </div>
-
-            {drawMode === 'pen' && (
-                <div className="text-xs text-yellow-400">
-                    Click and drag to draw
-                </div>
-            )}
-            {drawMode === 'eraser' && (
-                <div className="text-xs text-yellow-400">
-                    Click on a drawing to erase
-                </div>
-            )}
         </div>
     );
 }

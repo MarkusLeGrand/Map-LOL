@@ -12,3 +12,6 @@ todo:
     zoom en scrollant 
 - save position 
 - solution pour designe des waves 
+
+
+SELECT A ZONE un rectangle avec le mod show grid 

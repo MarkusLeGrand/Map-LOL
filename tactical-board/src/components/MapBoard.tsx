@@ -37,6 +37,7 @@ interface MapBoardProps {
     showCoordinates: boolean;
     inhibitors: Inhibitor[];
     onInhibitorToggle: (id: string) => void;
+    showInhibitors: boolean;
 }
 
 export function MapBoard({
@@ -66,6 +67,7 @@ export function MapBoard({
     showCoordinates,
     inhibitors,
     onInhibitorToggle,
+    showInhibitors,
 }: MapBoardProps) {
     const [mapImage] = useState(() => {
         const img = new Image();
@@ -273,7 +275,7 @@ export function MapBoard({
                 />
             ))}
 
-            {inhibitors.map(inhibitor => (
+            {showInhibitors && inhibitors.map(inhibitor => (
                 <InhibitorElement
                     key={inhibitor.id}
                     inhibitor={inhibitor}

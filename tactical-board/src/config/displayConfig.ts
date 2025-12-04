@@ -26,13 +26,13 @@ export const DISPLAY_CONFIG = {
         // Équipes
         TEAMS: {
             BLUE: {
-                primary: 'bg-blue-500',
-                border: 'border-blue-300',
+                primary: 'bg-blue-700',
+                border: 'border-blue-400',
                 visionCircle: 'rgba(147, 197, 253, 0.4)', // Bleu clair semi-transparent
             },
             RED: {
-                primary: 'bg-red-500',
-                border: 'border-red-300',
+                primary: 'bg-red-700',
+                border: 'border-red-400',
                 visionCircle: 'rgba(252, 165, 165, 0.4)', // Rouge clair semi-transparent
             },
         },
@@ -40,10 +40,10 @@ export const DISPLAY_CONFIG = {
         // Wards
         WARDS: {
             VISION: {
-                background: 'bg-yellow-400',
+                background: 'bg-yellow-700',
             },
             CONTROL: {
-                background: 'bg-pink-500',
+                background: 'bg-pink-700',
             },
         },
 
@@ -51,16 +51,16 @@ export const DISPLAY_CONFIG = {
         TOWERS: {
             ACTIVE: {
                 BLUE: {
-                    background: 'bg-blue-600',
+                    background: 'bg-blue-700',
                     border: 'border-blue-400',
                 },
                 RED: {
-                    background: 'bg-red-600',
+                    background: 'bg-red-700',
                     border: 'border-red-400',
                 },
             },
             DESTROYED: {
-                background: 'bg-gray-600',
+                background: 'bg-gray-700',
                 border: 'border-gray-400',
             },
         },
@@ -100,7 +100,7 @@ export const DISPLAY_CONFIG = {
     // =========================
     DRAWING: {
         PEN_WIDTH: 3,           // Largeur du trait en pixels
-        PEN_COLOR: '#FF0000',   // Couleur rouge par défaut
+        PEN_COLOR: '#FFFFFF',   // Couleur blanche par défaut
         ERASER_RADIUS: 0.015,   // Rayon de la gomme (1.5% du board)
     },
 
