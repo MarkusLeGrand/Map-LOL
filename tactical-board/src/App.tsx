@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { MapBoard } from './components/MapBoard';
 import { FogOfWar } from './components/FogOfWar';
 import { MapViewPanel } from './components/panels/MapViewPanel';
@@ -18,7 +18,6 @@ export default function App() {
 
     const {
         boardSize,
-        setBoardSize,
         showGrid,
         setShowGrid,
         showWalls,
@@ -59,6 +58,10 @@ export default function App() {
         setShowInhibitors,
         selectedGridCells,
         setSelectedGridCells,
+        zoomLevel,
+        setZoomLevel,
+        panOffset,
+        setPanOffset,
     } = gameState;
 
     const { handleTokenMove } = useTokenHandlers({ setTokens });
@@ -153,13 +156,40 @@ export default function App() {
         });
     }, [setSelectedGridCells]);
 
+    const handleResetView = useCallback(() => {
+        setZoomLevel(1);
+        setPanOffset({ x: 0, y: 0 });
+    }, [setZoomLevel, setPanOffset]);
+
     const activeWards = wardsWithDisabledStatus.filter(w => !w.disabled);
+
+    const [isPanning, setIsPanning] = useState(false);
+    const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        if (e.button === 2) {
+            e.preventDefault();
+            setIsPanning(true);
+            setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+        }
+    }, [panOffset]);
+
+    const handleMouseMove = useCallback((e: React.MouseEvent) => {
+        if (isPanning) {
+            setPanOffset({
+                x: e.clientX - panStart.x,
+                y: e.clientY - panStart.y,
+            });
+        }
+    }, [isPanning, panStart]);
+
+    const handleMouseUp = useCallback(() => {
+        setIsPanning(false);
+    }, []);
 
     return (
         <div className="w-screen h-screen bg-gray-900 text-white flex">
             <MapViewPanel
-                boardSize={boardSize}
-                onBoardSizeChange={setBoardSize}
                 showGrid={showGrid}
                 onShowGridToggle={handleToggleGrid}
                 showWalls={showWalls}
@@ -173,10 +203,33 @@ export default function App() {
                 drawMode={drawMode}
                 onDrawModeChange={handleDrawModeChange}
                 onClearAllDrawings={handleClearAllDrawings}
+                onResetView={handleResetView}
             />
 
-            <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
-                <div style={{ position: 'relative', width: boardSize, height: boardSize }}>
+            <div
+                className="flex-1 flex items-center justify-center p-8 overflow-hidden"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onContextMenu={(e) => e.preventDefault()}
+                style={{ cursor: isPanning ? 'grabbing' : 'default' }}
+            >
+                <div
+                    style={{
+                        position: 'relative',
+                        width: boardSize,
+                        height: boardSize,
+                        transform: `scale(${zoomLevel}) translate(${panOffset.x}px, ${panOffset.y}px)`,
+                        transformOrigin: 'center center',
+                        transition: isPanning ? 'none' : 'transform 0.1s ease-out',
+                    }}
+                    onWheel={(e) => {
+                        e.preventDefault();
+                        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                        setZoomLevel(prev => Math.min(Math.max(0.5, prev + delta), 3));
+                    }}
+                >
                     <MapBoard
                         boardSize={boardSize}
                         showGrid={showGrid}
@@ -219,6 +272,8 @@ export default function App() {
                         showInhibitors={showInhibitors}
                         selectedGridCells={selectedGridCells}
                         onGridCellToggle={handleGridCellToggle}
+                        zoomLevel={zoomLevel}
+                        panOffset={panOffset}
                     />
                     <FogOfWar
                         boardSize={boardSize}

@@ -41,6 +41,8 @@ interface MapBoardProps {
     showInhibitors: boolean;
     selectedGridCells: Set<string>;
     onGridCellToggle: (cellKey: string) => void;
+    zoomLevel: number;
+    panOffset: { x: number; y: number };
 }
 
 export function MapBoard({
@@ -73,6 +75,8 @@ export function MapBoard({
     showInhibitors,
     selectedGridCells,
     onGridCellToggle,
+    zoomLevel,
+    panOffset,
 }: MapBoardProps) {
     const [mapImage] = useState(() => {
         const img = new Image();
@@ -97,6 +101,17 @@ export function MapBoard({
     const [currentDrawing, setCurrentDrawing] = useState<{ x: number; y: number }[]>([]);
     const [isDrawing, setIsDrawing] = useState(false);
 
+    // Convert screen coordinates to map coordinates accounting for zoom and pan
+    function screenToMapCoordinates(clientX: number, clientY: number, rect: DOMRect): { x: number; y: number } {
+        const relativeX = clientX - rect.left;
+        const relativeY = clientY - rect.top;
+
+        const x = relativeX / (zoomLevel * boardSize);
+        const y = relativeY / (zoomLevel * boardSize);
+
+        return { x, y };
+    }
+
     function handleTokenMouseDown(e: React.MouseEvent, id: string) {
         e.stopPropagation();
         setDraggingToken(id);
@@ -112,8 +127,7 @@ export function MapBoard({
 
     function handleMouseMove(e: React.MouseEvent) {
         const rect = e.currentTarget.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / boardSize;
-        const y = (e.clientY - rect.top) / boardSize;
+        const { x, y } = screenToMapCoordinates(e.clientX, e.clientY, rect);
 
         if (draggingToken) {
             onTokenMove(draggingToken, x, y);
@@ -135,24 +149,20 @@ export function MapBoard({
             return;
         }
 
+        const rect = e.currentTarget.getBoundingClientRect();
+        const { x, y } = screenToMapCoordinates(e.clientX, e.clientY, rect);
+
         if (drawMode === 'pen') {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / boardSize;
-            const y = (e.clientY - rect.top) / boardSize;
             setIsDrawing(true);
             setCurrentDrawing([{ x, y }]);
             return;
         }
 
         if (drawMode === 'eraser') {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const clickX = (e.clientX - rect.left) / boardSize;
-            const clickY = (e.clientY - rect.top) / boardSize;
-
             const eraserRadius = DISPLAY_CONFIG.DRAWING.ERASER_RADIUS;
             const drawingToRemove = drawings.find(drawing => {
                 return drawing.points.some(point => {
-                    const dist = calculateDistance(point.x, point.y, clickX, clickY);
+                    const dist = calculateDistance(point.x, point.y, x, y);
                     return dist < eraserRadius;
                 });
             });
@@ -183,16 +193,15 @@ export function MapBoard({
 
     function handleClick(e: React.MouseEvent) {
         const rect = e.currentTarget.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / boardSize;
-        const y = (e.clientY - rect.top) / boardSize;
+        const { x, y } = screenToMapCoordinates(e.clientX, e.clientY, rect);
 
         if (placingWard) {
             onWardPlace(x, y);
             return;
         }
 
-        // Grid cell selection mode - only when grid is shown and no other mode is active
-        if (showGrid && !drawMode && !draggingToken && !draggingWard) {
+        // Grid cell selection mode - only with middle click when grid is shown
+        if (e.button === 1 && showGrid && !drawMode && !draggingToken && !draggingWard) {
             const cellX = Math.floor(x * gridSize);
             const cellY = Math.floor(y * gridSize);
             const cellKey = `${cellX},${cellY}`;
@@ -204,8 +213,7 @@ export function MapBoard({
         e.preventDefault();
 
         const rect = e.currentTarget.getBoundingClientRect();
-        const clickX = (e.clientX - rect.left) / boardSize;
-        const clickY = (e.clientY - rect.top) / boardSize;
+        const { x: clickX, y: clickY } = screenToMapCoordinates(e.clientX, e.clientY, rect);
 
         const clickRadius = 0.02;
         let closestWardId: string | null = null;
@@ -231,7 +239,13 @@ export function MapBoard({
             className="relative"
             style={{ width: boardSize, height: boardSize }}
             onMouseMove={handleMouseMove}
-            onMouseDown={handleMouseDown}
+            onMouseDown={(e) => {
+                handleMouseDown(e);
+                // Also handle middle click for grid selection
+                if (e.button === 1) {
+                    handleClick(e);
+                }
+            }}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onClick={handleClick}

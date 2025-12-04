@@ -7,7 +7,7 @@ import { defaultInhibitors } from '../data/defaultInhibitors';
 
 export function useGameState() {
     const [boardSize, setBoardSize] = useState(800);
-    const [showGrid, setShowGrid] = useState(true);
+    const [showGrid, setShowGrid] = useState(false);
     const [showWalls, setShowWalls] = useState(false);
     const [showBrush, setShowBrush] = useState(false);
     const [visionMode, setVisionMode] = useState<VisionMode>('off');
@@ -29,6 +29,8 @@ export function useGameState() {
     const [showTowers, setShowTowers] = useState(true);
     const [showInhibitors, setShowInhibitors] = useState(true);
     const [selectedGridCells, setSelectedGridCells] = useState<Set<string>>(new Set());
+    const [zoomLevel, setZoomLevel] = useState(1);
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
     return {
         boardSize,
@@ -73,5 +75,9 @@ export function useGameState() {
         setShowInhibitors,
         selectedGridCells,
         setSelectedGridCells,
+        zoomLevel,
+        setZoomLevel,
+        panOffset,
+        setPanOffset,
     };
 }

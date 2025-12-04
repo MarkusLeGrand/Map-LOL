@@ -2,8 +2,6 @@ import { Button } from '../ui/Button';
 import type { VisionMode, DrawMode } from '../../types';
 
 interface MapViewPanelProps {
-    boardSize: number;
-    onBoardSizeChange: (size: number) => void;
     showGrid: boolean;
     onShowGridToggle: () => void;
     showWalls: boolean;
@@ -17,11 +15,10 @@ interface MapViewPanelProps {
     drawMode: DrawMode;
     onDrawModeChange: (mode: DrawMode) => void;
     onClearAllDrawings: () => void;
+    onResetView: () => void;
 }
 
 export function MapViewPanel({
-    boardSize,
-    onBoardSizeChange,
     showGrid,
     onShowGridToggle,
     showWalls,
@@ -35,6 +32,7 @@ export function MapViewPanel({
     drawMode,
     onDrawModeChange,
     onClearAllDrawings,
+    onResetView,
 }: MapViewPanelProps) {
     function handlePenClick() {
         if (drawMode === 'pen') {
@@ -57,18 +55,6 @@ export function MapViewPanel({
             <h2 className="text-xl font-bold text-center">Map View</h2>
 
             <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold">Zoom: {boardSize}px</label>
-                <input
-                    type="range"
-                    min="600"
-                    max="949"
-                    value={boardSize}
-                    onChange={(e) => onBoardSizeChange(Number(e.target.value))}
-                    className="w-full"
-                />
-            </div>
-
-            <div className="flex flex-col gap-2">
                 <Button onClick={onShowGridToggle} variant="green" active={showGrid}>
                     {showGrid && '✓ '}Show Grid
                 </Button>
@@ -83,6 +69,10 @@ export function MapViewPanel({
 
                 <Button onClick={onShowCoordinatesToggle} variant="green" active={showCoordinates}>
                     {showCoordinates && '✓ '}Show Coordinates
+                </Button>
+
+                <Button onClick={onResetView} variant="orange">
+                    Reset View
                 </Button>
             </div>
 
