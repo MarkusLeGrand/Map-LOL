@@ -15,8 +15,8 @@ export const DISPLAY_CONFIG = {
         TOWER: 25,
 
         // Wards
-        VISION_WARD: 20,   // Ward jaune
-        CONTROL_WARD: 20,  // Ward rose/pink
+        VISION_WARD: 15,   // Ward jaune (réduite de moitié)
+        CONTROL_WARD: 15,  // Ward rose/pink (réduite de moitié)
     },
 
     // =========================
@@ -40,7 +40,7 @@ export const DISPLAY_CONFIG = {
         // Wards
         WARDS: {
             VISION: {
-                background: 'bg-yellow-700',
+                background: 'bg-yellow-400',  // Jaune vif au lieu de sombre
             },
             CONTROL: {
                 background: 'bg-pink-700',

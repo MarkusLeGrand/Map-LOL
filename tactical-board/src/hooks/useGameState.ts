@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import type { Token, Tower, Ward, VisionMode, Drawing, DrawMode, WardType, JungleCamp, Inhibitor } from '../types';
+import type { Token, Tower, Ward, VisionMode, Drawing, DrawMode, WardType, JungleCamp, Inhibitor, Faelight } from '../types';
 import { defaultTokens } from '../data/defaultTokens';
 import { defaultTowers } from '../data/defaultTowers';
 import { defaultJungleCamps } from '../data/defaultJungleCamps';
 import { defaultInhibitors } from '../data/defaultInhibitors';
+import { defaultFaelights } from '../data/defaultFaelights';
 
 export function useGameState() {
     const [boardSize, setBoardSize] = useState(800);
@@ -20,6 +21,7 @@ export function useGameState() {
     const [drawings, setDrawings] = useState<Drawing[]>([]);
     const [jungleCamps, setJungleCamps] = useState<JungleCamp[]>(defaultJungleCamps);
     const [inhibitors, setInhibitors] = useState<Inhibitor[]>(defaultInhibitors);
+    const [faelights, setFaelights] = useState<Faelight[]>(defaultFaelights);
 
     const [placingWard, setPlacingWard] = useState<WardType | null>(null);
     const [selectedTeam, setSelectedTeam] = useState<'blue' | 'red'>('blue');
@@ -28,6 +30,7 @@ export function useGameState() {
     const [showCoordinates, setShowCoordinates] = useState(false);
     const [showTowers, setShowTowers] = useState(true);
     const [showInhibitors, setShowInhibitors] = useState(true);
+    const [showFaelights, setShowFaelights] = useState(true);
     const [selectedGridCells, setSelectedGridCells] = useState<Set<string>>(new Set());
     const [zoomLevel, setZoomLevel] = useState(1);
     const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -59,6 +62,8 @@ export function useGameState() {
         setJungleCamps,
         inhibitors,
         setInhibitors,
+        faelights,
+        setFaelights,
         placingWard,
         setPlacingWard,
         selectedTeam,
@@ -73,6 +78,8 @@ export function useGameState() {
         setShowTowers,
         showInhibitors,
         setShowInhibitors,
+        showFaelights,
+        setShowFaelights,
         selectedGridCells,
         setSelectedGridCells,
         zoomLevel,

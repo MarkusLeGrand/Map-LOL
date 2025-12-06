@@ -9,6 +9,8 @@ import { useTowerHandlers } from './hooks/useTowerHandlers';
 import { useWardHandlers } from './hooks/useWardHandlers';
 import { useDrawingHandlers } from './hooks/useDrawingHandlers';
 import { useVisibleEntities } from './hooks/useVisibleEntities';
+import { useFaelightMasks } from './hooks/useFaelightMasks';
+import { useFaelightActivations } from './hooks/useFaelightActivations';
 import type { DrawMode } from './types';
 
 const GRID = 10;
@@ -42,6 +44,8 @@ export default function App() {
         setJungleCamps,
         inhibitors,
         setInhibitors,
+        faelights,
+        showFaelights,
         placingWard,
         setPlacingWard,
         selectedTeam,
@@ -100,6 +104,9 @@ export default function App() {
         brushData,
         boardSize,
     });
+
+    const { masks: faelightMasks } = useFaelightMasks(faelights);
+    const faelightActivations = useFaelightActivations(faelights, wardsWithDisabledStatus);
 
     const handleVisionUpdate = useCallback((vision: ImageData, brush: ImageData) => {
         setVisionData(vision);
@@ -270,6 +277,9 @@ export default function App() {
                             );
                         }}
                         showInhibitors={showInhibitors}
+                        faelights={faelights}
+                        faelightActivations={faelightActivations}
+                        showFaelights={showFaelights}
                         selectedGridCells={selectedGridCells}
                         onGridCellToggle={handleGridCellToggle}
                         zoomLevel={zoomLevel}
@@ -282,6 +292,9 @@ export default function App() {
                         visionMode={visionMode}
                         onVisionUpdate={handleVisionUpdate}
                         wards={activeWards}
+                        faelights={faelights}
+                        faelightActivations={faelightActivations}
+                        faelightMasks={faelightMasks}
                     />
                 </div>
             </div>

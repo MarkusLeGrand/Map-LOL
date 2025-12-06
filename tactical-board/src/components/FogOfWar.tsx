@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Token, Tower, VisionMode, Ward } from '../types';
+import type { Token, Tower, VisionMode, Ward, Faelight, FaelightActivation } from '../types';
 import { VISION_RANGES } from '../config/visionRanges';
 
 interface FogOfWarProps {
@@ -9,9 +9,12 @@ interface FogOfWarProps {
     wards?: Ward[];
     visionMode: VisionMode;
     onVisionUpdate?: (visionData: ImageData, brushData: ImageData) => void;
+    faelights?: Faelight[];
+    faelightActivations?: FaelightActivation[];
+    faelightMasks?: Map<string, HTMLImageElement>;
 }
 
-export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, onVisionUpdate }: FogOfWarProps) {
+export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, onVisionUpdate, faelights, faelightActivations, faelightMasks }: FogOfWarProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [wallsImg] = useState(() => {
         const img = new Image();
@@ -188,6 +191,86 @@ export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, on
 
         const visionData = visionCtx.getImageData(0, 0, boardSize, boardSize);
 
+        // === FAELIGHT ZONE VISION ===
+        // Add zone vision from activated Faelights
+        if (faelights && faelightActivations && faelightMasks) {
+            // Create canvas for Faelight vision
+            const faelightVisionCanvas = document.createElement('canvas');
+            faelightVisionCanvas.width = boardSize;
+            faelightVisionCanvas.height = boardSize;
+            const faelightCtx = faelightVisionCanvas.getContext('2d');
+            if (faelightCtx) {
+                // Filter activations based on current vision mode
+                const activeForCurrentMode = faelightActivations.filter(activation => {
+                    if (visionMode === 'both') return true;
+                    if (visionMode === 'blue') return activation.team === 'blue';
+                    if (visionMode === 'red') return activation.team === 'red';
+                    return false;
+                });
+
+                // Draw each activated zone
+                activeForCurrentMode.forEach(activation => {
+                    const faelight = faelights.find(f => f.id === activation.faelightId);
+                    const maskImg = faelightMasks.get(activation.faelightId);
+
+                    if (!faelight || !maskImg || !maskImg.complete) {
+                        return;
+                    }
+
+                    // Load zone mask
+                    const zoneCanvas = document.createElement('canvas');
+                    zoneCanvas.width = 512;
+                    zoneCanvas.height = 512;
+                    const zoneCtx = zoneCanvas.getContext('2d');
+                    if (!zoneCtx) return;
+
+                    zoneCtx.drawImage(maskImg, 0, 0, 512, 512);
+                    const zoneMaskData = zoneCtx.getImageData(0, 0, 512, 512);
+
+                    // Apply wall masking to zone (walls block vision)
+                    for (let i = 0; i < zoneMaskData.data.length; i += 4) {
+                        const wallPixel = wallsData.data[i];
+                        if (wallPixel > 128) { // Wall detected
+                            zoneMaskData.data[i] = 0;     // Black
+                            zoneMaskData.data[i + 1] = 0;
+                            zoneMaskData.data[i + 2] = 0;
+                        }
+                    }
+
+                    // Scale and draw zone
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = 512;
+                    tempCanvas.height = 512;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    if (!tempCtx) return;
+                    tempCtx.putImageData(zoneMaskData, 0, 0);
+
+                    const scaledCanvas = document.createElement('canvas');
+                    scaledCanvas.width = boardSize;
+                    scaledCanvas.height = boardSize;
+                    const scaledCtx = scaledCanvas.getContext('2d');
+                    if (!scaledCtx) return;
+                    scaledCtx.drawImage(tempCanvas, 0, 0, 512, 512, 0, 0, boardSize, boardSize);
+
+                    // Composite with additive blending
+                    faelightCtx.globalCompositeOperation = 'lighter';
+                    faelightCtx.drawImage(scaledCanvas, 0, 0);
+                });
+
+                // Merge Faelight vision with normal vision
+                const faelightVisionData = faelightCtx.getImageData(0, 0, boardSize, boardSize);
+
+                for (let i = 0; i < visionData.data.length; i += 4) {
+                    // Vision = raycast OR Faelight zone
+                    if (visionData.data[i] > 0 || faelightVisionData.data[i] > 0) {
+                        visionData.data[i] = 255;
+                        visionData.data[i + 1] = 255;
+                        visionData.data[i + 2] = 255;
+                    }
+                }
+            }
+        }
+
         // Créer le fog final
         const fogData = ctx.createImageData(boardSize, boardSize);
         for (let i = 0; i < visionData.data.length; i += 4) {
@@ -210,7 +293,8 @@ export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, on
             onVisionUpdate(visionData, brushData);
         }
 
-    }, [boardSize, tokens, towers, wards, visionMode, wallsImg, brushImg, onVisionUpdate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [boardSize, tokens, towers, wards, visionMode, wallsImg, brushImg, faelights, faelightActivations, faelightMasks]);
 
     if (visionMode === 'off') return null;
 

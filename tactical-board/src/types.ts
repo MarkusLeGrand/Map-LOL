@@ -67,3 +67,18 @@ export interface Inhibitor {
     active: boolean;
     respawnTime?: number;
 }
+
+export interface Faelight {
+    id: string;
+    x: number;  // 0-1 normalized coordinates
+    y: number;  // 0-1 normalized coordinates
+    detectionRadius: number;  // Normalized (e.g., 0.025)
+    zoneMaskPath: string;  // Path to zone mask image
+    name?: string;  // Optional label
+}
+
+export interface FaelightActivation {
+    faelightId: string;
+    team: 'blue' | 'red';
+    activatingWardId: string;
+}

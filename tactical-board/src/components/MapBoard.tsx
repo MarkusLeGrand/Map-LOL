@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Token, Tower, Ward, WardType, VisionMode, Drawing, DrawMode, JungleCamp as JungleCampType, Inhibitor } from '../types';
+import type { Token, Tower, Ward, WardType, VisionMode, Drawing, DrawMode, JungleCamp as JungleCampType, Inhibitor, Faelight, FaelightActivation } from '../types';
 import { DISPLAY_CONFIG } from '../config/displayConfig';
 import { MapCanvas } from './map/MapCanvas';
 import { TowerElement } from './map/TowerElement';
@@ -8,6 +8,7 @@ import { WardElement } from './map/WardElement';
 import { DrawingLayer } from './map/DrawingLayer';
 import { JungleCamp } from './map/JungleCamp';
 import { InhibitorElement } from './map/InhibitorElement';
+import { FaelightElement } from './map/FaelightElement';
 import { GridOverlay } from './map/GridOverlay';
 import { calculateDistance } from '../utils/visionCalculations';
 
@@ -39,6 +40,9 @@ interface MapBoardProps {
     inhibitors: Inhibitor[];
     onInhibitorToggle: (id: string) => void;
     showInhibitors: boolean;
+    faelights?: Faelight[];
+    faelightActivations?: FaelightActivation[];
+    showFaelights?: boolean;
     selectedGridCells: Set<string>;
     onGridCellToggle: (cellKey: string) => void;
     zoomLevel: number;
@@ -73,10 +77,12 @@ export function MapBoard({
     inhibitors,
     onInhibitorToggle,
     showInhibitors,
+    faelights,
+    faelightActivations,
+    showFaelights,
     selectedGridCells,
     onGridCellToggle,
     zoomLevel,
-    panOffset,
 }: MapBoardProps) {
     const [mapImage] = useState(() => {
         const img = new Image();
@@ -286,6 +292,15 @@ export function MapBoard({
                     boardSize={boardSize}
                     onMouseDown={handleTokenMouseDown}
                     showCoordinates={showCoordinates}
+                />
+            ))}
+
+            {showFaelights && faelights?.map(faelight => (
+                <FaelightElement
+                    key={faelight.id}
+                    faelight={faelight}
+                    boardSize={boardSize}
+                    activations={faelightActivations || []}
                 />
             ))}
 
