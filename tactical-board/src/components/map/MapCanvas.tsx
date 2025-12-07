@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 interface MapCanvasProps {
     boardSize: number;
@@ -22,6 +22,27 @@ export function MapCanvas({
     brushImage,
 }: MapCanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [, forceUpdate] = useState({});
+
+    useEffect(() => {
+        const handleLoad = () => forceUpdate({});
+
+        if (!mapImage.complete) {
+            mapImage.addEventListener('load', handleLoad);
+        }
+        if (!wallsImage.complete) {
+            wallsImage.addEventListener('load', handleLoad);
+        }
+        if (!brushImage.complete) {
+            brushImage.addEventListener('load', handleLoad);
+        }
+
+        return () => {
+            mapImage.removeEventListener('load', handleLoad);
+            wallsImage.removeEventListener('load', handleLoad);
+            brushImage.removeEventListener('load', handleLoad);
+        };
+    }, [mapImage, wallsImage, brushImage]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
