@@ -1,73 +1,149 @@
-# React + TypeScript + Vite
+# Tactical Map
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A League of Legends tactical board for planning strategies, analyzing vision control, and visualizing team positions.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Map Elements
+- **Champion Tokens**: Draggable tokens for all 10 players with role indicators
+- **Buildings**: Interactive towers and inhibitors with enable/disable states
+- **Jungle Camps**: Toggle neutral objectives (Baron, Dragon, buffs)
+- **Vision System**: Place vision wards and control wards with full team coverage
+- **Fae'lights**: Advanced vision zones that reveal strategic map areas when warded
 
-## React Compiler
+### Vision & Fog of War
+- **Team Vision Modes**: View from Blue, Red, or Both perspectives
+- **Dynamic Vision**: Real-time vision calculation with wall occlusion
+- **Ward Interactions**: Control wards disable enemy vision wards
+- **Bush Coverage**: Accurate brush mechanics
+- **Zone Reveals**: Fae'light system for key map locations
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Tools
+- **Drawing**: Pen and eraser tools for marking strategies
+- **Grid Overlay**: Optional grid for precise positioning
+- **Zoom & Pan**: Navigate the map with mouse wheel and right-click drag
+- **Export**: Save your tactical setup as PNG
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **React** 19.2.0 - UI framework
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **Vite** - Build tool
+- **HTML5 Canvas** - Vision rendering and fog of war
+- **html2canvas** - PNG export
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Prerequisites
+- Node.js 18+ and npm
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/tactical-board.git
+cd tactical-board
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app will be available at `http://localhost:5173`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Build for Production
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
 ```
+
+Build output will be in the `dist/` folder.
+
+## Usage
+
+### Basic Controls
+- **Left Click**: Select and place tokens/wards
+- **Right Click + Drag**: Pan the map
+- **Mouse Wheel**: Zoom in/out
+- **Drag Tokens**: Move champion positions
+
+### Vision System
+1. Select your team (Blue/Red) in the right panel
+2. Choose ward type (Vision or Control)
+3. Click on the map to place wards
+4. Enable Fog of War to see team vision coverage
+5. Fae'lights automatically reveal zones when wards are placed in detection radius
+
+### Drawing
+1. Select Pen or Eraser from the left panel
+2. Click and drag on the map to draw strategies
+3. Use "Clear All Drawings" to reset
+
+### Export
+Click "Export to PNG" in the left panel to save your current board state as an image.
+
+## Project Structure
+
+```
+tactical-board/
+├── public/
+│   ├── base.jpg           # Main map image
+│   ├── walls.png          # Wall collision mask
+│   ├── bush.png           # Brush vision mask
+│   └── masks/             # Fae'light zone masks
+├── src/
+│   ├── components/        # React components
+│   ├── hooks/             # Custom React hooks
+│   ├── utils/             # Helper functions
+│   ├── data/              # Game data (tokens, towers, etc.)
+│   ├── config/            # Display configuration
+│   └── types.ts           # TypeScript definitions
+└── package.json
+```
+
+## Configuration
+
+### Display Settings
+Edit `src/config/displayConfig.ts` to customize:
+- Token sizes
+- Ward sizes
+- Colors for teams, wards, towers
+- Vision circle opacity
+- Drawing pen width
+
+### Game Data
+Modify files in `src/data/` to adjust:
+- Default token positions (`defaultTokens.ts`)
+- Tower locations (`defaultTowers.ts`)
+- Jungle camp spawns (`defaultJungleCamps.ts`)
+- Fae'light positions (`defaultFaelights.ts`)
+
+## Performance
+
+- **Bundle Size**: ~119 KB gzipped
+- **Vision Calculation**: 180-ray raycasting system
+- **Render Optimization**: Canvas-based fog of war for performance
+- **Memory Efficient**: Lazy loading for mask images
+
+## Browser Support
+
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+## License
+
+MIT License - feel free to use this project for personal or commercial purposes.
+
+## Contributing
+
+Contributions are welcome. Please open an issue first to discuss proposed changes.
+
+## Acknowledgments
+
+- Map data and imagery from League of Legends
+- Built with modern web technologies for optimal performance
