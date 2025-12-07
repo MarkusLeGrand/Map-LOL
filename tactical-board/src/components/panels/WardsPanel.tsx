@@ -70,6 +70,9 @@ export function WardsPanel({
     const neutralCampsCount = jungleCamps.filter(c => c.team === 'neutral' && c.active).length;
     const totalNeutralCamps = jungleCamps.filter(c => c.team === 'neutral').length;
 
+    const allTowersAndInhibitorsActive = towers.every(t => t.active) && inhibitors.every(i => i.active);
+    const allJungleCampsActive = jungleCamps.every(c => c.active);
+
     return (
         <div className="w-80 bg-gray-800 p-4 border-l border-gray-700 overflow-y-auto">
             <h2 className="text-xl font-bold mb-4 text-center">Wards</h2>
@@ -116,9 +119,16 @@ export function WardsPanel({
                     {showTowers && '✓ '}Show
                 </Button>
 
-                <Button onClick={onToggleAllTowers} variant="danger">
-                    Disable All
-                </Button>
+                <button
+                    onClick={onToggleAllTowers}
+                    className={`px-3 py-2 rounded transition-colors text-white ${
+                        allTowersAndInhibitorsActive
+                            ? 'bg-red-800 hover:bg-red-900'
+                            : 'bg-green-700'
+                    }`}
+                >
+                    {allTowersAndInhibitorsActive ? 'Disable All' : 'Enable All'}
+                </button>
             </div>
 
             <hr className="border-gray-700 mb-4" />
@@ -130,9 +140,16 @@ export function WardsPanel({
                     {showJungleCamps && '✓ '}Show Jungle Camps
                 </Button>
 
-                <Button onClick={onToggleAllJungleCamps} variant="danger">
-                    Disable All
-                </Button>
+                <button
+                    onClick={onToggleAllJungleCamps}
+                    className={`px-3 py-2 rounded transition-colors text-white ${
+                        allJungleCampsActive
+                            ? 'bg-red-800 hover:bg-red-900'
+                            : 'bg-green-700'
+                    }`}
+                >
+                    {allJungleCampsActive ? 'Disable All' : 'Enable All'}
+                </button>
             </div>
 
             <hr className="border-gray-700 mb-4" />

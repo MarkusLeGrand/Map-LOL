@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
+import html2canvas from 'html2canvas';
 import { MapBoard } from './components/MapBoard';
 import { FogOfWar } from './components/FogOfWar';
 import { MapViewPanel } from './components/panels/MapViewPanel';
@@ -111,7 +112,7 @@ export default function App() {
     const handleVisionUpdate = useCallback((vision: ImageData, brush: ImageData) => {
         setVisionData(vision);
         setBrushData(brush);
-    }, [setVisionData, setBrushData]);
+    }, []); // State setters are stable, no need to include them
 
     const handleToggleVisionMode = useCallback((mode: 'blue' | 'red' | 'both') => {
         if (visionMode === mode) {
@@ -168,10 +169,52 @@ export default function App() {
         setPanOffset({ x: 0, y: 0 });
     }, [setZoomLevel, setPanOffset]);
 
+    const handleExportToPNG = useCallback(async () => {
+        const container = zoomContainerRef.current;
+        if (!container) return;
+
+        try {
+            const canvas = await html2canvas(container, {
+                backgroundColor: '#1f2937', // gray-800
+                scale: 2, // Higher quality
+                logging: false,
+            });
+
+            // Convert canvas to blob and download
+            canvas.toBlob((blob) => {
+                if (!blob) return;
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = `tactical-board-${Date.now()}.png`;
+                link.href = url;
+                link.click();
+                URL.revokeObjectURL(url);
+            });
+        } catch (error) {
+            console.error('Failed to export PNG:', error);
+        }
+    }, []);
+
     const activeWards = wardsWithDisabledStatus.filter(w => !w.disabled);
 
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+    const zoomContainerRef = useRef<HTMLDivElement>(null);
+
+    // Setup native wheel event listener to avoid passive listener warning
+    useEffect(() => {
+        const container = zoomContainerRef.current;
+        if (!container) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            setZoomLevel(prev => Math.min(Math.max(0.5, prev + delta), 3));
+        };
+
+        container.addEventListener('wheel', handleWheel, { passive: false });
+        return () => container.removeEventListener('wheel', handleWheel);
+    }, [setZoomLevel]);
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         if (e.button === 2) {
@@ -211,6 +254,7 @@ export default function App() {
                 onDrawModeChange={handleDrawModeChange}
                 onClearAllDrawings={handleClearAllDrawings}
                 onResetView={handleResetView}
+                onExportToPNG={handleExportToPNG}
             />
 
             <div
@@ -223,6 +267,7 @@ export default function App() {
                 style={{ cursor: isPanning ? 'grabbing' : 'default' }}
             >
                 <div
+                    ref={zoomContainerRef}
                     style={{
                         position: 'relative',
                         width: boardSize,
@@ -230,11 +275,6 @@ export default function App() {
                         transform: `scale(${zoomLevel}) translate(${panOffset.x}px, ${panOffset.y}px)`,
                         transformOrigin: 'center center',
                         transition: isPanning ? 'none' : 'transform 0.1s ease-out',
-                    }}
-                    onWheel={(e) => {
-                        e.preventDefault();
-                        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-                        setZoomLevel(prev => Math.min(Math.max(0.5, prev + delta), 3));
                     }}
                 >
                     <MapBoard

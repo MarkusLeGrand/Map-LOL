@@ -16,6 +16,7 @@ interface MapViewPanelProps {
     onDrawModeChange: (mode: DrawMode) => void;
     onClearAllDrawings: () => void;
     onResetView: () => void;
+    onExportToPNG: () => void;
 }
 
 export function MapViewPanel({
@@ -33,6 +34,7 @@ export function MapViewPanel({
     onDrawModeChange,
     onClearAllDrawings,
     onResetView,
+    onExportToPNG,
 }: MapViewPanelProps) {
     function handlePenClick() {
         if (drawMode === 'pen') {
@@ -121,6 +123,16 @@ export function MapViewPanel({
 
                 <Button onClick={onClearAllDrawings} variant="danger">
                     Clear All Drawings
+                </Button>
+            </div>
+
+            <hr className="border-gray-700" />
+
+            <h2 className="text-xl font-bold text-center">Export</h2>
+
+            <div className="flex flex-col gap-2">
+                <Button onClick={onExportToPNG} variant="green">
+                    Export to PNG
                 </Button>
             </div>
         </div>
