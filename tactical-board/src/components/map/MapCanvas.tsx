@@ -22,10 +22,10 @@ export function MapCanvas({
     brushImage,
 }: MapCanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [, forceUpdate] = useState({});
+    const [imageLoadCount, setImageLoadCount] = useState(0);
 
     useEffect(() => {
-        const handleLoad = () => forceUpdate({});
+        const handleLoad = () => setImageLoadCount(prev => prev + 1);
 
         if (!mapImage.complete) {
             mapImage.addEventListener('load', handleLoad);
@@ -92,7 +92,7 @@ export function MapCanvas({
                 ctx.stroke();
             }
         }
-    }, [mapImage, wallsImage, brushImage, boardSize, showGrid, showWalls, showBrush, gridSize]);
+    }, [mapImage, wallsImage, brushImage, boardSize, showGrid, showWalls, showBrush, gridSize, imageLoadCount]);
 
     return (
         <canvas

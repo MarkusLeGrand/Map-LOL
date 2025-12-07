@@ -66,7 +66,7 @@ export function MapViewPanel({
                 </Button>
 
                 <Button onClick={onShowBrushToggle} variant="green" active={showBrush}>
-                    {showBrush && '✓ '}Show Brush
+                    {showBrush && '✓ '}Show Bush
                 </Button>
 
                 <Button onClick={onShowCoordinatesToggle} variant="green" active={showCoordinates}>
