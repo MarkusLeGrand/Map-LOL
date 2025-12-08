@@ -17,6 +17,10 @@ interface WardsPanelProps {
     onShowTowersToggle: () => void;
     showJungleCamps: boolean;
     onShowJungleCampsToggle: () => void;
+    showFaelights: boolean;
+    onShowFaelightsToggle: () => void;
+    showEvolvedFaelights: boolean;
+    onShowEvolvedFaelightsToggle: () => void;
 }
 
 export function WardsPanel({
@@ -35,6 +39,10 @@ export function WardsPanel({
     onShowTowersToggle,
     showJungleCamps,
     onShowJungleCampsToggle,
+    showFaelights,
+    onShowFaelightsToggle,
+    showEvolvedFaelights,
+    onShowEvolvedFaelightsToggle,
 }: WardsPanelProps) {
     function handleVisionWardClick() {
         if (placingWard === 'vision') {
@@ -52,23 +60,21 @@ export function WardsPanel({
         }
     }
 
-    const blueWardCount = wards.filter(w => w.team === 'blue').length;
-    const redWardCount = wards.filter(w => w.team === 'red').length;
-
-    const blueTowerCount = towers.filter(t => t.team === 'blue' && t.active).length;
-    const totalBlueTowers = towers.filter(t => t.team === 'blue').length;
-    const redTowerCount = towers.filter(t => t.team === 'red' && t.active).length;
-    const totalRedTowers = towers.filter(t => t.team === 'red').length;
-
-    const blueInhibitorCount = inhibitors.filter(i => i.team === 'blue' && i.active).length;
-    const redInhibitorCount = inhibitors.filter(i => i.team === 'red' && i.active).length;
-
-    const blueCampsCount = jungleCamps.filter(c => c.team === 'blue' && c.active).length;
-    const totalBlueCamps = jungleCamps.filter(c => c.team === 'blue').length;
-    const redCampsCount = jungleCamps.filter(c => c.team === 'red' && c.active).length;
-    const totalRedCamps = jungleCamps.filter(c => c.team === 'red').length;
-    const neutralCampsCount = jungleCamps.filter(c => c.team === 'neutral' && c.active).length;
-    const totalNeutralCamps = jungleCamps.filter(c => c.team === 'neutral').length;
+    // Game status counts - kept for future use when Game Status section is re-enabled
+    // const blueWardCount = wards.filter(w => w.team === 'blue').length;
+    // const redWardCount = wards.filter(w => w.team === 'red').length;
+    // const blueTowerCount = towers.filter(t => t.team === 'blue' && t.active).length;
+    // const totalBlueTowers = towers.filter(t => t.team === 'blue').length;
+    // const redTowerCount = towers.filter(t => t.team === 'red' && t.active).length;
+    // const totalRedTowers = towers.filter(t => t.team === 'red').length;
+    // const blueInhibitorCount = inhibitors.filter(i => i.team === 'blue' && i.active).length;
+    // const redInhibitorCount = inhibitors.filter(i => i.team === 'red' && i.active).length;
+    // const blueCampsCount = jungleCamps.filter(c => c.team === 'blue' && c.active).length;
+    // const totalBlueCamps = jungleCamps.filter(c => c.team === 'blue').length;
+    // const redCampsCount = jungleCamps.filter(c => c.team === 'red' && c.active).length;
+    // const totalRedCamps = jungleCamps.filter(c => c.team === 'red').length;
+    // const neutralCampsCount = jungleCamps.filter(c => c.team === 'neutral' && c.active).length;
+    // const totalNeutralCamps = jungleCamps.filter(c => c.team === 'neutral').length;
 
     const allTowersAndInhibitorsActive = towers.every(t => t.active) && inhibitors.every(i => i.active);
     const allJungleCampsActive = jungleCamps.every(c => c.active);
@@ -154,6 +160,23 @@ export function WardsPanel({
 
             <hr className="border-gray-700 mb-4" />
 
+            <h2 className="text-xl font-bold mb-4 text-center">Faelights</h2>
+
+            <div className="flex flex-col gap-2 mb-4">
+                <Button onClick={onShowFaelightsToggle} variant="green" active={showFaelights}>
+                    {showFaelights && '✓ '}Show
+                </Button>
+
+                {showFaelights && (
+                    <Button onClick={onShowEvolvedFaelightsToggle} variant="purple" active={showEvolvedFaelights}>
+                        {showEvolvedFaelights && '✓ '}Evolved Map
+                    </Button>
+                )}
+            </div>
+
+            {/* Game Status - Kept for future use
+            <hr className="border-gray-700 mb-4" />
+
             <h2 className="text-xl font-bold mb-4 text-center">Game Status</h2>
 
             <div className="bg-gray-900 rounded overflow-hidden mb-4">
@@ -193,6 +216,7 @@ export function WardsPanel({
                     </tbody>
                 </table>
             </div>
+            */}
         </div>
     );
 }

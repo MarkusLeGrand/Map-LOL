@@ -75,6 +75,7 @@ export interface Faelight {
     detectionRadius: number;  // Normalized (e.g., 0.025)
     zoneMaskPath: string;  // Path to zone mask image
     name?: string;  // Optional label
+    category: 'base' | 'evolved';  // Map phase category
 }
 
 export interface FaelightActivation {

@@ -1,111 +1,123 @@
 import type { Faelight } from '../types';
 
 export const defaultFaelights: Faelight[] = [
-    // Banana
+    // Banana (Base map)
     {
-        id: 'faelight-banana-blue',
+        id: 'faelight-banana-top',
         x: 0.334,
         y: 0.418,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-banana-blue.png',
-        name: 'Banana Blue'
+        zoneMaskPath: '/masks/faeligths/fae-top-banana.png',
+        name: 'Banana Top',
+        category: 'base'
     },
     {
-        id: 'faelight-banana-red',
+        id: 'faelight-banana-bot',
         x: 0.681,
         y: 0.597,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-banana-red.png',
-        name: 'Banana Red'
+        zoneMaskPath: '/masks/faeligths/fae-bot-banana.png',
+        name: 'Banana Bot',
+        category: 'base'
     },
 
-    // Pixel
+    // Pixel (Base map)
     {
         id: 'faelight-pixel-top',
         x: 0.229,
         y: 0.242,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-pixel-top.png',
-        name: 'Pixel Top'
+        zoneMaskPath: '/masks/faeligths/fae-top-pixel.png',
+        name: 'Pixel Top',
+        category: 'base'
     },
     {
         id: 'faelight-pixel-bot',
         x: 0.774,
         y: 0.738,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-pixel-bot.png',
-        name: 'Pixel Bot'
+        zoneMaskPath: '/masks/faeligths/fae-bot-pixel.png',
+        name: 'Pixel Bot',
+        category: 'base'
     },
 
-    // Short Blue
+    // Blue Jungle (Evolved - after map changes)
     {
-        id: 'faelight-short-blue-top',
+        id: 'faelight-blue-top-jungle',
         x: 0.157,
         y: 0.349,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-short-blue-top.png',
-        name: 'Short Blue Top'
+        zoneMaskPath: '/masks/faeligths/fae-blue-top-jungle.png',
+        name: 'Blue Top Jungle',
+        category: 'evolved'
     },
     {
-        id: 'faelight-short-blue-bot',
+        id: 'faelight-blue-bot-jungle',
         x: 0.621,
         y: 0.854,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-short-blue-bot.png',
-        name: 'Short Blue Bot'
+        zoneMaskPath: '/masks/faeligths/fae-blue-bot-jungle.png',
+        name: 'Blue Bot Jungle',
+        category: 'evolved'
     },
 
-    // Short Red
+    // Red Jungle (Evolved - after map changes)
     {
-        id: 'faelight-short-red-top',
+        id: 'faelight-red-top-jungle',
         x: 0.361,
         y: 0.132,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-short-red-top.png',
-        name: 'Short Red Top'
+        zoneMaskPath: '/masks/faeligths/fae-red-top-jungle.png',
+        name: 'Red Top Jungle',
+        category: 'evolved'
     },
     {
-        id: 'faelight-short-red-bot',
+        id: 'faelight-red-bot-jungle',
         x: 0.869,
         y: 0.603,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-short-red-bot.png',
-        name: 'Short Red Bot'
+        zoneMaskPath: '/masks/faeligths/fae-red-bot-jungle.png',
+        name: 'Red Bot Jungle',
+        category: 'evolved'
     },
 
-    // Base Blue
+    // Blue Base (Evolved - after map changes)
     {
-        id: 'faelight-base-blue-top',
+        id: 'faelight-blue-top',
         x: 0.191,
         y: 0.664,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-top-base-blue.png',
-        name: 'Base Blue Top'
+        zoneMaskPath: '/masks/faeligths/fae-blue-top.png',
+        name: 'Blue Top Base',
+        category: 'base'
     },
     {
-        id: 'faelight-base-blue-bot',
+        id: 'faelight-blue-bot',
         x: 0.338,
         y: 0.812,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-bot-base-blue.png',
-        name: 'Base Blue Bot'
+        zoneMaskPath: '/masks/faeligths/fae-blue-bot.png',
+        name: 'Blue Bot Base',
+        category: 'base'
     },
 
-    // Base Red
+    // Red Base (Evolved - after map changes)
     {
-        id: 'faelight-base-red-top',
+        id: 'faelight-red-top',
         x: 0.662,
         y: 0.192,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-top-base-red.png',
-        name: 'Base Red Top'
+        zoneMaskPath: '/masks/faeligths/fae-red-top.png',
+        name: 'Red Top Base',
+        category:  'base'
     },
     {
-        id: 'faelight-base-red-bot',
+        id: 'faelight-red-bot',
         x: 0.810,
         y: 0.337,
         detectionRadius: 0.013,
-        zoneMaskPath: '/masks/faelight-bot-base-red.png',
-        name: 'Base Red Bot'
+        zoneMaskPath: '/masks/faeligths/fae-red-bot.png',
+        name: 'Red Bot Base',
+        category:  'base'
     },
 ];

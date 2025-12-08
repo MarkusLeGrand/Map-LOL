@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faelight Mask Editor v2 - Wall Aware</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #00d9ff;
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #888;
+            font-size: 14px;
+        }
+
+        .controls {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        input[type="file"],
+        input[type="text"],
+        input[type="range"] {
+            padding: 8px;
+            background: #0f3460;
+            border: 1px solid #00d9ff;
+            border-radius: 4px;
+            color: #eee;
+            font-size: 14px;
+        }
+
+        input[type="range"] {
+            width: 150px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #00d9ff;
+            border: none;
+            border-radius: 4px;
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #00b8d4;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.danger {
+            background: #e94560;
+        }
+
+        button.danger:hover {
+            background: #c23a52;
+        }
+
+        button.secondary {
+            background: #533483;
+        }
+
+        button.secondary:hover {
+            background: #432a6a;
+        }
+
+        .canvas-container {
+            position: relative;
+            display: inline-block;
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            overflow: auto;
+            max-height: 90vh;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        canvas {
+            border: 2px solid #00d9ff;
+            border-radius: 4px;
+            cursor: crosshair;
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #16213e;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .info ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .info strong {
+            color: #00d9ff;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            flex: 1;
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        .brush-preview {
+            width: 100px;
+            height: 100px;
+            border: 2px solid #00d9ff;
+            border-radius: 50%;
+            background: rgba(0, 217, 255, 0.3);
+            margin: 10px auto;
+        }
+
+        .mode-indicator {
+            padding: 10px 20px;
+            background: #533483;
+            border-radius: 4px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .mode-indicator.draw {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .mode-indicator.erase {
+            background: #e94560;
+        }
+
+        .warning {
+            background: #e94560;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Faelight Mask Editor v2</h1>
+        <p class="subtitle">Wall-Aware Drawing Tool with Edit Support</p>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-label">Brush Size</div>
+                <div class="stat-value" id="brushSizeDisplay">20</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Mode</div>
+                <div class="mode-indicator" id="modeIndicator">Draw Mode</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Wall Protection</div>
+                <div class="stat-value" id="wallProtection">ON</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Load Existing Mask (Optional)</label>
+                <input type="file" id="loadMask" accept="image/png">
+            </div>
+
+            <div class="control-group">
+                <label>Brush Size</label>
+                <input type="range" id="brushSize" min="5" max="100" value="20">
+            </div>
+
+            <div class="control-group">
+                <label>Mask Name</label>
+                <input type="text" id="maskName" placeholder="fae-custom-zone" value="fae-custom-zone">
+            </div>
+
+            <button id="toggleMode">Switch to Erase Mode</button>
+            <button id="clearCanvas" class="danger">Clear Canvas</button>
+            <button id="undoBtn" class="secondary">Undo</button>
+            <button id="downloadMask">Download Mask</button>
+        </div>
+
+        <div id="wallWarning" class="warning" style="display: none;">
+            ⚠️ Walls protection prevents drawing on wall areas. Disable if needed (not recommended).
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas" width="1024" height="1024"></canvas>
+        </div>
+
+        <div class="info">
+            <strong>Instructions:</strong>
+            <ul>
+                <li><strong>Wall Protection:</strong> Automatically prevents drawing on wall areas using walls.png</li>
+                <li><strong>Load Existing Mask:</strong> Upload a PNG mask to edit it (optional)</li>
+                <li><strong>Draw Mode:</strong> Click and drag to paint white areas (visible zones)</li>
+                <li><strong>Erase Mode:</strong> Click "Switch to Erase Mode" then drag to erase</li>
+                <li><strong>Brush Size:</strong> Adjust the slider to change brush size</li>
+                <li><strong>Undo:</strong> Press the Undo button or use Ctrl+Z to undo last stroke</li>
+                <li><strong>Clear:</strong> Remove all painted areas and start fresh</li>
+                <li><strong>Download:</strong> Save your mask as a 512x512 PNG file</li>
+                <li><strong>Tips:</strong> The mask will be clipped to not overlap with walls automatically</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const brushSizeInput = document.getElementById('brushSize');
+        const brushSizeDisplay = document.getElementById('brushSizeDisplay');
+        const toggleModeBtn = document.getElementById('toggleMode');
+        const clearCanvasBtn = document.getElementById('clearCanvas');
+        const downloadMaskBtn = document.getElementById('downloadMask');
+        const maskNameInput = document.getElementById('maskName');
+        const loadMaskInput = document.getElementById('loadMask');
+        const modeIndicator = document.getElementById('modeIndicator');
+        const wallProtection = document.getElementById('wallProtection');
+        const undoBtn = document.getElementById('undoBtn');
+        const wallWarning = document.getElementById('wallWarning');
+
+        let isDrawing = false;
+        let drawMode = 'draw'; // 'draw' or 'erase'
+        let brushSize = 20;
+        let wallMaskData = null;
+        let historyStack = [];
+        const MAX_HISTORY = 20;
+
+        // Initialize canvas
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, 512, 512);
+        saveHistory();
+
+        // Load walls.png for wall protection
+        const wallsImage = new Image();
+        wallsImage.crossOrigin = 'anonymous';
+        wallsImage.onload = function() {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 512;
+            tempCanvas.height = 512;
+            const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+            tempCtx.drawImage(wallsImage, 0, 0, 512, 512);
+            wallMaskData = tempCtx.getImageData(0, 0, 512, 512);
+            console.log('Walls protection loaded successfully');
+        };
+        wallsImage.onerror = function() {
+            console.error('Failed to load walls.png - wall protection disabled');
+            wallProtection.textContent = 'OFF';
+            wallProtection.style.color = '#e94560';
+            wallWarning.style.display = 'block';
+        };
+        wallsImage.src = './walls.png';
+
+        // Load existing mask
+        loadMaskInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(0, 0, 512, 512);
+                    ctx.drawImage(img, 0, 0, 512, 512);
+                    saveHistory();
+                    console.log('Mask loaded successfully');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Update brush size
+        brushSizeInput.addEventListener('input', function() {
+            brushSize = parseInt(this.value);
+            brushSizeDisplay.textContent = brushSize;
+        });
+
+        // Toggle draw/erase mode
+        toggleModeBtn.addEventListener('click', function() {
+            if (drawMode === 'draw') {
+                drawMode = 'erase';
+                this.textContent = 'Switch to Draw Mode';
+                modeIndicator.textContent = 'Erase Mode';
+                modeIndicator.classList.remove('draw');
+                modeIndicator.classList.add('erase');
+            } else {
+                drawMode = 'draw';
+                this.textContent = 'Switch to Erase Mode';
+                modeIndicator.textContent = 'Draw Mode';
+                modeIndicator.classList.remove('erase');
+                modeIndicator.classList.add('draw');
+            }
+        });
+
+        // Clear canvas
+        clearCanvasBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear the entire canvas?')) {
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, 512, 512);
+                saveHistory();
+            }
+        });
+
+        // Undo
+        undoBtn.addEventListener('click', undo);
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                undo();
+            }
+        });
+
+        function saveHistory() {
+            const imageData = ctx.getImageData(0, 0, 512, 512);
+            historyStack.push(imageData);
+            if (historyStack.length > MAX_HISTORY) {
+                historyStack.shift();
+            }
+        }
+
+        function undo() {
+            if (historyStack.length > 1) {
+                historyStack.pop(); // Remove current state
+                const previousState = historyStack[historyStack.length - 1];
+                ctx.putImageData(previousState, 0, 0);
+            }
+        }
+
+        // Check if pixel is on a wall
+        function isOnWall(x, y) {
+            if (!wallMaskData) return false;
+            const index = (Math.floor(y) * 512 + Math.floor(x)) * 4;
+            // If wall pixel is not black, it's a wall
+            const r = wallMaskData.data[index];
+            const g = wallMaskData.data[index + 1];
+            const b = wallMaskData.data[index + 2];
+            return r > 10 || g > 10 || b > 10;
+        }
+
+        // Drawing functions
+        function drawCircle(x, y) {
+            const color = drawMode === 'draw' ? 'white' : 'black';
+
+            // Draw pixel by pixel with wall checking
+            for (let dx = -brushSize; dx <= brushSize; dx++) {
+                for (let dy = -brushSize; dy <= brushSize; dy++) {
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance <= brushSize) {
+                        const px = x + dx;
+                        const py = y + dy;
+
+                        // Check bounds
+                        if (px >= 0 && px < 512 && py >= 0 && py < 512) {
+                            // Only draw if not on wall (when drawing, not erasing)
+                            if (drawMode === 'erase' || !isOnWall(px, py)) {
+                                ctx.fillStyle = color;
+                                ctx.fillRect(px, py, 1, 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', function(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            drawCircle(x, y);
+        });
+
+        canvas.addEventListener('mousemove', function(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            drawCircle(x, y);
+        });
+
+        canvas.addEventListener('mouseup', function() {
+            if (isDrawing) {
+                saveHistory();
+            }
+            isDrawing = false;
+        });
+
+        canvas.addEventListener('mouseleave', function() {
+            if (isDrawing) {
+                saveHistory();
+            }
+            isDrawing = false;
+        });
+
+        // Download mask
+        downloadMaskBtn.addEventListener('click', function() {
+            const maskName = maskNameInput.value.trim() || 'fae-custom-zone';
+            const filename = maskName.endsWith('.png') ? maskName : `${maskName}.png`;
+
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = url;
+                link.click();
+                URL.revokeObjectURL(url);
+            });
+        });
+
+        console.log('Faelight Mask Editor v2 initialized');
+    </script>
+</body>
+</html>

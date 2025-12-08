@@ -31,6 +31,7 @@ export function useGameState() {
     const [showTowers, setShowTowers] = useState(true);
     const [showInhibitors, setShowInhibitors] = useState(true);
     const [showFaelights, setShowFaelights] = useState(true);
+    const [showEvolvedFaelights, setShowEvolvedFaelights] = useState(false);
     const [selectedGridCells, setSelectedGridCells] = useState<Set<string>>(new Set());
     const [zoomLevel, setZoomLevel] = useState(1);
     const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -80,6 +81,8 @@ export function useGameState() {
         setShowInhibitors,
         showFaelights,
         setShowFaelights,
+        showEvolvedFaelights,
+        setShowEvolvedFaelights,
         selectedGridCells,
         setSelectedGridCells,
         zoomLevel,

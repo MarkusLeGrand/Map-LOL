@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { MapBoard } from './components/MapBoard';
 import { FogOfWar } from './components/FogOfWar';
@@ -47,6 +47,9 @@ export default function App() {
         setInhibitors,
         faelights,
         showFaelights,
+        setShowFaelights,
+        showEvolvedFaelights,
+        setShowEvolvedFaelights,
         placingWard,
         setPlacingWard,
         selectedTeam,
@@ -106,8 +109,18 @@ export default function App() {
         boardSize,
     });
 
-    const { masks: faelightMasks } = useFaelightMasks(faelights);
-    const faelightActivations = useFaelightActivations(faelights, wardsWithDisabledStatus);
+    // Filter Faelights based on category toggles
+    // showFaelights controls base category, showEvolvedFaelights adds evolved category
+    const filteredFaelights = useMemo(() => {
+        return faelights.filter(faelight => {
+            if (faelight.category === 'base') return showFaelights;
+            if (faelight.category === 'evolved') return showFaelights && showEvolvedFaelights;
+            return false;
+        });
+    }, [faelights, showFaelights, showEvolvedFaelights]);
+
+    const { masks: faelightMasks } = useFaelightMasks(filteredFaelights);
+    const faelightActivations = useFaelightActivations(filteredFaelights, wardsWithDisabledStatus);
 
     const handleVisionUpdate = useCallback((vision: ImageData, brush: ImageData) => {
         setVisionData(vision);
@@ -147,6 +160,14 @@ export default function App() {
     const handleToggleJungleCamps = useCallback(() => {
         setShowJungleCamps(!showJungleCamps);
     }, [showJungleCamps, setShowJungleCamps]);
+
+    const handleToggleFaelights = useCallback(() => {
+        setShowFaelights(!showFaelights);
+    }, [showFaelights, setShowFaelights]);
+
+    const handleToggleEvolvedFaelights = useCallback(() => {
+        setShowEvolvedFaelights(!showEvolvedFaelights);
+    }, [showEvolvedFaelights, setShowEvolvedFaelights]);
 
     const handleDrawModeChange = useCallback((mode: DrawMode) => {
         setDrawMode(mode);
@@ -317,7 +338,7 @@ export default function App() {
                             );
                         }}
                         showInhibitors={showInhibitors}
-                        faelights={faelights}
+                        faelights={filteredFaelights}
                         faelightActivations={faelightActivations}
                         showFaelights={showFaelights}
                         selectedGridCells={selectedGridCells}
@@ -332,7 +353,7 @@ export default function App() {
                         visionMode={visionMode}
                         onVisionUpdate={handleVisionUpdate}
                         wards={activeWards}
-                        faelights={faelights}
+                        faelights={filteredFaelights}
                         faelightActivations={faelightActivations}
                         faelightMasks={faelightMasks}
                     />
@@ -355,6 +376,10 @@ export default function App() {
                 onShowTowersToggle={handleToggleTowers}
                 showJungleCamps={showJungleCamps}
                 onShowJungleCampsToggle={handleToggleJungleCamps}
+                showFaelights={showFaelights}
+                onShowFaelightsToggle={handleToggleFaelights}
+                showEvolvedFaelights={showEvolvedFaelights}
+                onShowEvolvedFaelightsToggle={handleToggleEvolvedFaelights}
             />
         </div>
     );
