@@ -28,7 +28,6 @@ export function WardsPanel({
     onSelectedTeamChange,
     placingWard,
     onPlacingWardChange,
-    wards,
     onClearAllWards,
     towers,
     onToggleAllTowers,
