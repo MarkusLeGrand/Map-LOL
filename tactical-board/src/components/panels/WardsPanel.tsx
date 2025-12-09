@@ -59,6 +59,14 @@ export function WardsPanel({
         }
     }
 
+    function handleFarsightWardClick() {
+        if (placingWard === 'farsight') {
+            onPlacingWardChange(null);
+        } else {
+            onPlacingWardChange('farsight');
+        }
+    }
+
     // Game status counts - kept for future use when Game Status section is re-enabled
     // const blueWardCount = wards.filter(w => w.team === 'blue').length;
     // const redWardCount = wards.filter(w => w.team === 'red').length;
@@ -108,6 +116,10 @@ export function WardsPanel({
 
                 <Button onClick={handleControlWardClick} variant="pink" active={placingWard === 'control'}>
                     {placingWard === 'control' && '✓ '}Control Ward
+                </Button>
+
+                <Button onClick={handleFarsightWardClick} variant="blue" active={placingWard === 'farsight'}>
+                    {placingWard === 'farsight' && '✓ '}Farsight Ward
                 </Button>
 
                 <Button onClick={onClearAllWards} variant="danger">

@@ -15,8 +15,9 @@ export const DISPLAY_CONFIG = {
         TOWER: 25,
 
         // Wards
-        VISION_WARD: 15,   // Ward jaune (réduite de moitié)
-        CONTROL_WARD: 15,  // Ward rose/pink (réduite de moitié)
+        VISION_WARD: 15,    // Ward jaune (réduite de moitié)
+        CONTROL_WARD: 15,   // Ward rose/pink (réduite de moitié)
+        FARSIGHT_WARD: 15,  // Ward bleue (Farsight Alteration)
     },
 
     // =========================
@@ -44,6 +45,9 @@ export const DISPLAY_CONFIG = {
             },
             CONTROL: {
                 background: 'bg-pink-700',
+            },
+            FARSIGHT: {
+                background: 'bg-cyan-500',  // Bleu cyan pour Farsight
             },
         },
 

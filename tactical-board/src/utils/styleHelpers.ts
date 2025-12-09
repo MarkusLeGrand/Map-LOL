@@ -57,9 +57,13 @@ export function getTowerLabelText(type: 'outer' | 'inner' | 'inhibitor' | 'nexus
     return 'T4';
 }
 
-export function getWardSize(wardType: 'vision' | 'control', visionWardSize: number, controlWardSize: number): number {
+export function getWardSize(wardType: 'vision' | 'control' | 'farsight', visionWardSize: number, controlWardSize: number): number {
     if (wardType === 'vision') {
         return visionWardSize;
+    } else if (wardType === 'control') {
+        return controlWardSize;
+    } else if (wardType === 'farsight') {
+        return visionWardSize;
     }
-    return controlWardSize;
+    return visionWardSize;
 }

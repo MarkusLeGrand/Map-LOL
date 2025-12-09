@@ -17,8 +17,12 @@ export function useWardHandlers({ setWards, placingWard, selectedTeam }: UseWard
         let visionRadius: number;
         if (placingWard === 'vision') {
             visionRadius = VISION_RANGES.VISION_WARD;
-        } else {
+        } else if (placingWard === 'control') {
             visionRadius = VISION_RANGES.CONTROL_WARD;
+        } else if (placingWard === 'farsight') {
+            visionRadius = VISION_RANGES.FARSIGHT_WARD_INITIAL;
+        } else {
+            visionRadius = VISION_RANGES.VISION_WARD;
         }
 
         const newWard: Ward = {
@@ -30,6 +34,7 @@ export function useWardHandlers({ setWards, placingWard, selectedTeam }: UseWard
             active: true,
             visionRadius: visionRadius,
             disabled: false,
+            placedAt: Date.now(), // Track placement time for farsight
         };
 
         setWards(prev => [...prev, newWard]);

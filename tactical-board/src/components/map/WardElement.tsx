@@ -19,8 +19,12 @@ export function WardElement({ ward, boardSize, visionMode, placingWard, onMouseD
     let wardBg: string;
     if (ward.type === 'vision') {
         wardBg = DISPLAY_CONFIG.COLORS.WARDS.VISION.background;
-    } else {
+    } else if (ward.type === 'control') {
         wardBg = DISPLAY_CONFIG.COLORS.WARDS.CONTROL.background;
+    } else if (ward.type === 'farsight') {
+        wardBg = DISPLAY_CONFIG.COLORS.WARDS.FARSIGHT.background;
+    } else {
+        wardBg = DISPLAY_CONFIG.COLORS.WARDS.VISION.background;
     }
 
     let cursorClass = 'cursor-move';

@@ -10,7 +10,9 @@ export const VISION_RANGES = {
     // Wards
     VISION_WARD: 0.055,   // 900 OK
     CONTROL_WARD: 0.055, // 900 OK
-    
+    FARSIGHT_WARD_INITIAL: 0.055, // 900 units (initial range)
+    FARSIGHT_WARD_REDUCED: 0.0306, // 500 units (after 2 seconds)
+
     // Tours (par type)
     TOWERS: {
         outer:  0.09,      // 1350

@@ -24,7 +24,7 @@ export interface Ward {
     x: number;
     y: number;
     team: 'blue' | 'red';
-    type: 'vision' | 'control';
+    type: 'vision' | 'control' | 'farsight';
     active: boolean;
     visionRadius: number;
     placedAt?: number;
@@ -32,7 +32,7 @@ export interface Ward {
     disabled: boolean;
 }
 
-export type WardType = 'vision' | 'control';
+export type WardType = 'vision' | 'control' | 'farsight';
 
 export interface DrawingPoint {
     x: number;  // 0-1 (percentage)

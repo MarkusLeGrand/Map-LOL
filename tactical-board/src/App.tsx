@@ -12,6 +12,7 @@ import { useDrawingHandlers } from './hooks/useDrawingHandlers';
 import { useVisibleEntities } from './hooks/useVisibleEntities';
 import { useFaelightMasks } from './hooks/useFaelightMasks';
 import { useFaelightActivations } from './hooks/useFaelightActivations';
+import { VISION_RANGES } from './config/visionRanges';
 import type { DrawMode } from './types';
 
 const GRID = 10;
@@ -257,6 +258,30 @@ export default function App() {
     const handleMouseUp = useCallback(() => {
         setIsPanning(false);
     }, []);
+
+    // Handle Farsight Ward vision reduction after 2 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const now = Date.now();
+            setWards(currentWards =>
+                currentWards.map(ward => {
+                    if (ward.type === 'farsight' && ward.placedAt) {
+                        const timeSincePlacement = now - ward.placedAt;
+                        // After 2000ms (2 seconds), reduce vision radius
+                        if (timeSincePlacement >= 2000 && ward.visionRadius === VISION_RANGES.FARSIGHT_WARD_INITIAL) {
+                            return {
+                                ...ward,
+                                visionRadius: VISION_RANGES.FARSIGHT_WARD_REDUCED
+                            };
+                        }
+                    }
+                    return ward;
+                })
+            );
+        }, 100); // Check every 100ms
+
+        return () => clearInterval(interval);
+    }, [setWards]);
 
     return (
         <div className="w-screen h-screen bg-gray-900 text-white flex">
