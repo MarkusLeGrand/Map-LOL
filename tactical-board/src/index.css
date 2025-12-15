@@ -10,5 +10,8 @@
 
 body {
     font-family: system-ui, -apple-system, sans-serif;
+}
+
+body.no-scroll {
     overflow: hidden;
 }

@@ -1,9 +1,16 @@
-todo:
+https://ddragon.leagueoflegends.com/cdn/12.6.1/img/champion/{most_frustrating_game.champion}.png 
+for img of the champs
+
+todo for the map:
 - pathing point par point ca fait des trait tout seul en esquivant les mur
 - select champs for roles 
 - gold gain
 - all maps (by drakes)
 - save position 
-- solution pour designe des waves 
-- faeligths
-- Unable to preventDefault inside passive event listener invocation.
+- selction de plusieur joueur ensemble
+- exporter en gif, il record et export en gif 
+
+todo for the site:
+
+todo for the data:
+todo for the drafter:
