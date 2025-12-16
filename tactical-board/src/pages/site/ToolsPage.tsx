@@ -6,74 +6,7 @@ import { Footer } from '../../components/layout/Footer';
 import { ToolCard } from '../../components/ui/ToolCard';
 import { FilterButton } from '../../components/ui/FilterButton';
 import { COLORS } from '../../constants/theme';
-
-// All tools with colors (brightened)
-const allTools = [
-  {
-    name: 'Tactical Map',
-    description: 'Interactive vision control and strategy planning',
-    status: 'Available' as const,
-    color: COLORS.primary,
-    onClick: 'map',
-    category: 'tactics'
-  },
-  {
-    name: 'Looser Tracker',
-    description: 'Daily battles to crown the ultimate King of Losers.',
-    status: 'Avalable' as const,
-    color: COLORS.danger,
-    category: 'data'
-  },
-  {
-    name: 'Drafter',
-    description: "A drafting tool that helps teams build optimal compositions and plan counter-picks in real time.",
-    status: 'Coming Soon' as const,
-    color: COLORS.purple,
-    category: 'tactics'
-  },
-  {
-    name: 'Data Analytics',
-    description: 'Performance metrics and trend analysis',
-    status: 'Coming Soon' as const,
-    color: COLORS.blue,
-    category: 'data'
-  },
-  {
-    name: 'Team Manager',
-    description: 'Roster management and scheduling tools',
-    status: 'Coming Soon' as const,
-    color: COLORS.gold,
-    category: 'organization'
-  },
-  {
-    name: 'Scrim Organizer',
-    description: 'Schedule and manage practice matches',
-    status: 'Coming Soon' as const,
-    color: COLORS.primary,
-    category: 'organization'
-  },
-  {
-    name: 'VOD Review',
-    description: 'Collaborative replay analysis and annotations',
-    status: 'Coming Soon' as const,
-    color: COLORS.purple,
-    category: 'tactics'
-  },
-  {
-    name: 'Meta Insights',
-    description: 'Patch notes breakdown and tier lists',
-    status: 'Coming Soon' as const,
-    color: COLORS.blue,
-    category: 'data'
-  },
-  {
-    name: 'Champion Pool Builder',
-    description: 'Build and optimize your champion pool',
-    status: 'Coming Soon' as const,
-    color: COLORS.purple,
-    category: 'tactics'
-  }
-];
+import { getToolsByCategory } from '../../config/tools';
 
 export default function ToolsPage() {
   const navigate = useNavigate();
@@ -86,18 +19,17 @@ export default function ToolsPage() {
   }, []);
 
   const handleToolClick = (toolId: string) => {
-    if (toolId === 'map') {
-      navigate('/map');
+    if (toolId === 'tacticalmap') {
+      navigate('/tacticalmap');
+    } else if (toolId === 'data-analytics') {
+      navigate('/data-analytics');
     }
   };
 
-  const filteredTools = selectedCategory === 'all'
-    ? allTools
-    : allTools.filter(tool => tool.category === selectedCategory);
+  const filteredTools = getToolsByCategory(selectedCategory);
 
   const getCategoryCount = (category: string) => {
-    if (category === 'all') return allTools.length;
-    return allTools.filter(tool => tool.category === category).length;
+    return getToolsByCategory(category).length;
   };
 
   return (

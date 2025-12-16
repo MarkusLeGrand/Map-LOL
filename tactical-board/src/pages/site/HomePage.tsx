@@ -3,44 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
 import { ToolCard } from '../../components/ui/ToolCard';
-import { COLORS } from '../../constants/theme';
-
-// Featured tools for showcase (only a few)
-const featuredTools = [
-  {
-    name: 'Tactical Map',
-    description: 'Interactive vision control and strategy planning',
-    status: 'Available' as const,
-    color: COLORS.primary,
-    onClick: 'tacticalmap',
-    category: 'tactics'
-  },
-  {
-    name: 'Looser Tracker',
-    description: 'Daily battles to crown the ultimate King of Losers.',
-    status: 'Avalable' as const,
-    color: COLORS.danger,
-    category: 'data'
-  },
-  {
-    name: 'Data Analytics',
-    description: 'Performance metrics and trend analysis',
-    status: 'Coming Soon' as const,
-    color: COLORS.blue,
-    category: 'data'
-  },
-  {
-    name: 'Team Manager',
-    description: 'Roster management and scheduling tools',
-    status: 'Coming Soon' as const,
-    color: COLORS.gold,
-    category: 'organization'
-  },
-];
+import { getHomePageTools } from '../../config/tools';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const featuredTools = getHomePageTools();
 
   useEffect(() => {
     setIsLoaded(true);
@@ -49,6 +18,8 @@ export default function HomePage() {
   const handleToolClick = (toolId: string) => {
     if (toolId === 'tacticalmap') {
       navigate('/tacticalmap');
+    } else if (toolId === 'data-analytics') {
+      navigate('/data-analytics');
     }
   };
 
