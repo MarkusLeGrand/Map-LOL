@@ -47,6 +47,8 @@ interface MapBoardProps {
     onGridCellToggle: (cellKey: string) => void;
     zoomLevel: number;
     panOffset: { x: number; y: number };
+    penColor: string;
+    penWidth: number;
 }
 
 export function MapBoard({
@@ -83,6 +85,8 @@ export function MapBoard({
     selectedGridCells,
     onGridCellToggle,
     zoomLevel,
+    penColor,
+    penWidth,
 }: MapBoardProps) {
     const [mapImage] = useState(() => {
         const img = new Image();
@@ -148,9 +152,29 @@ export function MapBoard({
         if (isDrawing && drawMode === 'pen') {
             setCurrentDrawing(prev => [...prev, { x, y }]);
         }
+
+        // Continuous eraser - erase while mouse is held down
+        if (isDrawing && drawMode === 'eraser') {
+            const eraserRadius = DISPLAY_CONFIG.DRAWING.ERASER_RADIUS;
+            const drawingToRemove = drawings.find(drawing => {
+                return drawing.points.some(point => {
+                    const dist = calculateDistance(point.x, point.y, x, y);
+                    return dist < eraserRadius;
+                });
+            });
+
+            if (drawingToRemove) {
+                onDrawingRemove(drawingToRemove.id);
+            }
+        }
     }
 
     function handleMouseDown(e: React.MouseEvent) {
+        // Only handle drawing on left click (button 0)
+        if (e.button !== 0) {
+            return;
+        }
+
         if (placingWard) {
             return;
         }
@@ -165,6 +189,7 @@ export function MapBoard({
         }
 
         if (drawMode === 'eraser') {
+            setIsDrawing(true);
             const eraserRadius = DISPLAY_CONFIG.DRAWING.ERASER_RADIUS;
             const drawingToRemove = drawings.find(drawing => {
                 return drawing.points.some(point => {
@@ -187,8 +212,8 @@ export function MapBoard({
             const newDrawing: Drawing = {
                 id: `drawing-${Date.now()}-${Math.random()}`,
                 points: currentDrawing,
-                color: DISPLAY_CONFIG.DRAWING.PEN_COLOR,
-                width: DISPLAY_CONFIG.DRAWING.PEN_WIDTH,
+                color: penColor,
+                width: penWidth,
             };
             onDrawingAdd(newDrawing);
         }
@@ -340,6 +365,8 @@ export function MapBoard({
                 currentDrawing={currentDrawing}
                 isDrawing={isDrawing}
                 boardSize={boardSize}
+                penColor={penColor}
+                penWidth={penWidth}
             />
         </div>
     );

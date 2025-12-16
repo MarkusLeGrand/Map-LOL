@@ -1,35 +1,39 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Header } from '../../components/layout/Header';
+import { Footer } from '../../components/layout/Footer';
+import { ToolCard } from '../../components/ui/ToolCard';
+import { COLORS } from '../../constants/theme';
 
 // Featured tools for showcase (only a few)
 const featuredTools = [
   {
     name: 'Tactical Map',
     description: 'Interactive vision control and strategy planning',
-    status: 'Available',
-    color: '#3D7A5F', // Brighter Green
-    onClick: 'map',
+    status: 'Available' as const,
+    color: COLORS.primary,
+    onClick: 'tacticalmap',
     category: 'tactics'
   },
   {
     name: 'Looser Tracker',
     description: 'Daily battles to crown the ultimate King of Losers.',
-    status: 'Avalable',
-    color: '#A85C5C', // Brighter Red
+    status: 'Avalable' as const,
+    color: COLORS.danger,
     category: 'data'
   },
   {
     name: 'Data Analytics',
     description: 'Performance metrics and trend analysis',
-    status: 'Coming Soon',
-    color: '#5F7A8E', // Brighter Blue
+    status: 'Coming Soon' as const,
+    color: COLORS.blue,
     category: 'data'
   },
   {
     name: 'Team Manager',
     description: 'Roster management and scheduling tools',
-    status: 'Coming Soon',
-    color: '#B8945E', // Brighter Gold
+    status: 'Coming Soon' as const,
+    color: COLORS.gold,
     category: 'organization'
   },
 ];
@@ -43,44 +47,18 @@ export default function HomePage() {
   }, []);
 
   const handleToolClick = (toolId: string) => {
-    if (toolId === 'map') {
-      navigate('/map');
+    if (toolId === 'tacticalmap') {
+      navigate('/tacticalmap');
     }
   };
 
   return (
     <div className="w-screen min-h-screen bg-[#0E0E0E] flex flex-col" style={{ fontFamily: 'Inter, sans-serif' }}>
-      {/* Header */}
-      <header className="border-b border-[#F5F5F5]/10 sticky top-0 bg-[#0E0E0E] z-50">
-        <div className="max-w-[1600px] mx-auto px-12 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/')}
-              className="text-[#F5F5F5] text-xl font-semibold tracking-wide hover:text-[#F5F5F5]/80 transition-colors"
-              style={{ letterSpacing: '0.02em' }}
-            >
-              LEAGUEHUB
-            </button>
-            <span className="text-[#F5F5F5]/40 text-xs font-medium tracking-wider">
-              PRO TOOLS FOR EVERYONE
-            </span>
-            <button
-              onClick={() => navigate('/tools')}
-              className="ml-6 text-sm font-medium text-[#F5F5F5]/50 hover:text-[#F5F5F5] transition-colors"
-            >
-              Tools
-            </button>
-          </div>
-          <nav className="flex gap-4">
-            <button className="px-5 py-2 text-[#F5F5F5]/60 text-sm font-medium hover:text-[#F5F5F5] transition-colors">
-              Login
-            </button>
-            <button className="px-5 py-2 bg-[#3D7A5F] text-[#F5F5F5] text-sm font-medium hover:bg-[#4A9170] transition-colors">
-              Sign Up
-            </button>
-          </nav>
-        </div>
-      </header>
+      <Header
+        brandName="OpenRift"
+        tagline="PRO TOOLS FOR EVERYONE"
+        showToolsLink={true}
+      />
 
       {/* Hero Section */}
       <div className="border-b border-[#F5F5F5]/10 py-20">
@@ -135,33 +113,15 @@ export default function HomePage() {
 
           <div className="grid grid-cols-4 gap-6">
             {featuredTools.map((tool, index) => (
-              <button
+              <ToolCard
                 key={index}
+                name={tool.name}
+                description={tool.description}
+                status={tool.status}
+                color={tool.color}
                 onClick={() => tool.onClick && handleToolClick(tool.onClick)}
                 disabled={tool.status === 'Coming Soon'}
-                className={`text-left p-6 border border-[#F5F5F5]/10 hover:border-[#F5F5F5]/20 transition-all group ${
-                  tool.status === 'Coming Soon' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-[1.02]'
-                }`}
-                style={{
-                  background: `linear-gradient(135deg, ${tool.color}15 0%, transparent 100%)`
-                }}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: tool.color }}
-                  ></div>
-                  <span className="text-[#F5F5F5]/30 text-xs font-medium tracking-wider">
-                    {tool.status.toUpperCase()}
-                  </span>
-                </div>
-                <h4 className="text-[#F5F5F5] text-base font-medium mb-2 group-hover:text-[#F5F5F5] transition-colors">
-                  {tool.name}
-                </h4>
-                <p className="text-[#F5F5F5]/50 text-sm leading-relaxed">
-                  {tool.description}
-                </p>
-              </button>
+              />
             ))}
           </div>
         </div>
@@ -221,19 +181,14 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-[#F5F5F5]/10 py-8">
-        <div className="max-w-[1600px] mx-auto px-12 flex items-center justify-between">
-          <p className="text-[#F5F5F5]/30 text-xs tracking-wide">
-            © 2025 LeagueHub — Professional Tools Platform
-          </p>
-          <div className="flex gap-6 text-xs text-[#F5F5F5]/40">
-            <a href="#" className="hover:text-[#F5F5F5]/60 transition-colors">About</a>
-            <a href="#" className="hover:text-[#F5F5F5]/60 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-[#F5F5F5]/60 transition-colors">Terms</a>
-          </div>
-        </div>
-      </footer>
+      <Footer
+        copyright="© 2025 LeagueHub — Professional Tools Platform"
+        links={[
+          { label: 'About', href: '/about' },
+          { label: 'Privacy', href: '#' },
+          { label: 'Terms', href: '#' },
+        ]}
+      />
     </div>
   );
 }

@@ -33,8 +33,10 @@ export function useGameState() {
     const [showFaelights, setShowFaelights] = useState(true);
     const [showEvolvedFaelights, setShowEvolvedFaelights] = useState(false);
     const [selectedGridCells, setSelectedGridCells] = useState<Set<string>>(new Set());
-    const [zoomLevel, setZoomLevel] = useState(1);
+    const [zoomLevel, setZoomLevel] = useState(0.9);
     const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+    const [penColor, setPenColor] = useState('#FFFFFF');
+    const [penWidth, setPenWidth] = useState(3);
 
     return {
         boardSize,
@@ -89,5 +91,9 @@ export function useGameState() {
         setZoomLevel,
         panOffset,
         setPanOffset,
+        penColor,
+        setPenColor,
+        penWidth,
+        setPenWidth,
     };
 }

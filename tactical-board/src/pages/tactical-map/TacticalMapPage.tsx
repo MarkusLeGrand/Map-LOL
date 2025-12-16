@@ -1,11 +1,12 @@
 import { useCallback, useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { MapBoard } from '../../components/MapBoard';
 import { FogOfWar } from '../../components/FogOfWar';
 import { ViewModePanel } from '../../components/panels/ViewModePanel';
 import { VisionModePanel } from '../../components/panels/VisionModePanel';
 import { ToolsModePanel } from '../../components/panels/ToolsModePanel';
+import { Header } from '../../components/layout/Header';
+import { TabPanel } from '../../components/ui/TabPanel';
 import { useGameState } from './hooks/useGameState';
 import { useTokenHandlers } from './hooks/useTokenHandlers';
 import { useTowerHandlers } from './hooks/useTowerHandlers';
@@ -15,6 +16,7 @@ import { useVisibleEntities } from './hooks/useVisibleEntities';
 import { useFaelightMasks } from './hooks/useFaelightMasks';
 import { useFaelightActivations } from './hooks/useFaelightActivations';
 import { VISION_RANGES } from './config/visionRanges';
+import { COLORS } from '../../constants/theme';
 import type { DrawMode } from './types/types.ts';
 
 const GRID = 10;
@@ -22,7 +24,6 @@ const GRID = 10;
 type SidebarMode = 'view' | 'vision' | 'tools';
 
 export default function TacticalMapPage() {
-    const navigate = useNavigate();
     const [sidebarMode, setSidebarMode] = useState<SidebarMode>('view');
 
     // Add no-scroll class to body when on map page
@@ -85,6 +86,10 @@ export default function TacticalMapPage() {
         setZoomLevel,
         panOffset,
         setPanOffset,
+        penColor,
+        setPenColor,
+        penWidth,
+        setPenWidth,
     } = gameState;
 
     const { handleTokenMove } = useTokenHandlers({ setTokens });
@@ -294,127 +299,89 @@ export default function TacticalMapPage() {
 
     return (
         <div className="w-screen h-screen bg-[#0E0E0E] flex flex-col" style={{ fontFamily: 'Inter, sans-serif' }}>
-            {/* Header */}
-            <header className="border-b border-[#F5F5F5]/10 sticky top-0 bg-[#0E0E0E] z-50">
-                <div className="max-w-[1600px] mx-auto px-12 py-6 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => navigate('/')}
-                            className="text-[#F5F5F5] text-xl font-semibold tracking-wide hover:text-[#F5F5F5]/80 transition-colors"
-                            style={{ letterSpacing: '0.02em' }}
-                        >
-                            LEAGUEHUB
-                        </button>
-                        <span className="text-[#F5F5F5]/40 text-xs font-medium tracking-wider">
-                            PRO TOOLS FOR EVERYONE
-                        </span>
-                        <button
-                            onClick={() => navigate('/tools')}
-                            className="ml-6 text-sm font-medium text-[#F5F5F5]/50 hover:text-[#F5F5F5] transition-colors"
-                        >
-                            Tools
-                        </button>
-                    </div>
-                    <nav className="flex gap-4">
-                        <button className="px-5 py-2 text-[#F5F5F5]/60 text-sm font-medium hover:text-[#F5F5F5] transition-colors">
-                            Login
-                        </button>
-                        <button className="px-5 py-2 bg-[#3D7A5F] text-[#F5F5F5] text-sm font-medium hover:bg-[#4A9170] transition-colors">
-                            Sign Up
-                        </button>
-                    </nav>
-                </div>
-            </header>
+            <Header
+                tagline="PRO TOOLS FOR EVERYONE"
+                showToolsLink={true}
+            />
 
             {/* Main Content */}
-            <div className="flex-1 flex overflow-hidden p-6">
+            <div className="flex-1 flex overflow-hidden">
                 {/* Sidebar */}
-                <aside className="w-80 border border-[#F5F5F5]/10 bg-[#0E0E0E] flex flex-col rounded-l-lg">
-                    {/* Sidebar Mode Tabs */}
-                    <div className="border-b border-[#F5F5F5]/10 flex">
-                        <button
-                            onClick={() => setSidebarMode('view')}
-                            className={`flex-1 px-4 py-3 text-sm font-medium transition-all ${
-                                sidebarMode === 'view'
-                                    ? 'bg-[#5F7A8E] text-[#F5F5F5] border-b-2 border-[#5F7A8E]'
-                                    : 'text-[#F5F5F5]/50 hover:text-[#F5F5F5]'
-                            }`}
-                        >
-                            View
-                        </button>
-                        <button
-                            onClick={() => setSidebarMode('vision')}
-                            className={`flex-1 px-4 py-3 text-sm font-medium transition-all ${
-                                sidebarMode === 'vision'
-                                    ? 'bg-[#3D7A5F] text-[#F5F5F5] border-b-2 border-[#3D7A5F]'
-                                    : 'text-[#F5F5F5]/50 hover:text-[#F5F5F5]'
-                            }`}
-                        >
-                            Vision
-                        </button>
-                        <button
-                            onClick={() => setSidebarMode('tools')}
-                            className={`flex-1 px-4 py-3 text-sm font-medium transition-all ${
-                                sidebarMode === 'tools'
-                                    ? 'bg-[#7A5F8E] text-[#F5F5F5] border-b-2 border-[#7A5F8E]'
-                                    : 'text-[#F5F5F5]/50 hover:text-[#F5F5F5]'
-                            }`}
-                        >
-                            Tools
-                        </button>
-                    </div>
-
-                    {/* Sidebar Content */}
-                    <div className="flex-1 overflow-y-auto">
-                        {sidebarMode === 'view' && (
-                            <ViewModePanel
-                                showGrid={showGrid}
-                                onShowGridToggle={handleToggleGrid}
-                                showWalls={showWalls}
-                                onShowWallsToggle={handleToggleWalls}
-                                showBrush={showBrush}
-                                onShowBrushToggle={handleToggleBrush}
-                                showCoordinates={showCoordinates}
-                                onShowCoordinatesToggle={handleToggleCoordinates}
-                                showTowers={showTowers}
-                                onShowTowersToggle={handleToggleTowers}
-                                onToggleAllTowers={toggleAllTowersAndInhibitors}
-                                allTowersActive={towers.every(t => t.active) && inhibitors.every(i => i.active)}
-                                showJungleCamps={showJungleCamps}
-                                onShowJungleCampsToggle={handleToggleJungleCamps}
-                                onToggleAllJungleCamps={toggleAllJungleCamps}
-                                allJungleCampsActive={jungleCamps.every(c => c.active)}
-                            />
-                        )}
-                        {sidebarMode === 'vision' && (
-                            <VisionModePanel
-                                visionMode={visionMode}
-                                onVisionModeToggle={handleToggleVisionMode}
-                                selectedTeam={selectedTeam}
-                                onSelectedTeamChange={setSelectedTeam}
-                                placingWard={placingWard}
-                                onPlacingWardChange={setPlacingWard}
-                                onClearAllWards={handleClearAllWards}
-                                showFaelights={showFaelights}
-                                onShowFaelightsToggle={handleToggleFaelights}
-                                showEvolvedFaelights={showEvolvedFaelights}
-                                onShowEvolvedFaelightsToggle={handleToggleEvolvedFaelights}
-                            />
-                        )}
-                        {sidebarMode === 'tools' && (
-                            <ToolsModePanel
-                                drawMode={drawMode}
-                                onDrawModeChange={handleDrawModeChange}
-                                onClearAllDrawings={handleClearAllDrawings}
-                                onExportToPNG={handleExportToPNG}
-                            />
-                        )}
-                    </div>
+                <aside className="w-80 border border-[#F5F5F5]/10 bg-[#0E0E0E] flex flex-col rounded-lg m-6 mr-0">
+                    <TabPanel
+                        tabs={[
+                            {
+                                id: 'view',
+                                label: 'View',
+                                color: COLORS.blue,
+                                content: (
+                                    <ViewModePanel
+                                        showGrid={showGrid}
+                                        onShowGridToggle={handleToggleGrid}
+                                        showWalls={showWalls}
+                                        onShowWallsToggle={handleToggleWalls}
+                                        showBrush={showBrush}
+                                        onShowBrushToggle={handleToggleBrush}
+                                        showCoordinates={showCoordinates}
+                                        onShowCoordinatesToggle={handleToggleCoordinates}
+                                        showTowers={showTowers}
+                                        onShowTowersToggle={handleToggleTowers}
+                                        onToggleAllTowers={toggleAllTowersAndInhibitors}
+                                        allTowersActive={towers.every(t => t.active) && inhibitors.every(i => i.active)}
+                                        showJungleCamps={showJungleCamps}
+                                        onShowJungleCampsToggle={handleToggleJungleCamps}
+                                        onToggleAllJungleCamps={toggleAllJungleCamps}
+                                        allJungleCampsActive={jungleCamps.every(c => c.active)}
+                                    />
+                                ),
+                            },
+                            {
+                                id: 'vision',
+                                label: 'Vision',
+                                color: COLORS.primary,
+                                content: (
+                                    <VisionModePanel
+                                        visionMode={visionMode}
+                                        onVisionModeToggle={handleToggleVisionMode}
+                                        selectedTeam={selectedTeam}
+                                        onSelectedTeamChange={setSelectedTeam}
+                                        placingWard={placingWard}
+                                        onPlacingWardChange={setPlacingWard}
+                                        onClearAllWards={handleClearAllWards}
+                                        showFaelights={showFaelights}
+                                        onShowFaelightsToggle={handleToggleFaelights}
+                                        showEvolvedFaelights={showEvolvedFaelights}
+                                        onShowEvolvedFaelightsToggle={handleToggleEvolvedFaelights}
+                                    />
+                                ),
+                            },
+                            {
+                                id: 'tools',
+                                label: 'Tools',
+                                color: COLORS.purple,
+                                content: (
+                                    <ToolsModePanel
+                                        drawMode={drawMode}
+                                        onDrawModeChange={handleDrawModeChange}
+                                        onClearAllDrawings={handleClearAllDrawings}
+                                        onExportToPNG={handleExportToPNG}
+                                        penColor={penColor}
+                                        onPenColorChange={setPenColor}
+                                        penWidth={penWidth}
+                                        onPenWidthChange={setPenWidth}
+                                    />
+                                ),
+                            },
+                        ]}
+                        activeTab={sidebarMode}
+                        onChange={(tabId) => setSidebarMode(tabId as SidebarMode)}
+                        className="flex-1"
+                    />
                 </aside>
 
                 {/* Map Container */}
                 <div
-                    className="flex-1 flex items-center justify-center p-8 overflow-hidden"
+                    className="flex-1 flex items-center justify-center overflow-hidden"
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
@@ -480,6 +447,8 @@ export default function TacticalMapPage() {
                             onGridCellToggle={handleGridCellToggle}
                             zoomLevel={zoomLevel}
                             panOffset={panOffset}
+                            penColor={penColor}
+                            penWidth={penWidth}
                         />
                         <FogOfWar
                             boardSize={boardSize}
