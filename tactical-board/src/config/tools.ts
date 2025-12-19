@@ -48,8 +48,9 @@ export const ALL_TOOLS: Tool[] = [
   {
     name: 'Team Manager',
     description: 'Roster management and scheduling tools',
-    status: 'Coming Soon',
+    status: 'Available',
     color: COLORS.gold,
+    onClick: 'teams',
     category: 'organization',
     displayOnHomePage: false,
   },

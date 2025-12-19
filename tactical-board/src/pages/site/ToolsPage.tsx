@@ -7,9 +7,11 @@ import { ToolCard } from '../../components/ui/ToolCard';
 import { FilterButton } from '../../components/ui/FilterButton';
 import { COLORS } from '../../constants/theme';
 import { getToolsByCategory } from '../../config/tools';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function ToolsPage() {
   const navigate = useNavigate();
+  const { user, isAuthenticated, toggleFavoriteTool } = useAuth();
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'graph'>('grid');
@@ -23,17 +25,25 @@ export default function ToolsPage() {
       navigate('/tacticalmap');
     } else if (toolId === 'data-analytics') {
       navigate('/data-analytics');
+    } else if (toolId === 'teams') {
+      navigate('/teams');
     }
   };
 
-  const filteredTools = getToolsByCategory(selectedCategory);
+  const filteredTools = getToolsByCategory(selectedCategory)
+    .sort((a, b) => {
+      // "Available" comes before "Coming Soon"
+      if (a.status === 'Available' && b.status === 'Coming Soon') return -1;
+      if (a.status === 'Coming Soon' && b.status === 'Available') return 1;
+      return 0;
+    });
 
   const getCategoryCount = (category: string) => {
     return getToolsByCategory(category).length;
   };
 
   return (
-    <div className="w-screen min-h-screen bg-[#0E0E0E] flex flex-col" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-[#0E0E0E] flex flex-col overflow-x-hidden" style={{ fontFamily: 'Inter, sans-serif' }}>
       <Header
         brandName="OpenRift"
         tagline="PRO TOOLS FOR EVERYONE"
@@ -118,7 +128,7 @@ export default function ToolsPage() {
       <div className="flex-1 py-16">
         <div className="max-w-[1600px] mx-auto px-12">
           {viewMode === 'grid' ? (
-            <div className="grid grid-cols-4 gap-6">
+            <div className="grid grid-cols-4 gap-6 auto-rows-fr">
               {filteredTools.map((tool, index) => (
                 <ToolCard
                   key={index}
@@ -128,6 +138,9 @@ export default function ToolsPage() {
                   color={tool.color}
                   onClick={() => tool.onClick && handleToolClick(tool.onClick)}
                   disabled={tool.status === 'Coming Soon'}
+                  showLikeButton={isAuthenticated}
+                  isLiked={user?.favorite_tools?.includes(tool.name) || false}
+                  onLikeToggle={() => toggleFavoriteTool(tool.name)}
                 />
               ))}
             </div>

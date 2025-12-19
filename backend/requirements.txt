@@ -7,3 +7,10 @@ matplotlib==3.9.2
 seaborn==0.13.2
 Pillow==11.0.0
 python-dateutil==2.9.0
+
+# Authentication
+bcrypt==4.0.1
+passlib==1.7.4
+python-jose[cryptography]==3.3.0
+sqlalchemy==2.0.25
+email-validator==2.1.0

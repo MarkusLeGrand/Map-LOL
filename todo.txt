@@ -14,3 +14,11 @@ todo for the site:
 
 todo for the data:
 todo for the drafter:
+
+clean le calendriler pour toute les 15min plus de carrer d'une heure 
+notification f5 
+quand tu logout login avec un autre compte ca save la team d'avant (pb petit car les gens ont pas 2 compte)
+save des position pour la map et les save pour la team ou pour toi !
+
+- voir tout les imput de data et adapter la data au nombre de joueurs (1 joueurs yq des metrique qui focntionne pas)
+- del la data perso enfaite c'et un outils pour les team pas les joueurs perdu (ya dpm)

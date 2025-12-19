@@ -6,7 +6,31 @@
       "Bash(npm install:*)",
       "Bash(git stash:*)",
       "Bash(git checkout:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(tasklist:*)",
+      "Bash(netstat:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 38452 -Force\")",
+      "Bash(where:*)",
+      "Bash(C:Usersleoktanaconda3python.exe -m uvicorn:*)",
+      "Bash(C:/Users/leokt/anaconda3/python.exe --version)",
+      "Bash(\"C:/Users/leokt/anaconda3/python.exe\" -m uvicorn app.main:app --reload --port 8000)",
+      "Bash(powershell -Command:*)",
+      "Bash(\"C:/Users/leokt/anaconda3/envs/OpenRift/python.exe\" -m uvicorn app.main:app --reload --port 8000)",
+      "Bash(\"C:/Users/leokt/anaconda3/envs/OpenRift/python.exe\" backend/app/rofl_parser.py EUW1-7540902144.rofl)",
+      "Bash(\"C:/Users/leokt/anaconda3/envs/OpenRift/python.exe\" -m pip list)",
+      "Bash(\"C:/Users/leokt/anaconda3/envs/OpenRift/python.exe\" -c \"\nwith open(''EUW1-7540902144.rofl'', ''rb'') as f:\n    content = f.read()\n    \n    # Look for common keys in League metadata\n    keywords = [b''gameLength'', b''gameVersion'', b''statsJson'', b''gameMode'', b''CHAMPIONS_KILLED'']\n    \n    for keyword in keywords:\n        pos = content.find(keyword)\n        if pos > 0:\n            print(f''{keyword.decode()}: found at position {pos}'')\n            # Show context\n            context = content[max(0, pos-50):pos+100]\n            print(f''  Context: {context[:150]}...'')\n            print()\n\")",
+      "Bash(dir /s /b \"c:\\\\Users\\\\leokt\\\\Documents\\\\Map-LOL\\\\*.json\")",
+      "Bash(python -c:*)",
+      "Bash(python generate_test_json.py:*)",
+      "Bash(pip install:*)",
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(ping:*)",
+      "Bash(python main.py:*)",
+      "Bash(if exist __pycache__analytics.*.pyc del /F __pycache__analytics.*.pyc)"
     ]
   }
 }

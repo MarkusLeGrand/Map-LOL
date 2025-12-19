@@ -27,8 +27,28 @@ class ScrimAnalytics:
         with open(self.data_file, 'r', encoding='utf-8') as f:
             self.raw_data = json.load(f)
 
+        # Detect data format and normalize
+        self._normalize_data()
+
         # Configure matplotlib
         self._setup_plotting()
+
+    def _normalize_data(self):
+        """Detect and normalize different JSON formats"""
+        # Check if this is a global_data.json (has 'scrims' array but no 'players')
+        if 'scrims' in self.raw_data and 'players' not in self.raw_data:
+            # This is a global data file - extract players from first scrim with player data
+            for scrim_data in self.raw_data.get('scrims', []):
+                if 'players' in scrim_data:
+                    # Use the first scrim that has player data
+                    self.raw_data = scrim_data
+                    return
+            # No scrim has player data, create empty players list
+            self.raw_data['players'] = []
+
+        # If 'players' key doesn't exist at all, create empty list
+        if 'players' not in self.raw_data:
+            self.raw_data['players'] = []
 
     def _setup_plotting(self):
         """Configure matplotlib style"""
@@ -44,25 +64,39 @@ class ScrimAnalytics:
         """Convert players data to DataFrame"""
         rows = []
         for p in players:
+            # Calculate KDA: (Kills + Assists) / Deaths (avoid division by zero)
+            totals = p.get("totals", {})
+            kills = totals.get("kills", 0)
+            deaths = totals.get("deaths", 0)
+            assists = totals.get("assists", 0)
+            kda = (kills + assists) / deaths if deaths > 0 else kills + assists
+
             base = {
-                "name": p.get("name"),
+                "name": p.get("summoner_name"),  # Changed from "name" to "summoner_name"
                 "position": p.get("position"),
-                "games_played": p.get("games_played"),
+                "games_played": p.get("games"),  # Changed from "games_played" to "games"
                 "wins": p.get("wins"),
                 "losses": p.get("losses"),
                 "winrate": p.get("winrate"),
-                "kda": p.get("kda"),
+                "kda": kda,  # Calculate KDA from totals
             }
 
-            stat_types = {
-                "totals": "total",
-                "averages": "avg",
-                "per_minute": "per_min"
-            }
+            # Handle totals
+            if "totals" in p:
+                for stat_name, stat_value in p["totals"].items():
+                    base[f"total_{stat_name}"] = stat_value
 
-            for source_key, prefix in stat_types.items():
-                for stat_name, stat_value in (p.get(source_key) or {}).items():
-                    base[f"{prefix}_{stat_name}"] = stat_value
+            # Handle averages - using the actual field names from JSON
+            if "averages" in p:
+                averages = p["averages"]
+                base["avg_kills"] = averages.get("kills")
+                base["avg_deaths"] = averages.get("deaths")
+                base["avg_assists"] = averages.get("assists")
+                base["avg_kill_participation"] = averages.get("kill_participation")
+                base["per_min_damage"] = averages.get("damage_per_min")
+                base["per_min_gold"] = averages.get("gold_per_min")
+                base["per_min_cs"] = averages.get("cs_per_min")
+                base["avg_vision"] = averages.get("vision_per_game")
 
             rows.append(base)
 
@@ -90,6 +124,17 @@ class ScrimAnalytics:
         # Convert DataFrame to dict for JSON serialization
         players_data = players_df.to_dict(orient='records')
 
+        # Add champion stats back to each player (DataFrame conversion loses nested data)
+        for i, player_dict in enumerate(players_data):
+            original_player = players[i]
+            # Add champions if it exists (renamed from "champion_stats")
+            if "champions" in original_player:
+                player_dict["champions"] = original_player["champions"]
+                # Also add as top_champions for backwards compatibility
+                champ_stats = original_player["champions"]
+                sorted_champs = sorted(champ_stats, key=lambda x: x.get("games", 0), reverse=True)
+                player_dict["top_champions"] = sorted_champs[:5]
+
         return {
             "players": players_data,
             "total_players": len(players_data),
@@ -108,9 +153,13 @@ class ScrimAnalytics:
 
         ordered = players_df[["name", "winrate"]].sort_values("winrate", ascending=False)
 
+        # Convert to lists to avoid dtype issues with matplotlib
+        names = [str(x) for x in ordered["name"].tolist()]
+        winrates = [float(x) if pd.notna(x) else 0.0 for x in ordered["winrate"].tolist()]
+
         plt.figure(figsize=(10, 6))
-        plt.bar(ordered["name"], ordered["winrate"], color='#4ECDC4')
-        plt.xticks(rotation=45, ha="right")
+        plt.bar(range(len(names)), winrates, color='#4ECDC4')
+        plt.xticks(range(len(names)), names, rotation=45, ha="right")
         plt.ylabel("Winrate (%)")
         plt.title("Winrate par joueur")
         plt.tight_layout()
@@ -127,11 +176,16 @@ class ScrimAnalytics:
         players_df = self._expand_players(players)
         self._to_numeric_safe(players_df, ["kda", "per_min_damage"])
 
-        plt.figure(figsize=(10, 6))
-        plt.scatter(players_df["kda"], players_df["per_min_damage"], s=100, alpha=0.6, color='#FF6B6B')
+        # Convert to native Python types
+        kda_values = [float(x) if pd.notna(x) else 0.0 for x in players_df["kda"].tolist()]
+        dpm_values = [float(x) if pd.notna(x) else 0.0 for x in players_df["per_min_damage"].tolist()]
+        names = [str(x) for x in players_df["name"].tolist()]
 
-        for _, r in players_df.iterrows():
-            plt.annotate(r["name"], (r["kda"], r["per_min_damage"]),
+        plt.figure(figsize=(10, 6))
+        plt.scatter(kda_values, dpm_values, s=100, alpha=0.6, color='#FF6B6B')
+
+        for i, name in enumerate(names):
+            plt.annotate(name, (kda_values[i], dpm_values[i]),
                         xytext=(5, 5), textcoords='offset points', fontsize=9)
 
         plt.xlabel("KDA")
@@ -150,31 +204,42 @@ class ScrimAnalytics:
         """Generate radar chart mosaic for all players"""
         players = self.raw_data.get("players", [])
 
+        # Helper function to calculate KDA
+        def calc_kda(p):
+            totals = p.get("totals", {})
+            kills = totals.get("kills", 0)
+            deaths = totals.get("deaths", 0)
+            assists = totals.get("assists", 0)
+            return (kills + assists) / deaths if deaths > 0 else kills + assists
+
+        # Helper function to get metric value
+        def get_metric(p, metric_key):
+            if metric_key == "kda":
+                return calc_kda(p)
+            elif metric_key == "dpm":
+                return p.get("averages", {}).get("damage_per_min", 0.0)
+            elif metric_key == "gpm":
+                return p.get("averages", {}).get("gold_per_min", 0.0)
+            elif metric_key == "csm":
+                return p.get("averages", {}).get("cs_per_min", 0.0)
+            elif metric_key == "kp":
+                return p.get("averages", {}).get("kill_participation", 0.0)
+            return 0.0
+
         metrics = [
             ("kda", "KDA"),
-            ("per_minute.damage", "DPM"),
-            ("per_minute.gold", "GPM"),
-            ("per_minute.cs", "CSM"),
-            ("averages.kill_participation", "KP"),
+            ("dpm", "DPM"),
+            ("gpm", "GPM"),
+            ("csm", "CSM"),
+            ("kp", "KP"),
         ]
-
-        def get_nested(d, dotted, default=0.0):
-            cur = d
-            for k in dotted.split("."):
-                if not isinstance(cur, dict) or k not in cur:
-                    return default
-                cur = cur[k]
-            try:
-                return float(cur)
-            except Exception:
-                return default
 
         labels = [lab for _, lab in metrics]
         raw_rows, names = [], []
 
         for p in players:
-            names.append(p.get("name", ""))
-            raw_rows.append([get_nested(p, key, 0.0) for key, _ in metrics])
+            names.append(p.get("summoner_name", ""))
+            raw_rows.append([get_metric(p, key) for key, _ in metrics])
 
         raw_mat = np.array(raw_rows, dtype=float)
         mins = raw_mat.min(axis=0)

@@ -28,7 +28,7 @@ export default function AboutPage() {
     ];
 
     return (
-        <div className="w-screen min-h-screen bg-[#0E0E0E] flex flex-col" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="min-h-screen bg-[#0E0E0E] flex flex-col overflow-x-hidden" style={{ fontFamily: 'Inter, sans-serif' }}>
             <Header
                 brandName="OpenRift"
                 tagline="PRO TOOLS FOR EVERYONE"
