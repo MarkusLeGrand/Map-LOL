@@ -6,6 +6,8 @@ import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
 import { COLORS } from '../../constants/theme';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function TeamManagementPage() {
   const { user } = useAuth();
   const { teams, invites, scrims, createTeam, getMyTeams, getMyInvites, acceptInvite, inviteToTeam, getScrims, createScrim } = useTeam();
@@ -283,7 +285,7 @@ export default function TeamManagementPage() {
                             onClick={async () => {
                               const token = localStorage.getItem('token');
                               try {
-                                const response = await fetch(`http://localhost:8000/api/scrims/${scrim.id}`, {
+                                const response = await fetch(`${API_BASE_URL}/api/scrims/${scrim.id}`, {
                                   method: 'DELETE',
                                   headers: { 'Authorization': `Bearer ${token}` },
                                 });
@@ -517,7 +519,7 @@ export default function TeamManagementPage() {
                                           e.stopPropagation();
                                           const token = localStorage.getItem('token');
                                           try {
-                                            const response = await fetch(`http://localhost:8000/api/scrims/${scrim.id}`, {
+                                            const response = await fetch(`${API_BASE_URL}/api/scrims/${scrim.id}`, {
                                               method: 'DELETE',
                                               headers: { 'Authorization': `Bearer ${token}` },
                                             });

@@ -120,7 +120,7 @@ export default function ProfilePage() {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/auth/me', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -247,7 +247,7 @@ export default function ProfilePage() {
     // TODO: Implement API call to leave team
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`http://localhost:8000/api/teams/${myTeam.id}/leave`, {
+      const response = await fetch(`${API_BASE_URL}/api/teams/${myTeam.id}/leave`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -268,7 +268,7 @@ export default function ProfilePage() {
     // TODO: Implement API call to delete team
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`http://localhost:8000/api/teams/${myTeam.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/teams/${myTeam.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
