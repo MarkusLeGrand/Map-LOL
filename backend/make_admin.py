@@ -5,7 +5,7 @@ Usage: python make_admin.py <username_or_email>
 import sys
 import sqlite3
 
-DB_PATH = "app/openrift.db"
+DB_PATH = "openrift.db"
 
 def make_admin(identifier: str):
     """Make a user an admin by username or email"""
