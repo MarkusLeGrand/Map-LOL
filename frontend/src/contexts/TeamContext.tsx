@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 interface TeamMember {
   id: string;
@@ -66,6 +67,13 @@ interface CreateScrimData {
   notes?: string;
 }
 
+interface UpdateTeamData {
+  name?: string;
+  tag?: string;
+  description?: string;
+  team_color?: string;
+}
+
 interface TeamContextType {
   teams: Team[];
   invites: TeamInvite[];
@@ -74,6 +82,7 @@ interface TeamContextType {
   createTeam: (data: CreateTeamData) => Promise<Team | null>;
   getMyTeams: () => Promise<void>;
   getTeam: (teamId: string) => Promise<Team | null>;
+  updateTeam: (teamId: string, data: UpdateTeamData) => Promise<Team | null>;
   inviteToTeam: (teamId: string, data: CreateInviteData) => Promise<TeamInvite | null>;
   getMyInvites: () => Promise<void>;
   acceptInvite: (inviteId: string) => Promise<Team | null>;
@@ -81,11 +90,13 @@ interface TeamContextType {
   getScrims: (teamId: string) => Promise<void>;
   kickMember: (teamId: string, userId: string) => Promise<boolean>;
   promoteToOwner: (teamId: string, userId: string) => Promise<boolean>;
+  clearTeamData: () => void;
 }
 
 const TeamContext = createContext<TeamContextType | undefined>(undefined);
 
 export function TeamProvider({ children }: { children: ReactNode }) {
+  const { registerLogoutCallback, registerLoginCallback } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [invites, setInvites] = useState<TeamInvite[]>([]);
   const [scrims, setScrims] = useState<Map<string, Scrim[]>>(new Map());
@@ -164,6 +175,33 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       return null;
     } catch (error) {
       console.error('Failed to get team:', error);
+      return null;
+    }
+  };
+
+  const updateTeam = async (teamId: string, data: UpdateTeamData): Promise<Team | null> => {
+    const token = getAuthToken();
+    if (!token) return null;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teams/${teamId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        const updatedTeam = await response.json();
+        // Update the team in the local state
+        setTeams(prev => prev.map(team => team.id === teamId ? updatedTeam : team));
+        return updatedTeam;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to update team:', error);
       return null;
     }
   };
@@ -344,12 +382,54 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const clearTeamData = () => {
+    setTeams([]);
+    setInvites([]);
+    setScrims(new Map());
+  };
+
+  // Register callbacks with AuthContext on mount
+  useEffect(() => {
+    registerLogoutCallback(clearTeamData);
+    registerLoginCallback(() => {
+      // Refresh teams and invites on login
+      getMyTeams();
+      getMyInvites();
+    });
+  }, [registerLogoutCallback, registerLoginCallback]);
+
+  // Reset teams and invites when token changes (login/logout)
   useEffect(() => {
     const token = getAuthToken();
     if (token) {
       getMyTeams();
       getMyInvites();
+    } else {
+      // Clear state when logged out
+      clearTeamData();
     }
+  }, []); // This runs once on mount
+
+  // Listen to storage events for logout/login from other tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token') {
+        const newToken = e.newValue;
+        if (newToken) {
+          // New login detected
+          getMyTeams();
+          getMyInvites();
+        } else {
+          // Logout detected
+          setTeams([]);
+          setInvites([]);
+          setScrims(new Map());
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   return (
@@ -362,6 +442,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         createTeam,
         getMyTeams,
         getTeam,
+        updateTeam,
         inviteToTeam,
         getMyInvites,
         acceptInvite,
@@ -369,6 +450,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         getScrims,
         kickMember,
         promoteToOwner,
+        clearTeamData,
       }}
     >
       {children}

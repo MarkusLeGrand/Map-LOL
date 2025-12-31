@@ -8,15 +8,18 @@ import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
 import { COLORS } from '../../constants/theme';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function ProfilePage() {
   const { user, logout } = useAuth();
-  const { teams, invites, createTeam, getMyTeams, acceptInvite, inviteToTeam, getMyInvites, kickMember, promoteToOwner } = useTeam();
+  const { teams, invites, createTeam, getMyTeams, acceptInvite, inviteToTeam, getMyInvites, kickMember, promoteToOwner, updateTeam } = useTeam();
   const navigate = useNavigate();
   const toast = useToast();
 
   const [isEditingRiot, setIsEditingRiot] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
+  const [showEditTeamModal, setShowEditTeamModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
@@ -37,6 +40,13 @@ export default function ProfilePage() {
   });
 
   const [teamFormData, setTeamFormData] = useState({
+    name: '',
+    tag: '',
+    description: '',
+    team_color: '#3D7A5F',
+  });
+
+  const [editTeamFormData, setEditTeamFormData] = useState({
     name: '',
     tag: '',
     description: '',
@@ -67,24 +77,114 @@ export default function ProfilePage() {
   }, []);
 
   const handleSaveProfile = async () => {
-    // TODO: Implement API call to update profile
-    setIsEditingProfile(false);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast?.error('Not authenticated');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: profileFormData.username,
+          email: profileFormData.email,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to update profile');
+      }
+
+      toast?.success('Profile updated successfully');
+      setIsEditingProfile(false);
+
+      // Refresh user data
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      toast?.error(error instanceof Error ? error.message : 'Failed to update profile');
+    }
   };
 
   const handleSaveRiot = async () => {
-    // TODO: Implement API call to update Riot account
-    setIsEditingRiot(false);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast?.error('Not authenticated');
+        return;
+      }
+
+      const response = await fetch('http://localhost:8000/api/auth/me', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          riot_game_name: riotFormData.riot_game_name,
+          riot_tag_line: riotFormData.riot_tag_line,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update Riot account');
+      }
+
+      toast?.success('Riot account updated successfully');
+      setIsEditingRiot(false);
+
+      // Refresh user data - force a page reload to update the auth context
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to update Riot account:', error);
+      toast?.error('Failed to update Riot account');
+    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordFormData.new_password !== passwordFormData.confirm_password) {
-      alert('Passwords do not match');
+      toast?.error('Passwords do not match');
       return;
     }
-    // TODO: Implement API call to change password
-    setShowChangePasswordModal(false);
-    setPasswordFormData({ current_password: '', new_password: '', confirm_password: '' });
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast?.error('Not authenticated');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/password`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          current_password: passwordFormData.current_password,
+          new_password: passwordFormData.new_password,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to change password');
+      }
+
+      toast?.success('Password changed successfully');
+      setShowChangePasswordModal(false);
+      setPasswordFormData({ current_password: '', new_password: '', confirm_password: '' });
+    } catch (error) {
+      console.error('Failed to change password:', error);
+      toast?.error(error instanceof Error ? error.message : 'Failed to change password');
+    }
   };
 
   const copyUserId = () => {
@@ -100,6 +200,25 @@ export default function ProfilePage() {
       setShowCreateTeamModal(false);
       setTeamFormData({ name: '', tag: '', description: '', team_color: '#3D7A5F' });
       getMyTeams();
+    }
+  };
+
+  const handleEditTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!myTeam) return;
+
+    try {
+      const updated = await updateTeam(myTeam.id, editTeamFormData);
+      if (updated) {
+        toast?.success('Team updated successfully');
+        setShowEditTeamModal(false);
+        getMyTeams();
+      } else {
+        toast?.error('Failed to update team');
+      }
+    } catch (error) {
+      console.error('Failed to update team:', error);
+      toast?.error('Failed to update team');
     }
   };
 
@@ -497,12 +616,28 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       {isTeamOwner && (
-                        <button
-                          onClick={() => setShowInviteModal(true)}
-                          className="px-5 py-2.5 bg-[#F5F5F5]/10 text-[#F5F5F5] hover:bg-[#F5F5F5]/20 transition-colors rounded"
-                        >
-                          + Invite
-                        </button>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => {
+                              setEditTeamFormData({
+                                name: myTeam.name,
+                                tag: myTeam.tag || '',
+                                description: myTeam.description || '',
+                                team_color: myTeam.team_color,
+                              });
+                              setShowEditTeamModal(true);
+                            }}
+                            className="px-5 py-2.5 bg-[#F5F5F5]/10 text-[#F5F5F5] hover:bg-[#F5F5F5]/20 transition-colors rounded"
+                          >
+                            Edit Team
+                          </button>
+                          <button
+                            onClick={() => setShowInviteModal(true)}
+                            className="px-5 py-2.5 bg-[#F5F5F5]/10 text-[#F5F5F5] hover:bg-[#F5F5F5]/20 transition-colors rounded"
+                          >
+                            + Invite
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -530,10 +665,12 @@ export default function ProfilePage() {
                                     </span>
                                   )}
                                   {member.username}
-                                {isMemberOwner && (
-                                  <p className="text-[#F5F5F5]/40 text-sm">Owner</p>
-                                )}
                                 </p>
+                                {member.riot_game_name && member.riot_tag_line && (
+                                  <p className="text-[#F5F5F5]/50 text-xs mt-0.5">
+                                    {member.riot_game_name}#{member.riot_tag_line}
+                                  </p>
+                                )}
                               </div>
 
                               {/* Action Buttons - Only show for team owner on other members */}
@@ -694,6 +831,81 @@ export default function ProfilePage() {
                   className="flex-1 px-6 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded"
                 >
                   Create Team
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Team Modal */}
+      {showEditTeamModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowEditTeamModal(false)}>
+          <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 p-8 max-w-lg w-full rounded-lg" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-[#F5F5F5] text-2xl font-bold mb-6">Edit Team</h2>
+            <form onSubmit={handleEditTeam}>
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-[#F5F5F5]/60 text-sm mb-2">Team Name *</label>
+                  <input
+                    type="text"
+                    value={editTeamFormData.name}
+                    onChange={(e) => setEditTeamFormData({ ...editTeamFormData, name: e.target.value })}
+                    className="w-full px-4 py-3 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] rounded"
+                    required
+                    placeholder="e.g., Kingslayers"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#F5F5F5]/60 text-sm mb-2">Team Tag (2-4 letters)</label>
+                  <input
+                    type="text"
+                    value={editTeamFormData.tag}
+                    onChange={(e) => setEditTeamFormData({ ...editTeamFormData, tag: e.target.value.toUpperCase() })}
+                    className="w-full px-4 py-3 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] rounded uppercase"
+                    maxLength={4}
+                    minLength={2}
+                    placeholder="e.g., KC, T1, FNC"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#F5F5F5]/60 text-sm mb-2">Description</label>
+                  <textarea
+                    value={editTeamFormData.description}
+                    onChange={(e) => setEditTeamFormData({ ...editTeamFormData, description: e.target.value })}
+                    className="w-full px-4 py-3 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] resize-none rounded"
+                    rows={3}
+                    placeholder="A few words about your team..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#F5F5F5]/60 text-sm mb-3">Team Color</label>
+                  <div className="flex gap-3">
+                    {['#3D7A5F', '#5B8FB9', '#B4975A', '#8B5A9F', '#C75B5B', '#E07B39'].map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setEditTeamFormData({ ...editTeamFormData, team_color: color })}
+                        className={`w-12 h-12 rounded-lg transition-all ${editTeamFormData.team_color === color ? 'ring-2 ring-[#F5F5F5] ring-offset-2 ring-offset-[#1A1A1A] scale-110' : 'hover:scale-105'}`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-8">
+                <button
+                  type="button"
+                  onClick={() => setShowEditTeamModal(false)}
+                  className="flex-1 px-6 py-3 bg-[#F5F5F5]/5 text-[#F5F5F5] hover:bg-[#F5F5F5]/10 transition-colors rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>

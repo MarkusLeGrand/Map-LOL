@@ -145,6 +145,14 @@ export function Header({
                                 )}
                             </div>
 
+                            {user?.is_admin && (
+                                <button
+                                    onClick={() => navigate('/admin')}
+                                    className="px-4 py-2 text-yellow-400 text-sm font-medium bg-yellow-500/10 hover:bg-yellow-500/20 transition-colors border border-yellow-500/30"
+                                >
+                                    Admin
+                                </button>
+                            )}
                             <button
                                 onClick={() => navigate('/profile')}
                                 className="text-sm transition-colors group"

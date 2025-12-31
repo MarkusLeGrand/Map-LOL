@@ -30,7 +30,18 @@
       "Bash(timeout /t 3 /nobreak)",
       "Bash(ping:*)",
       "Bash(python main.py:*)",
-      "Bash(if exist __pycache__analytics.*.pyc del /F __pycache__analytics.*.pyc)"
+      "Bash(if exist __pycache__analytics.*.pyc del /F __pycache__analytics.*.pyc)",
+      "Bash(wc:*)",
+      "Bash(find:*)",
+      "Bash(timeout:*)",
+      "Bash(exit 0)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(openssl rand:*)",
+      "Bash(pip freeze:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(ls:*)",
+      "Bash(python check_both_dbs.py:*)",
+      "Bash(sqlite3:*)"
     ]
   }
 }

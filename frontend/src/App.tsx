@@ -9,6 +9,7 @@ import SignupPage from './pages/auth/SignupPage';
 import DashboardPage from './pages/auth/DashboardPage';
 import TeamManagementPage from './pages/auth/TeamManagementPage';
 import ProfilePage from './pages/auth/ProfilePage';
+import AdminPage from './pages/auth/AdminPage';
 import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -30,6 +31,7 @@ export default function App() {
                             <Route path="/dashboard" element={<DashboardPage />} />
                             <Route path="/teams" element={<TeamManagementPage />} />
                             <Route path="/profile" element={<ProfilePage />} />
+                            <Route path="/admin" element={<AdminPage />} />
                         </Routes>
                     </BrowserRouter>
                 </TeamProvider>

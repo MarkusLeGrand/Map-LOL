@@ -4,20 +4,24 @@ Authentication utilities - JWT, password hashing, etc.
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 
 from database import get_db, User
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Security config
-SECRET_KEY = "your-secret-key-change-this-in-production-use-openssl-rand-hex-32"
+SECRET_KEY = os.getenv("SECRET_KEY", "fallback-key-for-dev-only-change-this")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
 
@@ -53,6 +57,7 @@ class UserResponse(BaseModel):
     created_at: datetime
     favorite_tools: list
     theme: str
+    is_admin: bool
 
     class Config:
         from_attributes = True
@@ -61,12 +66,24 @@ class UserResponse(BaseModel):
 # Password utilities
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    # Truncate password to 72 bytes for bcrypt
+    password_bytes = plain_password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+
+    return bcrypt.checkpw(password_bytes, hashed_password.encode('utf-8'))
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password"""
-    return pwd_context.hash(password)
+    """Hash a password (bcrypt limit: 72 bytes)"""
+    # Truncate password to 72 bytes for bcrypt
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 # JWT utilities
@@ -112,13 +129,23 @@ def get_user_by_username(db: Session, username: str) -> Optional[User]:
     return db.query(User).filter(User.username == username).first()
 
 
-def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
-    """Authenticate a user"""
-    user = get_user_by_email(db, email)
+def authenticate_user(db: Session, email_or_username: str, password: str) -> Optional[User]:
+    """Authenticate a user with email OR username"""
+    # Try to find user by email first
+    user = get_user_by_email(db, email_or_username)
+
+    # If not found by email, try username
+    if not user:
+        user = get_user_by_username(db, email_or_username)
+
+    # If still not found, authentication failed
     if not user:
         return None
+
+    # Verify password
     if not verify_password(password, user.hashed_password):
         return None
+
     return user
 
 

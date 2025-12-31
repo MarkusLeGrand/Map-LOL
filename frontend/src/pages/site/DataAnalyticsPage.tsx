@@ -45,7 +45,11 @@ interface AnalyticsData {
 interface UploadResponse {
   success: boolean;
   file_path: string;
-  players_count: number;
+  matches_count?: number;
+  players_count?: number;
+  found_players?: string[];  // RIOT IDs found in matches
+  team_id?: string;
+  analysis_name?: string;
   uploaded_at: string;
 }
 
@@ -134,8 +138,12 @@ export default function DataAnalyticsPage() {
       const formData = new FormData();
       formData.append('file', file);
 
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/api/upload-scrim-data`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData,
       });
 
@@ -148,8 +156,8 @@ export default function DataAnalyticsPage() {
       setUploadedFile(data);
       setCurrentFilePath(data.file_path);
 
-      // Automatically analyze after upload
-      await analyzeData(data.file_path);
+      // Automatically analyze after upload with team filter
+      await analyzeData(data.file_path, data.found_players || []);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
@@ -158,20 +166,26 @@ export default function DataAnalyticsPage() {
     }
   }, []);
 
-  const analyzeData = async (filePath: string) => {
+  const analyzeData = async (filePath: string, teamRiotIds: string[] = []) => {
     console.log('=== ANALYZE DATA CALLED ===');
     console.log('File path:', filePath);
+    console.log('Team RIOT IDs:', teamRiotIds);
     setIsAnalyzing(true);
     setError(null);
 
     try {
       console.log('Calling backend API...');
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/api/analyze-scrim`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ file_path: filePath }),
+        body: JSON.stringify({
+          file_path: filePath,
+          team_riot_ids: teamRiotIds
+        }),
       });
 
       if (!response.ok) {

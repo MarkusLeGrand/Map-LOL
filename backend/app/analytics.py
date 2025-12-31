@@ -17,8 +17,9 @@ from PIL import Image
 class ScrimAnalytics:
     """Process and analyze League of Legends scrim data"""
 
-    def __init__(self, data_file: Path):
+    def __init__(self, data_file: Path, team_riot_ids: List[str] = None):
         self.data_file = Path(data_file)
+        self.team_riot_ids = team_riot_ids or []  # RIOT IDs to filter (e.g., ["Player#TAG"])
         self.export_dir = Path(__file__).parent.parent / "exports"
         self.charts_dir = self.export_dir / "charts"
         self.charts_dir.mkdir(parents=True, exist_ok=True)
@@ -35,20 +36,232 @@ class ScrimAnalytics:
 
     def _normalize_data(self):
         """Detect and normalize different JSON formats"""
-        # Check if this is a global_data.json (has 'scrims' array but no 'players')
-        if 'scrims' in self.raw_data and 'players' not in self.raw_data:
-            # This is a global data file - extract players from first scrim with player data
-            for scrim_data in self.raw_data.get('scrims', []):
-                if 'players' in scrim_data:
-                    # Use the first scrim that has player data
-                    self.raw_data = scrim_data
-                    return
-            # No scrim has player data, create empty players list
-            self.raw_data['players'] = []
+        # If already has 'players', it's in the expected format
+        if 'players' in self.raw_data:
+            return
 
-        # If 'players' key doesn't exist at all, create empty list
-        if 'players' not in self.raw_data:
-            self.raw_data['players'] = []
+        # If has 'matches' (Riot API format), parse it
+        if 'matches' in self.raw_data:
+            self.raw_data['players'] = self._parse_riot_api_matches(self.raw_data['matches'])
+            return
+
+        # Unknown format
+        self.raw_data['players'] = []
+
+    def _parse_riot_api_matches(self, matches: List[Dict]) -> List[Dict]:
+        """Parse Riot API matches format into players analytics format"""
+        from collections import defaultdict
+        import random
+
+        # Track stats per player (by RIOT ID or PUUID for opponents)
+        players_data = defaultdict(lambda: {
+            "games": 0,
+            "wins": 0,
+            "losses": 0,
+            "totals": defaultdict(int),
+            "champions": defaultdict(lambda: {
+                "games": 0,
+                "wins": 0,
+                "kills": 0,
+                "deaths": 0,
+                "assists": 0,
+                "damage": 0
+            }),
+            "summoner_name": "",
+            "riot_id": "",
+            "position": "",
+            "total_game_time": 0,
+            "total_team_kills": 0,  # For KP calculation
+            "is_team_member": False  # Track if player is in our team
+        })
+
+        # Counter for anonymized opponents
+        opponent_counter = {}
+
+        # Process each match
+        for match in matches:
+            if "info" not in match or "participants" not in match["info"]:
+                continue
+
+            game_duration_minutes = match["info"].get("gameDuration", 0) / 60.0
+            participants = match["info"]["participants"]
+
+            # Calculate team kills per team (100 vs 200)
+            team_kills = {100: 0, 200: 0}
+            for p in participants:
+                team_id = p.get("teamId", 0)
+                team_kills[team_id] += p.get("kills", 0)
+
+            for participant in participants:
+                # Build RIOT ID
+                riot_game_name = participant.get("riotIdGameName", "")
+                riot_tagline = participant.get("riotIdTagline", "")
+                riot_id = f"{riot_game_name}#{riot_tagline}" if riot_game_name and riot_tagline else ""
+
+                puuid = participant.get("puuid", "")
+
+                # Check if this is a team member
+                is_team = riot_id in self.team_riot_ids if self.team_riot_ids else True
+
+                # Use RIOT ID for team members, PUUID for opponents
+                player_key = riot_id if is_team else puuid
+
+                # Skip if no valid key
+                if not player_key:
+                    continue
+
+                player = players_data[player_key]
+                player["is_team_member"] = is_team
+
+                # Basic info (use most recent)
+                player["summoner_name"] = participant.get("summonerName", riot_game_name or "Unknown")
+                player["riot_id"] = riot_id
+                player["position"] = participant.get("teamPosition",
+                    participant.get("individualPosition", "UNKNOWN"))
+
+                # Game count
+                player["games"] += 1
+
+                # Win/Loss
+                if participant.get("win", False):
+                    player["wins"] += 1
+                else:
+                    player["losses"] += 1
+
+                # Get player's team kills for KP
+                team_id = participant.get("teamId", 0)
+                player_team_kills = team_kills.get(team_id, 1)  # Avoid division by zero
+
+                # Totals
+                kills = participant.get("kills", 0)
+                deaths = participant.get("deaths", 0)
+                assists = participant.get("assists", 0)
+
+                player["totals"]["kills"] += kills
+                player["totals"]["deaths"] += deaths
+                player["totals"]["assists"] += assists
+                player["totals"]["damage"] += participant.get("totalDamageDealtToChampions", 0)
+                player["totals"]["gold"] += participant.get("goldEarned", 0)
+                player["totals"]["cs"] += (participant.get("totalMinionsKilled", 0) +
+                                          participant.get("neutralMinionsKilled", 0))
+                player["totals"]["vision_score"] += participant.get("visionScore", 0)
+                player["totals"]["wards_placed"] += participant.get("wardsPlaced", 0)
+                player["totals"]["wards_destroyed"] += participant.get("wardsKilled", 0)
+                player["totals"]["damage_to_objectives"] += participant.get("damageDealtToObjectives", 0)
+                player["totals"]["damage_to_buildings"] += participant.get("damageDealtToBuildings", 0)
+
+                # Track team kills for KP calculation
+                player["total_team_kills"] += player_team_kills
+
+                # Track game time
+                player["total_game_time"] += game_duration_minutes
+
+                # Champion stats
+                champion_name = participant.get("championName", "Unknown")
+                champ = player["champions"][champion_name]
+                champ["games"] += 1
+                if participant.get("win", False):
+                    champ["wins"] += 1
+                champ["kills"] += kills
+                champ["deaths"] += deaths
+                champ["assists"] += assists
+                champ["damage"] += participant.get("totalDamageDealtToChampions", 0)
+
+        # Convert to analytics format
+        result = []
+        opponent_id_map = {}  # Map puuid to anonymized name
+        opponent_counter = 100  # Start at 100 for anonymized IDs
+
+        for player_key, data in players_data.items():
+            games = data["games"]
+            if games == 0:
+                continue
+
+            total_game_time = data["total_game_time"] if data["total_game_time"] > 0 else games
+
+            # Calculate Kill Participation: (Kills + Assists) / Team Kills
+            total_participation = data["totals"]["kills"] + data["totals"]["assists"]
+            total_team_kills = data["total_team_kills"]
+            kp_percentage = (total_participation / total_team_kills * 100) if total_team_kills > 0 else 0
+
+            # Anonymize opponents
+            is_team = data["is_team_member"]
+            if is_team:
+                display_name = data["summoner_name"]
+            else:
+                # Generate consistent anonymized name for this opponent
+                if player_key not in opponent_id_map:
+                    opponent_id_map[player_key] = f"Unknown#{opponent_counter}"
+                    opponent_counter += 1
+                display_name = opponent_id_map[player_key]
+
+            analytics_player = {
+                "summoner_name": display_name,
+                "position": data["position"],
+                "games": games,
+                "wins": data["wins"],
+                "losses": data["losses"],
+                "winrate": round((data["wins"] / games) * 100, 1) if games > 0 else 0,
+                "is_team_member": is_team,  # Flag for frontend coloring
+                "totals": {
+                    "kills": data["totals"]["kills"],
+                    "deaths": data["totals"]["deaths"],
+                    "assists": data["totals"]["assists"],
+                    "damage": data["totals"]["damage"],
+                    "gold": data["totals"]["gold"],
+                    "cs": data["totals"]["cs"],
+                    "vision_score": data["totals"]["vision_score"],
+                    "wards_placed": data["totals"]["wards_placed"],
+                    "wards_destroyed": data["totals"]["wards_destroyed"],
+                    "damage_to_objectives": data["totals"]["damage_to_objectives"],
+                    "damage_to_buildings": data["totals"]["damage_to_buildings"]
+                },
+                "averages": {
+                    "kills": round(data["totals"]["kills"] / games, 1),
+                    "deaths": round(data["totals"]["deaths"] / games, 1),
+                    "assists": round(data["totals"]["assists"] / games, 1),
+                    "kill_participation": round(kp_percentage, 1),
+                    "damage_per_min": round(data["totals"]["damage"] / total_game_time, 1),
+                    "gold_per_min": round(data["totals"]["gold"] / total_game_time, 1),
+                    "cs_per_min": round(data["totals"]["cs"] / total_game_time, 1),
+                    "vision_per_game": round(data["totals"]["vision_score"] / games, 1),
+                    "wards_placed_per_game": round(data["totals"]["wards_placed"] / games, 1),
+                    "wards_destroyed_per_game": round(data["totals"]["wards_destroyed"] / games, 1),
+                    "damage_to_objectives_per_min": round(data["totals"]["damage_to_objectives"] / total_game_time, 1),
+                    "damage_to_buildings_per_min": round(data["totals"]["damage_to_buildings"] / total_game_time, 1)
+                },
+                "champions": []
+            }
+
+            # Add champion stats
+            for champ_name, champ_data in data["champions"].items():
+                champ_games = champ_data["games"]
+                analytics_player["champions"].append({
+                    "name": champ_name,
+                    "games": champ_games,
+                    "wins": champ_data["wins"],
+                    "losses": champ_games - champ_data["wins"],
+                    "winrate": round((champ_data["wins"] / champ_games) * 100, 1) if champ_games > 0 else 0,
+                    "avg_kills": round(champ_data["kills"] / champ_games, 1) if champ_games > 0 else 0,
+                    "avg_deaths": round(champ_data["deaths"] / champ_games, 1) if champ_games > 0 else 0,
+                    "avg_assists": round(champ_data["assists"] / champ_games, 1) if champ_games > 0 else 0,
+                    "avg_damage": round(champ_data["damage"] / champ_games, 1) if champ_games > 0 else 0
+                })
+
+            # Sort champions by games played
+            analytics_player["champions"].sort(key=lambda x: x["games"], reverse=True)
+
+            result.append(analytics_player)
+
+        # Sort players by position (standard LoL order)
+        position_order = {"TOP": 1, "JUNGLE": 2, "MIDDLE": 3, "BOTTOM": 4, "UTILITY": 5, "UNKNOWN": 6}
+        result.sort(key=lambda x: position_order.get(x["position"], 6))
+
+        # Store both: all players and team-only players
+        self.all_players = result  # Tous les joueurs (équipe + adversaires anonymisés)
+        self.team_players = [p for p in result if p.get("is_team_member", False)]  # Seulement l'équipe
+
+        return self.team_players  # Par défaut, retourne seulement l'équipe
 
     def _setup_plotting(self):
         """Configure matplotlib style"""
@@ -69,7 +282,7 @@ class ScrimAnalytics:
             kills = totals.get("kills", 0)
             deaths = totals.get("deaths", 0)
             assists = totals.get("assists", 0)
-            kda = (kills + assists) / deaths if deaths > 0 else kills + assists
+            kda = round((kills + assists) / deaths, 1) if deaths > 0 else round(kills + assists, 1)
 
             base = {
                 "name": p.get("summoner_name"),  # Changed from "name" to "summoner_name"
@@ -97,6 +310,10 @@ class ScrimAnalytics:
                 base["per_min_gold"] = averages.get("gold_per_min")
                 base["per_min_cs"] = averages.get("cs_per_min")
                 base["avg_vision"] = averages.get("vision_per_game")
+                base["avg_wards_placed"] = averages.get("wards_placed_per_game")
+                base["avg_wards_destroyed"] = averages.get("wards_destroyed_per_game")
+                base["per_min_damage_to_objectives"] = averages.get("damage_to_objectives_per_min")
+                base["per_min_damage_to_buildings"] = averages.get("damage_to_buildings_per_min")
 
             rows.append(base)
 
@@ -109,38 +326,55 @@ class ScrimAnalytics:
                 df[c] = pd.to_numeric(df[c], errors="coerce")
 
     def get_players_overview(self) -> Dict[str, Any]:
-        """Get overview statistics for all players"""
-        players = self.raw_data.get("players", [])
-        players_df = self._expand_players(players)
+        """Get overview statistics - returns team players + all players for comparison"""
+        # Team players only (for most displays)
+        team_players = self.raw_data.get("players", [])
 
-        # Convert to numeric
+        # All players raw data (for Performance Overview and Comparaison Métrique)
+        all_players_raw = getattr(self, 'all_players', team_players)
+
+        # Process team players
+        players_df = self._expand_players(team_players)
         numeric_cols = [
             "games_played", "wins", "losses", "winrate", "kda",
             "total_kills", "total_deaths", "total_assists",
             "avg_kill_participation", "per_min_damage", "per_min_gold", "per_min_cs"
         ]
         self._to_numeric_safe(players_df, numeric_cols)
-
-        # Convert DataFrame to dict for JSON serialization
         players_data = players_df.to_dict(orient='records')
 
-        # Add champion stats back to each player (DataFrame conversion loses nested data)
+        # Add champion stats back to team players
         for i, player_dict in enumerate(players_data):
-            original_player = players[i]
-            # Add champions if it exists (renamed from "champion_stats")
+            original_player = team_players[i]
             if "champions" in original_player:
                 player_dict["champions"] = original_player["champions"]
-                # Also add as top_champions for backwards compatibility
                 champ_stats = original_player["champions"]
                 sorted_champs = sorted(champ_stats, key=lambda x: x.get("games", 0), reverse=True)
                 player_dict["top_champions"] = sorted_champs[:5]
 
+        # Process all players (team + opponents) with same format
+        all_players_df = self._expand_players(all_players_raw)
+        self._to_numeric_safe(all_players_df, numeric_cols)
+        all_players_data = all_players_df.to_dict(orient='records')
+
+        # Add champion stats and is_team_member flag to all players
+        for i, player_dict in enumerate(all_players_data):
+            original_player = all_players_raw[i]
+            if "champions" in original_player:
+                player_dict["champions"] = original_player["champions"]
+                champ_stats = original_player["champions"]
+                sorted_champs = sorted(champ_stats, key=lambda x: x.get("games", 0), reverse=True)
+                player_dict["top_champions"] = sorted_champs[:5]
+            # Add is_team_member flag
+            player_dict["is_team_member"] = original_player.get("is_team_member", True)
+
         return {
-            "players": players_data,
+            "players": players_data,  # Team only
+            "all_players": all_players_data,  # Team + adversaires (same format as players)
             "total_players": len(players_data),
             "team_stats": {
-                "avg_winrate": float(players_df["winrate"].mean()) if "winrate" in players_df else 0,
-                "avg_kda": float(players_df["kda"].mean()) if "kda" in players_df else 0,
+                "avg_winrate": round(float(players_df["winrate"].mean()), 1) if "winrate" in players_df else 0,
+                "avg_kda": round(float(players_df["kda"].mean()), 1) if "kda" in players_df else 0,
                 "total_games": int(players_df["games_played"].sum()) if "games_played" in players_df else 0
             }
         }

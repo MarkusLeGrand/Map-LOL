@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 
 interface User {
   id: string;
@@ -19,16 +19,20 @@ interface AuthContextType {
   toggleFavoriteTool: (toolName: string) => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
+  registerLogoutCallback: (callback: () => void) => void;
+  registerLoginCallback: (callback: () => void) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [logoutCallbacks, setLogoutCallbacks] = useState<(() => void)[]>([]);
+  const [loginCallbacks, setLoginCallbacks] = useState<(() => void)[]>([]);
 
   // Load token from localStorage on mount
   useEffect(() => {
@@ -88,6 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(authToken);
 
     await fetchUser(authToken);
+
+    // Call all registered login callbacks (e.g., TeamContext refresh)
+    loginCallbacks.forEach(callback => callback());
   };
 
   const register = async (
@@ -120,11 +127,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await login(email, password);
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-  };
+    // Call all registered logout callbacks (e.g., TeamContext cleanup)
+    logoutCallbacks.forEach(callback => callback());
+  }, [logoutCallbacks]);
+
+  const registerLogoutCallback = useCallback((callback: () => void) => {
+    setLogoutCallbacks(prev => [...prev, callback]);
+  }, []);
+
+  const registerLoginCallback = useCallback((callback: () => void) => {
+    setLoginCallbacks(prev => [...prev, callback]);
+  }, []);
 
   const toggleFavoriteTool = async (toolName: string) => {
     if (!token || !user) return;
@@ -162,6 +179,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     toggleFavoriteTool,
     isAuthenticated: !!user,
     isLoading,
+    registerLogoutCallback,
+    registerLoginCallback,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,4 +1,4 @@
-# LeagueHub Analytics Backend
+# OpenRift Analytics Backend
 
 FastAPI backend for League of Legends scrim data analytics.
 
@@ -11,20 +11,25 @@ cd backend
 pip install -r requirements.txt
 ```
 
-### 2. Run the server
+### 2. Configure environment
 
 ```bash
-cd app
-python main.py
+# Copy example env file
+cp .env.example .env
+
+# Generate SECRET_KEY
+openssl rand -hex 32
+
+# Edit .env and set your SECRET_KEY
 ```
 
-Or with uvicorn directly:
+### 3. Run the server
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
-### 3. Access the API
+### 4. Access the API
 
 - **API:** http://localhost:8000
 - **Docs (Swagger):** http://localhost:8000/docs
@@ -36,105 +41,77 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 backend/
 ├── app/
 │   ├── main.py          # FastAPI application
+│   ├── auth.py          # Authentication & JWT
+│   ├── database.py      # Database models
+│   ├── teams.py         # Team management
 │   └── analytics.py     # Analytics processing logic
 ├── uploads/             # Uploaded JSON files
 ├── exports/             # Generated charts and reports
 ├── data/                # Static data files
 ├── requirements.txt     # Python dependencies
+├── .env                 # Environment variables (not in git)
 └── README.md
 ```
 
+## 🔐 Security Features
+
+- ✅ JWT Authentication with bcrypt password hashing
+- ✅ Rate limiting on auth endpoints (5 requests/minute)
+- ✅ Environment-based configuration
+- ✅ CORS protection
+- ✅ Secure SECRET_KEY from environment
+
 ## 🔌 API Endpoints
 
-### Health Check
+### Authentication
 ```http
-GET /
+POST /api/auth/register     # Register new user (rate limited)
+POST /api/auth/login        # Login (rate limited)
+GET  /api/auth/me           # Get current user
+PUT  /api/auth/profile      # Update profile
+PUT  /api/auth/password     # Change password
 ```
 
-### Upload Scrim Data
+### Teams
 ```http
-POST /api/upload-scrim-data
-Content-Type: multipart/form-data
-
-file: analytics_data.json
+POST /api/teams             # Create team
+GET  /api/teams             # List user teams
+GET  /api/teams/{id}        # Get team details
+PUT  /api/teams/{id}        # Update team
+POST /api/teams/invites     # Create invite
+GET  /api/teams/invites     # List invites
+POST /api/teams/invites/{id}/accept  # Accept invite
 ```
 
-### Analyze Scrim
+### Analytics
 ```http
-POST /api/analyze-scrim
-Content-Type: application/json
-
-{
-  "file_path": "path/to/uploaded/file.json"
-}
-```
-
-### Get Player Stats
-```http
-GET /api/players-stats?file_path=path/to/file.json
-```
-
-### Get Chart
-```http
-GET /api/charts/{chart_name}
-```
-
-### List Uploads
-```http
-GET /api/list-uploads
-```
-
-## 📊 Data Format
-
-Expected JSON format for `analytics_data.json`:
-
-```json
-{
-  "generated_at": "2025-01-15T10:30:00",
-  "team": "Team Name",
-  "players": [
-    {
-      "name": "Player1",
-      "position": "TOP",
-      "games_played": 10,
-      "wins": 6,
-      "losses": 4,
-      "winrate": 60.0,
-      "kda": 3.5,
-      "totals": {
-        "kills": 45,
-        "deaths": 20,
-        "assists": 60
-      },
-      "averages": {
-        "kill_participation": 65.5
-      },
-      "per_minute": {
-        "damage": 450.2,
-        "gold": 385.5,
-        "cs": 7.2
-      }
-    }
-  ]
-}
+POST /api/upload-scrim-data # Upload scrim data
+POST /api/analyze-scrim     # Analyze scrim
+GET  /api/players-stats     # Get player stats
+GET  /api/charts/{name}     # Get chart
 ```
 
 ## 🔧 Development
 
-### Install dev dependencies
-```bash
-pip install -r requirements.txt
+### Environment Variables
+
+Required in `.env`:
+```env
+SECRET_KEY=<generated-with-openssl-rand-hex-32>
+DATABASE_URL=sqlite:///./app/openrift.db
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+ENVIRONMENT=development
 ```
 
 ### Run with auto-reload
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8000
 ```
 
-## 🐳 Docker (Optional)
+## 🐳 Docker (Future)
 
 ```dockerfile
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 

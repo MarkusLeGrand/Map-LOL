@@ -8,7 +8,7 @@ from datetime import datetime
 import uuid
 
 # SQLite database (easy for dev, switch to PostgreSQL for prod)
-SQLALCHEMY_DATABASE_URL = "sqlite:///./leaguehub.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./openrift.db"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
@@ -52,6 +52,7 @@ class User(Base):
     last_login = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
+    is_admin = Column(Boolean, default=False)
 
     # Settings
     favorite_tools = Column(JSON, default=list)

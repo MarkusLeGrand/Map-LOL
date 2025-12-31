@@ -19,6 +19,13 @@ class TeamCreate(BaseModel):
     team_color: Optional[str] = "#3D7A5F"
 
 
+class TeamUpdate(BaseModel):
+    name: Optional[str] = None
+    tag: Optional[str] = None
+    description: Optional[str] = None
+    team_color: Optional[str] = None
+
+
 class TeamMember(BaseModel):
     id: str
     username: str
@@ -142,6 +149,39 @@ def get_user_teams(db: Session, user_id: str) -> List[DBTeam]:
 def get_team_by_id(db: Session, team_id: str) -> Optional[DBTeam]:
     """Get team by ID"""
     return db.query(DBTeam).filter(DBTeam.id == team_id).first()
+
+
+def update_team(db: Session, team_id: str, team_data: TeamUpdate) -> DBTeam:
+    """Update team information"""
+    team = db.query(DBTeam).filter(DBTeam.id == team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check if new name is taken by another team
+    if team_data.name is not None and team_data.name != team.name:
+        existing = db.query(DBTeam).filter(DBTeam.name == team_data.name).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Team name already taken")
+        team.name = team_data.name
+
+    # Check if new tag is taken by another team
+    if team_data.tag is not None and team_data.tag != team.tag:
+        existing_tag = db.query(DBTeam).filter(DBTeam.tag == team_data.tag).first()
+        if existing_tag:
+            raise HTTPException(status_code=400, detail="Team tag already taken")
+        team.tag = team_data.tag
+
+    # Update description
+    if team_data.description is not None:
+        team.description = team_data.description
+
+    # Update color
+    if team_data.team_color is not None:
+        team.team_color = team_data.team_color
+
+    db.commit()
+    db.refresh(team)
+    return team
 
 
 def get_team_members_with_roles(db: Session, team_id: str) -> List[dict]:
