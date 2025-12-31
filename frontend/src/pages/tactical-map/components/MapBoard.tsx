@@ -365,8 +365,6 @@ export function MapBoard({
                 currentDrawing={currentDrawing}
                 isDrawing={isDrawing}
                 boardSize={boardSize}
-                penColor={penColor}
-                penWidth={penWidth}
             />
         </div>
     );
