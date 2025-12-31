@@ -41,7 +41,11 @@
       "Bash(pip uninstall:*)",
       "Bash(ls:*)",
       "Bash(python check_both_dbs.py:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(npm run build:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)"
     ]
   }
 }
