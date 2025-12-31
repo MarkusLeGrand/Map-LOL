@@ -91,13 +91,18 @@ async def startup_event():
 
 @app.get("/")
 async def root():
-    """Health check endpoint"""
+    """Root endpoint"""
     return {
         "status": "online",
         "service": "OpenRift Analytics API",
         "version": "1.0.0",
         "timestamp": datetime.now().isoformat()
     }
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Docker"""
+    return {"status": "healthy"}
 
 
 # ==================== AUTH ENDPOINTS ====================
