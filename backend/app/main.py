@@ -117,7 +117,8 @@ async def health_check(db: Session = Depends(get_db)):
     """
     try:
         # Test database connection by running a simple query
-        db.execute("SELECT 1")
+        from sqlalchemy import text
+        db.execute(text("SELECT 1")).fetchone()
 
         return {
             "status": "healthy",
@@ -152,7 +153,8 @@ async def api_health_check(db: Session = Depends(get_db)):
     """
     try:
         # Test database connection
-        db.execute("SELECT 1")
+        from sqlalchemy import text
+        db.execute(text("SELECT 1")).fetchone()
 
         return {
             "status": "healthy",
