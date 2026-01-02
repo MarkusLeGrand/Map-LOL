@@ -1,64 +1,75 @@
-https://ddragon.leagueoflegends.com/cdn/12.6.1/img/champion/{most_frustrating_game.champion}.png 
-for img of the champs
+==============================================
+🔴 URGENT - CRITICAL (À FAIRE CETTE SEMAINE)
+==============================================
+[x] DÉSACTIVER /docs en production (SÉCURITÉ)
+[x] DELETE fichiers JSON analytics non-sauvés (gestion espace VPS)
+[x] Setup backup DB automatique (daily cron)
+[ ] UptimeRobot monitoring (gratuit, 5min setup)
 
-todo for the map:
-- pathing point par point ca fait des trait tout seul en esquivant les mur
-- select champs for roles 
-- gold gain
-- all maps (by drakes)
-- save position 
-- selction de plusieur joueur ensemble
-- exporter en gif, il record et export en gif 
-- save des position pour la map et les save pour la team ou pour toi !
+==============================================
+🟠 HIGH PRIORITY - QUICK WINS
+==============================================
+[ ] Changer tous les "LeagueHub" en "OpenRift"
+[ ] Clean tous les textes (typos, formulations)
+[ ] Changer le riot account avec une seule ligne (UX)
+[ ] Page teams publiques (voir toutes les équipes)
+[ ] Description sur le profil user
 
-calendriler:
-    clean le calendriler pour toute les 15min plus de carrer d'une heure
+==============================================
+🟡 RIOT API INTEGRATION
+==============================================
+[ ] OAuth Riot - connexion via compte Riot
+[ ] Vérification compte LOL (si il existe via API)
+[ ] Amélioration profil: 3 champions préférés, icon LOL, rank, lane
+[ ] Voir comment faire l'analyse pour les joueurs
+[ ] Google OAuth (optionnel, après Riot)
 
-plus de data sur les users
-    insighs par champion info que pour ton champion 
+==============================================
+🎮 MAP / TACTICAL BOARD - CORE FEATURES
+==============================================
+[ ] Pathing point par point (traits auto esquivant les murs)
+[ ] Gold gain tracker
+[ ] All maps (by drakes - différents terrains)
+[ ] Save position (map + save pour team ou perso)
+[ ] Sélection de plusieurs joueurs ensemble
+[ ] Exporter en GIF (record et export)
 
--tant que je charge pas la page de profil ca charge pas le tag du header 
+==============================================
+📅 CALENDRIER / SCHEDULING
+==============================================
+[ ] Clean calendrier: slots personnalisés (17h23 → 19h37, pas limité à 30min)
+[ ] Pouvoir bouger un slot dans la journée (drag & drop)
 
-faire la securiter token et toute cette merde 
+==============================================
+📊 ANALYTICS / DATA MANAGEMENT
+==============================================
+[ ] Proposer script a dl pour faire des JSON à partir des .rofl
+[ ] Faire un guide pour uttiliser le script
+[ ] Guide utilisateur pour download + utilisation script
 
-lvlup l'analyse :
+==============================================
+🛡️ MONITORING & MAINTENANCE (MANDATORY)
+==============================================
+[ ] Configure error tracking (Sentry recommended)
+[x] Create backup restoration procedure
+[x] Document deployment process
+[ ] Set up CI/CD pipeline (GitHub Actions - optionnel)
 
-info a check:
-    subgit docker 
-    dockploy check 
-    vps a faire 
+==============================================
+📝 INFO À VÉRIFIER
+==============================================
+[ ] Subgit docker - check ce que c'est
+[ ] Dockploy - check si utile (probablement non)
 
+==============================================
+💡 NOTES / RESSOURCES
+==============================================
+Champion images API:
+https://ddragon.leagueoflegends.com/cdn/12.6.1/img/champion/{champion_name}.png
 
-Phase 1: Security Hardening (CRITICAL)
- Generate and set SECRET_KEY in environment variable
- Move all API URLs to environment variables
- Configure CORS with specific domain
- Set up HTTPS/TLS with Let's Encrypt
- Add rate limiting to auth endpoints
- Review and sanitize all user inputs
- Set proper file permissions (600 for .db, 644 for code)
-
-Phase 2: Infrastructure Setup
- Set up VPS (recommended: Hetzner CX21 or DigitalOcean Basic Droplet)
- Install Docker and Docker Compose
- Configure nginx as reverse proxy
- Set up automatic SSL renewal
- Configure firewall (UFW): allow 80, 443, 22 only
- Set up automated backups for database
-
-Phase 3: Application Deployment
- Create production Dockerfile for backend
- Create production Dockerfile for frontend (nginx serve)
- Set up docker-compose.yml with proper networking
- Configure environment variables via .env file
- Implement health check endpoints
- Set up logging (structured JSON logs)
- Configure log rotation
- 
-Phase 4: Monitoring & Maintenance
- Set up monitoring (UptimeRobot, Grafana, or similar)
- Configure error tracking (Sentry recommended)
- Set up automated database backups (daily)
- Create backup restoration procedure
- Document deployment process
- Set up CI/CD pipeline (GitHub Actions)
+==============================================
+🚫 FEATURES REPORTÉES / BASSE PRIORITÉ
+==============================================
+- Grafana monitoring (overkill pour l'instant)
+- CI/CD si deploy.sh suffit
+- Dockploy (pas nécessaire avec Docker Compose)
