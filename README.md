@@ -1,149 +1,296 @@
-# Tactical Map
+# 🎮 OpenRift - League of Legends Analytics Platform
 
-A League of Legends tactical board for planning strategies, analyzing vision control, and visualizing team positions.
+**OpenRift** est une plateforme complète d'analyse et de stratégie pour League of Legends, combinant tactical board interactif, analytics de scrims, et gestion d'équipes.
 
-## Features
+🌐 **Live:** [openrift.cloud](https://openrift.cloud)
+📊 **Status:** [UptimeRobot Monitor](https://stats.uptimerobot.com/)
 
-### Map Elements
-- **Champion Tokens**: Draggable tokens for all 10 players with role indicators
-- **Buildings**: Interactive towers and inhibitors with enable/disable states
-- **Jungle Camps**: Toggle neutral objectives (Baron, Dragon, buffs)
-- **Vision System**: Place vision wards and control wards with full team coverage
-- **Fae'lights**: Advanced vision zones that reveal strategic map areas when warded
+---
 
-### Vision & Fog of War
-- **Team Vision Modes**: View from Blue, Red, or Both perspectives
-- **Dynamic Vision**: Real-time vision calculation with wall occlusion
-- **Ward Interactions**: Control wards disable enemy vision wards
-- **Bush Coverage**: Accurate brush mechanics
-- **Zone Reveals**: Fae'light system for key map locations
+## ✨ Features Principales
 
-### Tools
-- **Drawing**: Pen and eraser tools for marking strategies
-- **Grid Overlay**: Optional grid for precise positioning
-- **Zoom & Pan**: Navigate the map with mouse wheel and right-click drag
-- **Export**: Save your tactical setup as PNG
+### 🗺️ Tactical Map
+- **Champion Tokens** draggables pour tous les joueurs
+- **Système de vision** avancé avec Fog of War
+- **Ward placement** (Vision & Control wards)
+- **Fae'lights** pour zones stratégiques
+- **Drawing tools** (pen, eraser)
+- **Export PNG** des setups tactiques
 
-## Tech Stack
+### 📊 Scrim Analytics
+- **Upload de données** (format JSON Riot API)
+- **Statistiques détaillées** par joueur et match
+- **Charts interactifs** (KDA, CS, vision score, etc.)
+- **Sauvegarde personnelle** (5 analyses max/user)
+- **Partage d'équipe** (10 analyses max/team)
 
-- **React** 19.2.0 - UI framework
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
-- **Vite** - Build tool
-- **HTML5 Canvas** - Vision rendering and fog of war
-- **html2canvas** - PNG export
+### 👥 Teams & Scrims
+- **Création d'équipes** avec tags et couleurs
+- **Invitations de membres** (roles: owner, member)
+- **Calendrier de scrims** avec adversaires
+- **Gestion de permissions** (kick, promote, leave)
 
-## Getting Started
+### 🔐 Auth & Profil
+- **Authentification JWT** sécurisée
+- **Riot ID integration** (Game Name + Tag)
+- **Favorite tools** customisables
+- **Admin dashboard** pour modération
 
-### Prerequisites
-- Node.js 18+ and npm
+---
 
-### Installation
+## 🚀 Quick Start
+
+### Production (Déploiement VPS)
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/tactical-board.git
+# 1. Cloner le repo
+git clone https://github.com/yourusername/Map-LOL.git
+cd Map-LOL
+
+# 2. Configurer les variables d'environnement
+cp .env.example .env
+# Éditer .env avec vos valeurs
+
+# 3. Lancer avec Docker
+docker compose up -d
+
+# 4. Accéder à l'app
+# Frontend: http://your-vps-ip
+# Backend: http://your-vps-ip/api
+```
+
+### Développement Local
+
+```bash
+# Backend
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+
+# Frontend
 cd tactical-board
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`
+---
 
-### Build for Production
+## 📁 Structure du Projet
+
+```
+Map-LOL/
+├── backend/                    # FastAPI Backend
+│   ├── app/
+│   │   ├── main.py            # Application principale
+│   │   ├── routes/            # Routes modulaires (NEW!)
+│   │   │   ├── health.py      # Health checks
+│   │   │   ├── auth_routes.py # Authentification
+│   │   │   ├── teams_routes.py # Teams management
+│   │   │   └── scrims_routes.py # Scrims
+│   │   ├── database.py        # Models SQLAlchemy
+│   │   ├── auth.py            # JWT & auth utils
+│   │   ├── teams.py           # Teams business logic
+│   │   └── analytics.py       # Analytics processing
+│   ├── data/                  # SQLite DB (persistent)
+│   ├── uploads/               # Fichiers analytics
+│   ├── exports/               # Charts générés
+│   └── Dockerfile
+├── tactical-board/            # React Frontend
+│   ├── src/
+│   │   ├── components/        # UI components
+│   │   ├── contexts/          # React contexts (Auth, etc.)
+│   │   ├── pages/             # Pages principales
+│   │   ├── utils/             # Helpers
+│   │   └── types.ts
+│   └── Dockerfile
+├── nginx/                     # Reverse proxy
+│   └── nginx.conf
+├── docs/                      # Documentation (NEW!)
+│   ├── ADMIN.md              # Guide admin
+│   ├── AUTH_SETUP.md         # Setup authentification
+│   └── BACKUP.md             # Backups & maintenance
+├── docker-compose.yml
+├── deploy.sh                 # Script de déploiement
+└── README.md                 # Ce fichier
+```
+
+---
+
+## 📚 Documentation
+
+- **[ADMIN.md](docs/ADMIN.md)** - Devenir admin, endpoints admin
+- **[AUTH_SETUP.md](docs/AUTH_SETUP.md)** - Configuration authentification
+- **[BACKUP.md](docs/BACKUP.md)** - Backups automatiques, restoration
+- **[QUICKSTART.md](QUICKSTART.md)** - Guide de démarrage rapide
+
+---
+
+## 🛠️ Tech Stack
+
+### Backend
+- **FastAPI** - API REST moderne
+- **SQLAlchemy** - ORM Python
+- **SQLite** - Base de données (prod-ready)
+- **JWT** - Authentification sécurisée
+- **Passlib + Bcrypt** - Hash passwords
+- **Pandas** - Analytics processing
+
+### Frontend
+- **React 19.2** + **TypeScript**
+- **Tailwind CSS** - Styling
+- **Vite** - Build tool ultra-rapide
+- **HTML5 Canvas** - Vision & Fog of War
+- **Recharts** - Charts interactifs
+
+### Infrastructure
+- **Docker + Docker Compose** - Containerisation
+- **Nginx** - Reverse proxy & static files
+- **UptimeRobot** - Monitoring gratuit
+- **Cron** - Backups automatiques (daily 2 AM)
+
+---
+
+## 🔒 Sécurité & Maintenance
+
+### ✅ Implémenté
+- [x] Passwords hashés (bcrypt)
+- [x] JWT tokens avec expiration
+- [x] CORS configuré
+- [x] /docs désactivé en production
+- [x] Rate limiting sur auth endpoints
+- [x] Health checks pour monitoring
+- [x] Backups DB automatiques (daily)
+- [x] Cleanup analytics automatique (7 jours)
+
+### 📋 À Faire
+- [ ] HTTPS/SSL avec Let's Encrypt
+- [ ] Error tracking (Sentry)
+- [ ] CI/CD pipeline (GitHub Actions)
+- [ ] Email verification
+- [ ] Rate limiting global
+
+---
+
+## 📊 Monitoring
+
+- **UptimeRobot:** Vérifie `/api/health` toutes les 5 minutes
+- **Health Endpoints:**
+  - `GET /health` - Basic health check
+  - `GET /api/health` - Health check avec DB test
+  - `GET /` - Status de l'API
 
 ```bash
+# Vérifier manuellement
+curl https://openrift.cloud/api/health
+```
+
+---
+
+## 🚀 Déploiement
+
+### Déploiement Automatique
+
+```bash
+# Sur le VPS
+cd /var/www/openrift/Map-LOL
+./deploy.sh
+```
+
+### Déploiement Manuel
+
+```bash
+# Pull latest changes
+git pull origin main
+
+# Rebuild & restart
+docker compose down
+docker compose build
+docker compose up -d
+
+# Check logs
+docker compose logs -f
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Backend ne démarre pas
+```bash
+docker compose logs backend
+docker compose exec backend python -c "import app.main"
+```
+
+### Frontend ne build pas
+```bash
+cd tactical-board
 npm run build
 ```
 
-Build output will be in the `dist/` folder.
-
-## Usage
-
-### Basic Controls
-- **Left Click**: Select and place tokens/wards
-- **Right Click + Drag**: Pan the map
-- **Mouse Wheel**: Zoom in/out
-- **Drag Tokens**: Move champion positions
-
-### Vision System
-1. Select your team (Blue/Red) in the right panel
-2. Choose ward type (Vision or Control)
-3. Click on the map to place wards
-4. Enable Fog of War to see team vision coverage
-5. Fae'lights automatically reveal zones when wards are placed in detection radius
-
-### Drawing
-1. Select Pen or Eraser from the left panel
-2. Click and drag on the map to draw strategies
-3. Use "Clear All Drawings" to reset
-
-### Export
-Click "Export to PNG" in the left panel to save your current board state as an image.
-
-## Project Structure
-
-```
-tactical-board/
-├── public/
-│   ├── base.jpg           # Main map image
-│   ├── walls.png          # Wall collision mask
-│   ├── bush.png           # Brush vision mask
-│   └── masks/             # Fae'light zone masks
-├── src/
-│   ├── components/        # React components
-│   ├── hooks/             # Custom React hooks
-│   ├── utils/             # Helper functions
-│   ├── data/              # Game data (tokens, towers, etc.)
-│   ├── config/            # Display configuration
-│   └── types.ts           # TypeScript definitions
-└── package.json
+### Database reset
+```bash
+# Restore from backup
+docker compose exec backend /app/restore_db.sh
 ```
 
-## Configuration
+### Vérifier disk space
+```bash
+df -h
+du -sh backend/uploads
+```
 
-### Display Settings
-Edit `src/config/displayConfig.ts` to customize:
-- Token sizes
-- Ward sizes
-- Colors for teams, wards, towers
-- Vision circle opacity
-- Drawing pen width
+---
 
-### Game Data
-Modify files in `src/data/` to adjust:
-- Default token positions (`defaultTokens.ts`)
-- Tower locations (`defaultTowers.ts`)
-- Jungle camp spawns (`defaultJungleCamps.ts`)
-- Fae'light positions (`defaultFaelights.ts`)
+## 📝 Variables d'Environnement
 
-## Performance
+### Backend (.env)
+```bash
+DATABASE_URL=sqlite:///./data/openrift.db
+SECRET_KEY=your-secret-key-change-in-production
+CORS_ORIGINS=https://openrift.cloud
+ENVIRONMENT=production
+```
 
-- **Bundle Size**: ~119 KB gzipped
-- **Vision Calculation**: 180-ray raycasting system
-- **Render Optimization**: Canvas-based fog of war for performance
-- **Memory Efficient**: Lazy loading for mask images
+### Frontend (.env)
+```bash
+VITE_API_URL=https://openrift.cloud/api
+```
 
-## Browser Support
+---
 
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
+## 🤝 Contributing
 
-## License
+Les contributions sont les bienvenues! Ouvre une issue avant de soumettre une PR.
 
-MIT License - feel free to use this project for personal or commercial purposes.
+### Workflow
+1. Fork le projet
+2. Crée une branche (`git checkout -b feature/AmazingFeature`)
+3. Commit tes changements (`git commit -m 'Add AmazingFeature'`)
+4. Push vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvre une Pull Request
 
-## Contributing
+---
 
-Contributions are welcome. Please open an issue first to discuss proposed changes.
+## 📄 License
 
-## Acknowledgments
+MIT License - Utilise librement pour projets personnels ou commerciaux.
 
-- Map data and imagery from League of Legends
-- Built with modern web technologies for optimal performance
+---
+
+## 🙏 Crédits
+
+- **Map data:** Riot Games (League of Legends)
+- **Icons:** Heroicons
+- **Hosting:** VPS auto-hébergé
+
+---
+
+## 📞 Support
+
+- **Issues:** [GitHub Issues](https://github.com/yourusername/Map-LOL/issues)
+- **Email:** support@openrift.cloud
+- **Status:** [openrift.cloud/api/health](https://openrift.cloud/api/health)
+
+---
+
+**Made with ❤️ for the League of Legends competitive community**

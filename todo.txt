@@ -4,7 +4,7 @@
 [x] DÉSACTIVER /docs en production (SÉCURITÉ)
 [x] DELETE fichiers JSON analytics non-sauvés (gestion espace VPS)
 [x] Setup backup DB automatique (daily cron)
-[ ] UptimeRobot monitoring (gratuit, 5min setup)
+[x] UptimeRobot monitoring (gratuit, 5min setup)
 
 ==============================================
 🟠 HIGH PRIORITY - QUICK WINS
