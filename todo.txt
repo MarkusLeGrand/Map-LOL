@@ -9,9 +9,9 @@
 ==============================================
 🟠 HIGH PRIORITY - QUICK WINS
 ==============================================
-[ ] Changer tous les "LeagueHub" en "OpenRift"
+[x] Changer tous les "LeagueHub" en "OpenRift"
 [ ] Clean tous les textes (typos, formulations)
-[ ] Changer le riot account avec une seule ligne (UX)
+[ ] Changer le riot account avec une seule ligne (UX) et parsing clean
 [ ] Page teams publiques (voir toutes les équipes)
 [ ] Description sur le profil user
 

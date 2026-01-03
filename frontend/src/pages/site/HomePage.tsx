@@ -153,7 +153,7 @@ export default function HomePage() {
       </div>
 
       <Footer
-        copyright="© 2025 LeagueHub — Professional Tools Platform"
+        copyright="© 2025 OpenRift — Professional Tools Platform"
         links={[
           { label: 'About', href: '/about' },
           { label: 'Privacy', href: '#' },

@@ -96,7 +96,7 @@ export default function TeamManagementPage() {
 
     const scrim = await createScrim(selectedTeam, {
       opponent_name: scrimFormData.opponent_name,
-      scheduled_at: new Date(scrimFormData.scheduled_at),
+      scheduled_at: scrimFormData.scheduled_at,
       duration_minutes: scrimFormData.duration_minutes,
       notes: scrimFormData.notes,
     });
@@ -242,7 +242,6 @@ export default function TeamManagementPage() {
                         key={i}
                         onClick={() => {
                           if (isValidDay && dayDate) {
-                            setSelectedDate(dayDate);
                             setSelectedWeekStart(dayDate);
                           }
                         }}

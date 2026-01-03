@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
 
 interface User {
   id: string;
@@ -8,6 +9,7 @@ interface User {
   riot_tag_line?: string;
   favorite_tools: string[];
   theme: string;
+  is_admin: boolean;
 }
 
 interface AuthContextType {
