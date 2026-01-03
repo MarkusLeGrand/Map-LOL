@@ -143,7 +143,7 @@ async def upload_scrim_data(
         if not user_teams:
             raise HTTPException(
                 status_code=400,
-                detail="Vous devez faire partie d'une équipe pour analyser des données"
+                detail="You must be part of a team to analyze scrim data"
             )
 
         # Check if any team member has a RIOT ID
@@ -172,12 +172,12 @@ async def upload_scrim_data(
         if not has_riot_id:
             raise HTTPException(
                 status_code=400,
-                detail="Aucun membre de vos équipes n'a configuré son RIOT ID. Ajoutez votre RIOT ID dans votre profil."
+                detail="No team member has configured their Riot ID. Please add your Riot ID in your profile settings."
             )
 
         # Validate file type
         if not file.filename.endswith('.json'):
-            raise HTTPException(status_code=400, detail="Le fichier doit être au format JSON")
+            raise HTTPException(status_code=400, detail="File must be in JSON format")
 
         # Save uploaded file
         file_path = UPLOAD_DIR / f"analytics_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
@@ -193,12 +193,12 @@ async def upload_scrim_data(
         if "matches" not in data:
             raise HTTPException(
                 status_code=400,
-                detail="Format JSON invalide: le fichier doit contenir un tableau 'matches'"
+                detail="Invalid JSON format: file must contain a 'matches' array"
             )
 
         matches = data.get("matches", [])
         if not matches:
-            raise HTTPException(status_code=400, detail="Aucun match trouvé dans le fichier")
+            raise HTTPException(status_code=400, detail="No matches found in file")
 
         # Find which team members are in the matches
         found_players = []
@@ -234,24 +234,24 @@ async def upload_scrim_data(
         if not found_players:
             raise HTTPException(
                 status_code=400,
-                detail="Aucun membre de vos équipes n'a été trouvé dans les matchs. Vérifiez que les RIOT IDs sont corrects."
+                detail="No team members were found in the matches. Please verify that Riot IDs are correct."
             )
 
         # Determine analysis name based on filename
         filename_lower = file.filename.lower()
         if "scrim" in filename_lower:
             if match_date:
-                analysis_name = f"Analyse du Scrim - {match_date.strftime('%d/%m/%Y')}"
+                analysis_name = f"Scrim Analysis - {match_date.strftime('%m/%d/%Y')}"
             else:
-                analysis_name = "Analyse du Scrim"
+                analysis_name = "Scrim Analysis"
         elif "global" in filename_lower:
-            analysis_name = "Analyse Globale de l'Équipe"
+            analysis_name = "Global Team Analysis"
         else:
-            analysis_name = "Analyse"
+            analysis_name = "Analysis"
 
         return {
             "success": True,
-            "message": "Fichier uploadé avec succès",
+            "message": "File uploaded successfully",
             "file_path": str(file_path),
             "analysis_name": analysis_name,
             "matches_count": len(matches),
@@ -261,11 +261,11 @@ async def upload_scrim_data(
         }
 
     except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Format JSON invalide")
+        raise HTTPException(status_code=400, detail="Invalid JSON format")
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error during upload: {str(e)}")
 
 class AnalyzeRequest(BaseModel):
     file_path: str

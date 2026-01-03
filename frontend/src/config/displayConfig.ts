@@ -1,57 +1,38 @@
-/**
- * Configuration centralisée de l'affichage visuel
- * Tailles, couleurs, opacités, styles pour tous les éléments de la carte
- */
-
 export const DISPLAY_CONFIG = {
-    // =========================
-    // TAILLES (en pixels)
-    // =========================
     SIZES: {
-        // Tokens de champions
         CHAMPION_TOKEN: 22.5,
-
-        // Tours
         TOWER: 25,
-
-        // Wards
-        VISION_WARD: 15,    // Ward jaune (réduite de moitié)
-        CONTROL_WARD: 15,   // Ward rose/pink (réduite de moitié)
-        FARSIGHT_WARD: 15,  // Ward bleue (Farsight Alteration)
+        VISION_WARD: 15,
+        CONTROL_WARD: 15,
+        FARSIGHT_WARD: 15
     },
 
-    // =========================
-    // COULEURS
-    // =========================
     COLORS: {
-        // Équipes
         TEAMS: {
             BLUE: {
                 primary: 'bg-blue-700',
                 border: 'border-blue-400',
-                visionCircle: 'rgba(147, 197, 253, 0.4)', // Bleu clair semi-transparent
+                visionCircle: 'rgba(147, 197, 253, 0.4)',
             },
             RED: {
                 primary: 'bg-red-700',
                 border: 'border-red-400',
-                visionCircle: 'rgba(252, 165, 165, 0.4)', // Rouge clair semi-transparent
+                visionCircle: 'rgba(252, 165, 165, 0.4)',
             },
         },
 
-        // Wards
         WARDS: {
             VISION: {
-                background: 'bg-yellow-400',  // Jaune vif au lieu de sombre
+                background: 'bg-yellow-400',
             },
             CONTROL: {
                 background: 'bg-pink-700',
             },
             FARSIGHT: {
-                background: 'bg-cyan-500',  // Bleu cyan pour Farsight
+                background: 'bg-cyan-500',
             },
         },
 
-        // Tours
         TOWERS: {
             ACTIVE: {
                 BLUE: {
@@ -70,47 +51,32 @@ export const DISPLAY_CONFIG = {
         },
     },
 
-    // =========================
-    // OPACITÉS
-    // =========================
     OPACITY: {
-        WARD_DISABLED: 0.3,      // Ward désactivée par Control Ward ennemie
-        TOWER_DESTROYED: 0.4,    // Tour détruite
-        VISION_CIRCLE: 0.4,      // Cercle de vision en pointillé
+        WARD_DISABLED: 0.3,
+        TOWER_DESTROYED: 0.4,
+        VISION_CIRCLE: 0.4,
     },
 
-    // =========================
-    // STYLES TEXTE
-    // =========================
     TEXT: {
-        CHAMPION_ROLE_SIZE: 'text-[8px]',   // Taille du texte pour rôle du champion
-        WARD_SYMBOL_SIZE: 'text-[10px]',    // Taille du symbole sur ward
-        TOWER_LABEL_SIZE: 'text-xs',        // Taille du label de tour (T1, T2, etc.)
+        CHAMPION_ROLE_SIZE: 'text-[8px]',
+        WARD_SYMBOL_SIZE: 'text-[10px]',
+        TOWER_LABEL_SIZE: 'text-xs',
     },
 
-    // =========================
-    // Z-INDEX
-    // =========================
     Z_INDEX: {
-        FOG: 100,          // Fog of war au-dessus de tout
-        DRAWING: 50,       // Dessins au-dessus du fog
-        WARD: 15,          // Wards au-dessus des tokens
-        CHAMPION: 10,      // Champions
-        TOWER: 5,          // Tours en dessous
+        FOG: 100,
+        DRAWING: 50,
+        WARD: 15,
+        CHAMPION: 10,
+        TOWER: 5,
     },
 
-    // =========================
-    // DESSIN (STYLO)
-    // =========================
     DRAWING: {
-        PEN_WIDTH: 3,           // Largeur du trait en pixels
-        PEN_COLOR: '#FFFFFF',   // Couleur blanche par défaut
-        ERASER_RADIUS: 0.015,   // Rayon de la gomme (1.5% du board)
+        PEN_WIDTH: 3,
+        PEN_COLOR: '#FFFFFF',
+        ERASER_RADIUS: 0.015,
     },
 
-    // =========================
-    // AUTRES CONSTANTES VISUELLES
-    // =========================
     BORDER_WIDTH: 'border-2',
     ROUNDED: {
         CHAMPION: 'rounded-full',
@@ -119,12 +85,8 @@ export const DISPLAY_CONFIG = {
     },
 } as const;
 
-/**
- * Helper pour obtenir les couleurs d'équipe
- */
 export function getTeamColors(team: 'blue' | 'red' | 'neutral') {
     if (team === 'neutral') {
-        // Pour les tokens neutres, utiliser les couleurs bleues par défaut
         return DISPLAY_CONFIG.COLORS.TEAMS.BLUE;
     }
     return team === 'blue' ? DISPLAY_CONFIG.COLORS.TEAMS.BLUE : DISPLAY_CONFIG.COLORS.TEAMS.RED;

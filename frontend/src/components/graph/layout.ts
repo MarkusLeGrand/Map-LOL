@@ -20,10 +20,7 @@ export function calculate_star_layout(nodes_count: number, canvas_width: number,
     const center_x = canvas_width / 2;
     const center_y = canvas_height / 2;
 
-    // Augmenter le rayon pour plus d'espace
     const base_radius = Math.min(canvas_width, canvas_height) / 2.5;
-
-    // Calculer le nombre de cercles concentriques nécessaires
     const nodes_per_circle = 6;
 
     let node_index = 0;
