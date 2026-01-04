@@ -11,7 +11,7 @@ import { COLORS } from '../../constants/theme';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { teams, invites, createTeam, getMyTeams, acceptInvite, inviteToTeam, getMyInvites, kickMember, promoteToOwner, updateTeam } = useTeam();
   const navigate = useNavigate();
   const toast = useToast();
@@ -29,8 +29,9 @@ export default function ProfilePage() {
   });
 
   const [riotFormData, setRiotFormData] = useState({
-    riot_game_name: user?.riot_game_name || '',
-    riot_tag_line: user?.riot_tag_line || '',
+    riot_id: user?.riot_game_name && user?.riot_tag_line
+      ? `${user.riot_game_name}#${user.riot_tag_line}`
+      : '',
   });
 
   const [passwordFormData, setPasswordFormData] = useState({
@@ -101,11 +102,10 @@ export default function ProfilePage() {
         throw new Error(error.detail || 'Failed to update profile');
       }
 
+      const updatedUser = await response.json();
+      updateUser(updatedUser);
       toast?.success('Profile updated successfully');
       setIsEditingProfile(false);
-
-      // Refresh user data
-      window.location.reload();
     } catch (error) {
       console.error('Failed to update profile:', error);
       toast?.error(error instanceof Error ? error.message : 'Failed to update profile');
@@ -120,30 +120,47 @@ export default function ProfilePage() {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/auth/me', {
+      // Parse single-line Riot ID format: GameName#TAG
+      const riotId = riotFormData.riot_id.trim();
+
+      if (!riotId.includes('#')) {
+        toast?.error('Invalid format. Use: GameName#TAG');
+        return;
+      }
+
+      const parts = riotId.split('#');
+      if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
+        toast?.error('Invalid format. Use: GameName#TAG');
+        return;
+      }
+
+      const riot_game_name = parts[0].trim();
+      const riot_tag_line = parts[1].trim();
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          riot_game_name: riotFormData.riot_game_name,
-          riot_tag_line: riotFormData.riot_tag_line,
+          riot_game_name,
+          riot_tag_line,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update Riot account');
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to update Riot account');
       }
 
+      const updatedUser = await response.json();
+      updateUser(updatedUser);
       toast?.success('Riot account updated successfully');
       setIsEditingRiot(false);
-
-      // Refresh user data - force a page reload to update the auth context
-      window.location.reload();
     } catch (error) {
       console.error('Failed to update Riot account:', error);
-      toast?.error('Failed to update Riot account');
+      toast?.error(error instanceof Error ? error.message : 'Failed to update Riot account');
     }
   };
 
@@ -498,28 +515,26 @@ export default function ProfilePage() {
                 {isEditingRiot ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">GAME NAME</label>
+                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">RIOT ID</label>
                       <input
                         type="text"
-                        value={riotFormData.riot_game_name}
-                        onChange={(e) => setRiotFormData({ ...riotFormData, riot_game_name: e.target.value })}
+                        value={riotFormData.riot_id}
+                        onChange={(e) => setRiotFormData({ riot_id: e.target.value })}
                         className="w-full px-3 py-2 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] text-sm focus:outline-none focus:border-[#3D7A5F] rounded"
-                        placeholder="Your Riot ID"
+                        placeholder="GameName#TAG"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">TAG LINE</label>
-                      <input
-                        type="text"
-                        value={riotFormData.riot_tag_line}
-                        onChange={(e) => setRiotFormData({ ...riotFormData, riot_tag_line: e.target.value })}
-                        className="w-full px-3 py-2 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] text-sm focus:outline-none focus:border-[#3D7A5F] rounded"
-                        placeholder="EUW"
-                      />
+                      <p className="text-[#F5F5F5]/40 text-xs mt-2">Format: GameName#TAG (ex: Faker#KR1)</p>
                     </div>
                     <div className="flex gap-2 pt-2">
                       <button
-                        onClick={() => setIsEditingRiot(false)}
+                        onClick={() => {
+                          setIsEditingRiot(false);
+                          setRiotFormData({
+                            riot_id: user?.riot_game_name && user?.riot_tag_line
+                              ? `${user.riot_game_name}#${user.riot_tag_line}`
+                              : '',
+                          });
+                        }}
                         className="flex-1 px-4 py-2 bg-[#F5F5F5]/5 text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded"
                       >
                         Cancel

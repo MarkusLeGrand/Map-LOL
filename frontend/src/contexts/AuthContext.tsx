@@ -19,6 +19,7 @@ interface AuthContextType {
   register: (email: string, username: string, password: string, riotGameName?: string, riotTagLine?: string) => Promise<void>;
   logout: () => void;
   toggleFavoriteTool: (toolName: string) => Promise<void>;
+  updateUser: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
   registerLogoutCallback: (callback: () => void) => void;
@@ -145,6 +146,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoginCallbacks(prev => [...prev, callback]);
   }, []);
 
+  const updateUser = (updates: Partial<User>) => {
+    if (user) {
+      setUser({ ...user, ...updates });
+    }
+  };
+
   const toggleFavoriteTool = async (toolName: string) => {
     if (!token || !user) return;
 
@@ -179,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     toggleFavoriteTool,
+    updateUser,
     isAuthenticated: !!user,
     isLoading,
     registerLogoutCallback,
