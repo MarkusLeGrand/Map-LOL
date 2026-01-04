@@ -18,6 +18,39 @@ from teams import (
 router = APIRouter(prefix="/api/teams", tags=["teams"])
 
 
+@router.get("/all", response_model=list[TeamResponse])
+async def get_all_teams(
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all teams (public listing)"""
+    try:
+        from database import Team as DBTeam
+        teams = db.query(DBTeam).all()
+        print(f"[DEBUG] Found {len(teams)} teams in database")
+        result = []
+        for team in teams:
+            print(f"[DEBUG] Processing team: {team.name} (ID: {team.id})")
+            members = get_team_members_with_roles(db, team.id)
+            result.append(TeamResponse(
+                id=team.id,
+                name=team.name,
+                tag=team.tag,
+                description=team.description,
+                owner_id=team.owner_id,
+                created_at=team.created_at,
+                team_color=team.team_color,
+                max_members=team.max_members,
+                member_count=len(members),
+                members=members
+            ))
+        print(f"[DEBUG] Returning {len(result)} teams")
+        return result
+    except Exception as e:
+        print(f"[ERROR] Failed to get teams: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get teams: {str(e)}")
+
+
 @router.post("/create", response_model=TeamResponse)
 async def create_team_endpoint(
     team_data: TeamCreate,

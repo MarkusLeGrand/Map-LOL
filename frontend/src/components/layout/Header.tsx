@@ -68,6 +68,14 @@ export function Header({
                             Tools
                         </button>
                     )}
+                    {isAuthenticated && (
+                        <button
+                            onClick={() => navigate('/teams')}
+                            className="ml-6 text-sm font-medium text-[#F5F5F5]/50 hover:text-[#F5F5F5] transition-colors"
+                        >
+                            Teams
+                        </button>
+                    )}
                 </div>
                 <nav className="flex gap-4 items-center">
                     {isAuthenticated ? (

@@ -11,8 +11,8 @@
 ==============================================
 [x] Changer tous les "LeagueHub" en "OpenRift"
 [x] Clean tous les textes (typos, formulations)
-[ ] Changer le riot account avec une seule ligne et parsing clean
-[ ] Page teams publiques (voir toutes les équipes)
+[x] Changer le riot account avec une seule ligne et parsing clean
+[x] Page teams publiques (voir toutes les équipes)
 [ ] Description sur le profil user
 
 ==============================================

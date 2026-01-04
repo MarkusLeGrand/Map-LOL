@@ -82,6 +82,7 @@ interface TeamContextType {
   loading: boolean;
   createTeam: (data: CreateTeamData) => Promise<Team | null>;
   getMyTeams: () => Promise<void>;
+  getAllTeams: () => Promise<Team[]>;
   getTeam: (teamId: string) => Promise<Team | null>;
   updateTeam: (teamId: string, data: UpdateTeamData) => Promise<Team | null>;
   inviteToTeam: (teamId: string, data: CreateInviteData) => Promise<TeamInvite | null>;
@@ -155,6 +156,29 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       console.error('Failed to get teams:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getAllTeams = async (): Promise<Team[]> => {
+    const token = getAuthToken();
+    if (!token) return [];
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teams/all`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to get all teams:', error);
+      return [];
     }
   };
 
@@ -442,6 +466,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         loading,
         createTeam,
         getMyTeams,
+        getAllTeams,
         getTeam,
         updateTeam,
         inviteToTeam,
