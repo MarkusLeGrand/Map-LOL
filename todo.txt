@@ -13,7 +13,9 @@
 [x] Clean tous les textes (typos, formulations)
 [x] Changer le riot account avec une seule ligne et parsing clean
 [x] Page teams publiques (voir toutes les équipes)
-[ ] Description sur le profil user
+[x] ajout du discord a l'user (optinnel) visible par les membre de la team si il est la 
+[x] envoyer des invites par user name pas userid et le cacher car ca sert a rien pour le user
+[ ] ajouter invite a discord dans le footer partout!
 
 ==============================================
 🟡 RIOT API INTEGRATION
@@ -39,6 +41,8 @@
 ==============================================
 [ ] Clean calendrier: slots personnalisés (17h23 → 19h37, pas limité à 30min)
 [ ] Pouvoir bouger un slot dans la journée (drag & drop)
+[ ] chaque joueurs mes ses slot et les slot ou tout le monde est dispo se mette en couleurs
+[ ] prevoir un slot tout les jeudi boucle cron 
 
 ==============================================
 📊 ANALYTICS / DATA MANAGEMENT

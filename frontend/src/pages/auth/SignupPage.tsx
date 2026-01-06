@@ -13,6 +13,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [riotId, setRiotId] = useState('');
+  const [discord, setDiscord] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -58,7 +59,8 @@ export default function SignupPage() {
         username,
         password,
         riotGameName,
-        riotTagLine
+        riotTagLine,
+        discord.trim() || undefined
       );
       navigate('/profile');
     } catch (err) {
@@ -123,6 +125,18 @@ export default function SignupPage() {
                   placeholder="Faker#KR1"
                 />
                 <p className="text-[#F5F5F5]/40 text-xs mt-2">Format: GameName#TAG (ex: Faker#KR1)</p>
+              </div>
+
+              <div>
+                <label className="block text-[#F5F5F5]/70 text-sm mb-2">Discord (optional)</label>
+                <input
+                  type="text"
+                  value={discord}
+                  onChange={(e) => setDiscord(e.target.value)}
+                  className="w-full bg-[#0E0E0E] border border-[#F5F5F5]/20 text-[#F5F5F5] px-4 py-2.5 focus:outline-none focus:border-[#F5F5F5]/40"
+                  placeholder="username#1234"
+                />
+                <p className="text-[#F5F5F5]/40 text-xs mt-2">Your Discord username (visible to team members)</p>
               </div>
 
               <div>

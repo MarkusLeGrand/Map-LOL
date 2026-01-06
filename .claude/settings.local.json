@@ -46,7 +46,12 @@
       "Bash(timeout 5 python:*)",
       "Bash(npm run build:*)",
       "Bash(docker-compose up:*)",
-      "Bash(docker-compose build:*)"
+      "Bash(docker-compose build:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec openrift-frontend sh -c \"grep -r ''getMyJoinRequests'' /usr/share/nginx/html/assets/ | head -5\")",
+      "Bash(docker-compose down:*)"
     ]
   }
 }

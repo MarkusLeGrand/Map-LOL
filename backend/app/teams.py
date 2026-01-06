@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-from database import Team as DBTeam, TeamInvite as DBTeamInvite, Scrim as DBScrim, team_members, User as DBUser
+from database import Team as DBTeam, TeamInvite as DBTeamInvite, Scrim as DBScrim, JoinRequest as DBJoinRequest, team_members, User as DBUser
 
 
 # ==================== SCHEMAS ====================
@@ -32,6 +32,7 @@ class TeamMember(BaseModel):
     email: str
     riot_game_name: Optional[str] = None
     riot_tag_line: Optional[str] = None
+    discord: Optional[str] = None
     role: str
     joined_at: datetime
 
@@ -56,7 +57,7 @@ class TeamResponse(BaseModel):
 
 
 class InviteCreate(BaseModel):
-    user_id: str
+    username: str
     role: str = "player"
 
 
@@ -88,6 +89,27 @@ class ScrimResponse(BaseModel):
     scheduled_at: datetime
     duration_minutes: str
     notes: Optional[str]
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class JoinRequestCreate(BaseModel):
+    message: Optional[str] = None
+
+
+class JoinRequestResponse(BaseModel):
+    id: str
+    team_id: str
+    team_name: str
+    user_id: str
+    username: str
+    user_email: str
+    riot_game_name: Optional[str] = None
+    riot_tag_line: Optional[str] = None
+    message: Optional[str]
     status: str
     created_at: datetime
 
@@ -191,7 +213,7 @@ def get_team_members_with_roles(db: Session, team_id: str) -> List[dict]:
     result = db.execute(
         text("""
         SELECT u.id, u.username, u.email, u.riot_game_name, u.riot_tag_line,
-               tm.role, tm.joined_at
+               u.discord, tm.role, tm.joined_at
         FROM users u
         JOIN team_members tm ON u.id = tm.user_id
         WHERE tm.team_id = :team_id
@@ -207,8 +229,9 @@ def get_team_members_with_roles(db: Session, team_id: str) -> List[dict]:
             "email": row[2],
             "riot_game_name": row[3],
             "riot_tag_line": row[4],
-            "role": row[5],
-            "joined_at": row[6]
+            "discord": row[5],
+            "role": row[6],
+            "joined_at": row[7]
         }
         for row in result
     ]
@@ -216,10 +239,10 @@ def get_team_members_with_roles(db: Session, team_id: str) -> List[dict]:
 
 def create_team_invite(db: Session, team_id: str, invite_data: InviteCreate, invited_by_id: str) -> DBTeamInvite:
     """Create a team invitation"""
-    # Check if user exists
-    user = db.query(DBUser).filter(DBUser.id == invite_data.user_id).first()
+    # Check if user exists by username
+    user = db.query(DBUser).filter(DBUser.username == invite_data.username).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=f"User '{invite_data.username}' not found")
 
     # Check if already a member
     team = db.query(DBTeam).filter(DBTeam.id == team_id).first()
@@ -232,7 +255,7 @@ def create_team_invite(db: Session, team_id: str, invite_data: InviteCreate, inv
     # Check for pending invite
     existing_invite = db.query(DBTeamInvite).filter(
         DBTeamInvite.team_id == team_id,
-        DBTeamInvite.invited_user_id == invite_data.user_id,
+        DBTeamInvite.invited_user_id == user.id,
         DBTeamInvite.status == "pending"
     ).first()
 
@@ -242,7 +265,7 @@ def create_team_invite(db: Session, team_id: str, invite_data: InviteCreate, inv
     # Create invite
     db_invite = DBTeamInvite(
         team_id=team_id,
-        invited_user_id=invite_data.user_id,
+        invited_user_id=user.id,
         invited_by_id=invited_by_id,
         role=invite_data.role
     )
@@ -314,3 +337,162 @@ def create_scrim(db: Session, team_id: str, scrim_data: ScrimCreate) -> DBScrim:
 def get_team_scrims(db: Session, team_id: str) -> List[DBScrim]:
     """Get all scrims for a team"""
     return db.query(DBScrim).filter(DBScrim.team_id == team_id).order_by(DBScrim.scheduled_at.desc()).all()
+
+
+def create_join_request(db: Session, team_id: str, user_id: str, message: Optional[str] = None) -> DBJoinRequest:
+    """Create a join request from a user to a team"""
+    # Check if team exists
+    team = db.query(DBTeam).filter(DBTeam.id == team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check if user exists
+    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check if user is already a member of this team
+    if user in team.members:
+        raise HTTPException(status_code=400, detail="You are already a member of this team")
+
+    # Check if user is the owner of this team
+    if team.owner_id == user_id:
+        raise HTTPException(status_code=400, detail="You are the owner of this team")
+
+    # Check if user is already in another team (member or owner)
+    user_teams = db.query(DBTeam).filter(
+        (DBTeam.members.contains(user)) | (DBTeam.owner_id == user_id)
+    ).all()
+    if user_teams:
+        raise HTTPException(status_code=400, detail="You are already in another team. Leave your current team first.")
+
+    # Check if team is full
+    current_member_count = len(team.members)
+    max_members = int(team.max_members) if team.max_members else 5
+    if current_member_count >= max_members:
+        raise HTTPException(status_code=400, detail="This team is already full")
+
+    # Check for existing pending request to this team
+    existing_request = db.query(DBJoinRequest).filter(
+        DBJoinRequest.team_id == team_id,
+        DBJoinRequest.user_id == user_id,
+        DBJoinRequest.status == "pending"
+    ).first()
+
+    if existing_request:
+        raise HTTPException(status_code=400, detail="You already have a pending request for this team")
+
+    # Check for any pending request to any team
+    any_pending_request = db.query(DBJoinRequest).filter(
+        DBJoinRequest.user_id == user_id,
+        DBJoinRequest.status == "pending"
+    ).first()
+
+    if any_pending_request:
+        other_team = db.query(DBTeam).filter(DBTeam.id == any_pending_request.team_id).first()
+        team_name = other_team.name if other_team else "another team"
+        raise HTTPException(status_code=400, detail=f"You already have a pending request to {team_name}. Cancel it first.")
+
+    # Create join request
+    join_request = DBJoinRequest(
+        team_id=team_id,
+        user_id=user_id,
+        message=message
+    )
+    db.add(join_request)
+    db.commit()
+    db.refresh(join_request)
+
+    return join_request
+
+
+def get_team_join_requests(db: Session, team_id: str) -> List[DBJoinRequest]:
+    """Get all pending join requests for a team"""
+    return db.query(DBJoinRequest).filter(
+        DBJoinRequest.team_id == team_id,
+        DBJoinRequest.status == "pending"
+    ).order_by(DBJoinRequest.created_at.desc()).all()
+
+
+def accept_join_request(db: Session, request_id: str, owner_id: str) -> DBTeam:
+    """Accept a join request (owner only)"""
+    join_request = db.query(DBJoinRequest).filter(DBJoinRequest.id == request_id).first()
+
+    if not join_request:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    if join_request.status != "pending":
+        raise HTTPException(status_code=400, detail="This request has already been processed")
+
+    # Get team and verify ownership
+    team = db.query(DBTeam).filter(DBTeam.id == join_request.team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if team.owner_id != owner_id:
+        raise HTTPException(status_code=403, detail="Only the owner can accept requests")
+
+    # Get user
+    user = db.query(DBUser).filter(DBUser.id == join_request.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check if user is already a member (safety check)
+    if user in team.members:
+        join_request.status = "accepted"
+        db.commit()
+        return team
+
+    # Check if user is already in another team
+    user_teams = db.query(DBTeam).filter(
+        (DBTeam.members.contains(user)) | (DBTeam.owner_id == user.id)
+    ).all()
+    if user_teams:
+        raise HTTPException(status_code=400, detail="User is already in another team")
+
+    # Check if team is full
+    current_member_count = len(team.members)
+    max_members = int(team.max_members) if team.max_members else 5
+    if current_member_count >= max_members:
+        raise HTTPException(status_code=400, detail="Team is full")
+
+    # Add user to team with player role
+    team.members.append(user)
+    db.execute(
+        team_members.update()
+        .where(team_members.c.team_id == team.id)
+        .where(team_members.c.user_id == user.id)
+        .values(role="player")
+    )
+
+    # Update request status
+    join_request.status = "accepted"
+    db.commit()
+    db.refresh(team)
+
+    return team
+
+
+def reject_join_request(db: Session, request_id: str, owner_id: str) -> bool:
+    """Reject a join request (owner only)"""
+    join_request = db.query(DBJoinRequest).filter(DBJoinRequest.id == request_id).first()
+
+    if not join_request:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    if join_request.status != "pending":
+        raise HTTPException(status_code=400, detail="This request has already been processed")
+
+    # Get team and verify ownership
+    team = db.query(DBTeam).filter(DBTeam.id == join_request.team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if team.owner_id != owner_id:
+        raise HTTPException(status_code=403, detail="Only the owner can reject requests")
+
+    # Update request status
+    join_request.status = "rejected"
+    db.commit()
+
+    return True

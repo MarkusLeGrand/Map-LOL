@@ -7,6 +7,7 @@ interface User {
   username: string;
   riot_game_name?: string;
   riot_tag_line?: string;
+  discord?: string;
   favorite_tools: string[];
   theme: string;
   is_admin: boolean;
@@ -16,7 +17,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string, riotGameName?: string, riotTagLine?: string) => Promise<void>;
+  register: (email: string, username: string, password: string, riotGameName?: string, riotTagLine?: string, discord?: string) => Promise<void>;
   logout: () => void;
   toggleFavoriteTool: (toolName: string) => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
@@ -105,7 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     username: string,
     password: string,
     riotGameName?: string,
-    riotTagLine?: string
+    riotTagLine?: string,
+    discord?: string
   ) => {
     const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: 'POST',
@@ -118,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         riot_game_name: riotGameName,
         riot_tag_line: riotTagLine,
+        discord,
       }),
     });
 

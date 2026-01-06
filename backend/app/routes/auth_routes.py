@@ -25,6 +25,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 class RiotAccountUpdate(BaseModel):
     riot_game_name: Optional[str] = None
     riot_tag_line: Optional[str] = None
+    discord: Optional[str] = None
 
 
 class FavoriteToolsUpdate(BaseModel):
@@ -97,6 +98,8 @@ async def update_me(
         current_user.riot_game_name = data.riot_game_name
     if data.riot_tag_line is not None:
         current_user.riot_tag_line = data.riot_tag_line
+    if data.discord is not None:
+        current_user.discord = data.discord
 
     db.commit()
     db.refresh(current_user)

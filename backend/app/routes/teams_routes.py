@@ -11,8 +11,10 @@ from database import (
 from auth import get_current_user
 from teams import (
     TeamCreate, TeamUpdate, TeamResponse, InviteCreate, InviteResponse,
+    JoinRequestCreate, JoinRequestResponse,
     create_team, get_user_teams, get_team_by_id, get_team_members_with_roles,
-    create_team_invite, accept_team_invite, get_user_invites, update_team
+    create_team_invite, accept_team_invite, get_user_invites, update_team,
+    create_join_request, get_team_join_requests, accept_join_request, reject_join_request
 )
 
 router = APIRouter(prefix="/api/teams", tags=["teams"])
@@ -388,3 +390,171 @@ async def accept_invite(
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to accept invite: {str(e)}")
+
+
+@router.post("/{team_id}/request-join")
+async def request_join_team(
+    team_id: str,
+    request_data: JoinRequestCreate,
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Request to join a team"""
+    try:
+        join_request = create_join_request(db, team_id, current_user.id, request_data.message)
+        return {"message": "Request sent successfully", "request_id": join_request.id}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send request: {str(e)}")
+
+
+@router.get("/join-requests/mine", response_model=list[JoinRequestResponse])
+async def get_my_join_requests(
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all pending join requests for teams owned by the current user"""
+    try:
+        from database import JoinRequest as DBJoinRequest, Team as DBTeam
+
+        # Get all teams owned by current user
+        owned_teams = db.query(DBTeam).filter(DBTeam.owner_id == current_user.id).all()
+
+        result = []
+        for team in owned_teams:
+            # Get all pending join requests for this team
+            requests = db.query(DBJoinRequest).filter(
+                DBJoinRequest.team_id == team.id,
+                DBJoinRequest.status == "pending"
+            ).all()
+
+            for req in requests:
+                user = db.query(DBUser).filter(DBUser.id == req.user_id).first()
+                if user:
+                    result.append(JoinRequestResponse(
+                        id=req.id,
+                        team_id=req.team_id,
+                        team_name=team.name,
+                        user_id=user.id,
+                        username=user.username,
+                        user_email=user.email,
+                        riot_game_name=user.riot_game_name,
+                        riot_tag_line=user.riot_tag_line,
+                        message=req.message,
+                        status=req.status,
+                        created_at=req.created_at
+                    ))
+
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get join requests: {str(e)}")
+
+
+@router.get("/{team_id}/join-requests", response_model=list[JoinRequestResponse])
+async def get_join_requests(
+    team_id: str,
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all pending join requests for a team (owner only)"""
+    team = get_team_by_id(db, team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if team.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the owner can view join requests")
+
+    try:
+        from database import JoinRequest as DBJoinRequest, User as DBUser
+        requests = get_team_join_requests(db, team_id)
+        result = []
+        for req in requests:
+            user = db.query(DBUser).filter(DBUser.id == req.user_id).first()
+            if user:
+                result.append(JoinRequestResponse(
+                    id=req.id,
+                    team_id=req.team_id,
+                    team_name=team.name,
+                    user_id=user.id,
+                    username=user.username,
+                    user_email=user.email,
+                    riot_game_name=user.riot_game_name,
+                    riot_tag_line=user.riot_tag_line,
+                    message=req.message,
+                    status=req.status,
+                    created_at=req.created_at
+                ))
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve join requests: {str(e)}")
+
+
+@router.post("/join-requests/{request_id}/accept", response_model=TeamResponse)
+async def accept_join_request_endpoint(
+    request_id: str,
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Accept a join request (owner only)"""
+    try:
+        team = accept_join_request(db, request_id, current_user.id)
+        members = get_team_members_with_roles(db, team.id)
+        return TeamResponse(
+            id=team.id,
+            name=team.name,
+            tag=team.tag,
+            description=team.description,
+            owner_id=team.owner_id,
+            created_at=team.created_at,
+            team_color=team.team_color,
+            max_members=team.max_members,
+            member_count=len(members),
+            members=members
+        )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to accept request: {str(e)}")
+
+
+@router.post("/join-requests/{request_id}/reject")
+async def reject_join_request_endpoint(
+    request_id: str,
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reject a join request (owner only)"""
+    try:
+        reject_join_request(db, request_id, current_user.id)
+        return {"message": "Request rejected"}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reject request: {str(e)}")
+
+
+@router.delete("/join-requests/{request_id}/cancel")
+async def cancel_join_request_endpoint(
+    request_id: str,
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cancel your own pending join request"""
+    from database import JoinRequest as DBJoinRequest
+
+    join_request = db.query(DBJoinRequest).filter(DBJoinRequest.id == request_id).first()
+
+    if not join_request:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    if join_request.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only cancel your own requests")
+
+    if join_request.status != "pending":
+        raise HTTPException(status_code=400, detail="Request has already been processed")
+
+    db.delete(join_request)
+    db.commit()
+
+    return {"message": "Request cancelled"}

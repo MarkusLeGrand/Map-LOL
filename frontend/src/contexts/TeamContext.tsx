@@ -38,6 +38,20 @@ interface TeamInvite {
   created_at: string;
 }
 
+interface JoinRequest {
+  id: string;
+  team_id: string;
+  team_name: string;
+  user_id: string;
+  username: string;
+  user_email: string;
+  riot_game_name?: string;
+  riot_tag_line?: string;
+  message?: string;
+  status: string;
+  created_at: string;
+}
+
 interface Scrim {
   id: string;
   team_id: string;
@@ -78,6 +92,7 @@ interface UpdateTeamData {
 interface TeamContextType {
   teams: Team[];
   invites: TeamInvite[];
+  joinRequests: JoinRequest[];
   scrims: Map<string, Scrim[]>;
   loading: boolean;
   createTeam: (data: CreateTeamData) => Promise<Team | null>;
@@ -88,11 +103,15 @@ interface TeamContextType {
   inviteToTeam: (teamId: string, data: CreateInviteData) => Promise<TeamInvite | null>;
   getMyInvites: () => Promise<void>;
   acceptInvite: (inviteId: string) => Promise<Team | null>;
+  getMyJoinRequests: () => Promise<void>;
+  acceptJoinRequest: (requestId: string) => Promise<boolean>;
+  rejectJoinRequest: (requestId: string) => Promise<boolean>;
   createScrim: (teamId: string, data: CreateScrimData) => Promise<Scrim | null>;
   getScrims: (teamId: string) => Promise<void>;
   kickMember: (teamId: string, userId: string) => Promise<boolean>;
   promoteToOwner: (teamId: string, userId: string) => Promise<boolean>;
   clearTeamData: () => void;
+  requestJoinTeam: (teamId: string, message?: string) => Promise<boolean>;
 }
 
 const TeamContext = createContext<TeamContextType | undefined>(undefined);
@@ -101,6 +120,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const { registerLogoutCallback, registerLoginCallback } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [invites, setInvites] = useState<TeamInvite[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [scrims, setScrims] = useState<Map<string, Scrim[]>>(new Map());
   const [loading, setLoading] = useState(false);
 
@@ -410,16 +430,115 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const clearTeamData = () => {
     setTeams([]);
     setInvites([]);
+    setJoinRequests([]);
     setScrims(new Map());
+  };
+
+  const requestJoinTeam = async (teamId: string, message?: string): Promise<boolean> => {
+    const token = getAuthToken();
+    if (!token) return false;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teams/${teamId}/request-join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message: message || null }),
+      });
+
+      if (response.ok) {
+        return true;
+      }
+
+      // Handle error responses
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to send request');
+    } catch (error) {
+      console.error('Failed to request join team:', error);
+      throw error;
+    }
+  };
+
+  const getMyJoinRequests = async () => {
+    const token = getAuthToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teams/join-requests/mine`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setJoinRequests(data);
+      }
+    } catch (error) {
+      console.error('Failed to get join requests:', error);
+    }
+  };
+
+  const acceptJoinRequest = async (requestId: string): Promise<boolean> => {
+    const token = getAuthToken();
+    if (!token) return false;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teams/join-requests/${requestId}/accept`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        // Refresh join requests and teams
+        await getMyJoinRequests();
+        await getMyTeams();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to accept join request:', error);
+      return false;
+    }
+  };
+
+  const rejectJoinRequest = async (requestId: string): Promise<boolean> => {
+    const token = getAuthToken();
+    if (!token) return false;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/teams/join-requests/${requestId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        // Refresh join requests
+        await getMyJoinRequests();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to reject join request:', error);
+      return false;
+    }
   };
 
   // Register callbacks with AuthContext on mount
   useEffect(() => {
     registerLogoutCallback(clearTeamData);
     registerLoginCallback(() => {
-      // Refresh teams and invites on login
+      // Refresh teams, invites and join requests on login
       getMyTeams();
       getMyInvites();
+      getMyJoinRequests();
     });
   }, [registerLogoutCallback, registerLoginCallback]);
 
@@ -429,6 +548,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     if (token) {
       getMyTeams();
       getMyInvites();
+      getMyJoinRequests();
     } else {
       // Clear state when logged out
       clearTeamData();
@@ -444,10 +564,12 @@ export function TeamProvider({ children }: { children: ReactNode }) {
           // New login detected
           getMyTeams();
           getMyInvites();
+          getMyJoinRequests();
         } else {
           // Logout detected
           setTeams([]);
           setInvites([]);
+          setJoinRequests([]);
           setScrims(new Map());
         }
       }
@@ -457,11 +579,25 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Poll for new invites and join requests every 30 seconds
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) return;
+
+    const interval = setInterval(() => {
+      getMyInvites();
+      getMyJoinRequests();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <TeamContext.Provider
       value={{
         teams,
         invites,
+        joinRequests,
         scrims,
         loading,
         createTeam,
@@ -472,11 +608,15 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         inviteToTeam,
         getMyInvites,
         acceptInvite,
+        getMyJoinRequests,
+        acceptJoinRequest,
+        rejectJoinRequest,
         createScrim,
         getScrims,
         kickMember,
         promoteToOwner,
         clearTeamData,
+        requestJoinTeam,
       }}
     >
       {children}

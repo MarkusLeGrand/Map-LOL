@@ -141,9 +141,14 @@ export default function AboutPage() {
                             Have questions, suggestions, or want to contribute? We'd love to hear from you.
                         </p>
                         <div className="flex gap-4 justify-center">
-                            <button className="px-8 py-3 bg-[#3D7A5F] text-[#F5F5F5] text-sm font-medium hover:bg-[#4A9170] transition-colors">
-                                Join Community
-                            </button>
+                        <a
+                            href="https://discord.gg/yr4nS4adQF"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-8 py-3 bg-[#3D7A5F] text-[#F5F5F5] text-sm font-medium hover:bg-[#4A9170] transition-colors"
+                        >
+                            Join Community
+                        </a>
                         </div>
                     </div>
                 </div>

@@ -6,7 +6,7 @@ import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
 import { COLORS } from '../../constants/theme';
 
-export default function TeamManagementPage() {
+export default function ScrimSchedulerPage() {
   const { user } = useAuth();
   const { teams, invites, scrims, createTeam, getMyTeams, getMyInvites, acceptInvite, inviteToTeam, getScrims, createScrim } = useTeam();
   const navigate = useNavigate();
@@ -170,7 +170,7 @@ export default function TeamManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-[#F5F5F5] text-4xl font-semibold mb-2">
-                Team Management
+                Scrim Scheduler
               </h1>
               <p className="text-[#F5F5F5]/50 text-lg">
                 {myTeam ? `${myTeam.name} Schedule` : 'Create and manage your teams'}

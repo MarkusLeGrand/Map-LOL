@@ -27,6 +27,10 @@ export default function ToolsPage() {
       navigate('/data-analytics');
     } else if (toolId === 'teams') {
       navigate('/teams');
+    } else if (toolId === 'team-manager') {
+      navigate('/team-manager');
+    } else if (toolId === 'scrim-scheduler') {
+      navigate('/scrim-scheduler');
     }
   };
 

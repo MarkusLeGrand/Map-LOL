@@ -28,6 +28,8 @@ from routes.health import router as health_router
 from routes.auth_routes import router as auth_router
 from routes.teams_routes import router as teams_router
 from routes.scrims_routes import router as scrims_router
+from routes.availability_routes import router as availability_router
+from routes.team_events_routes import router as team_events_router
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -93,6 +95,12 @@ app.include_router(teams_router)
 
 # Scrims routes (includes /api/scrims prefix)
 app.include_router(scrims_router)
+
+# Availability routes (includes /api/availability prefix)
+app.include_router(availability_router)
+
+# Team Events routes (includes /api/team-events prefix)
+app.include_router(team_events_router)
 
 
 # ==================== ANALYTICS ENDPOINTS (TODO: Extract to routes/analytics_routes.py) ====================
