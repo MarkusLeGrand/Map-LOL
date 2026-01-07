@@ -43,8 +43,8 @@ interface PlayerStats {
 }
 
 interface AnalyticsData {
-  players: PlayerStats[];  // Team only
-  all_players?: PlayerStats[];  // Team + opponents (for Performance Overview & Comparaison Métrique)
+  players: PlayerStats[];
+  all_players?: PlayerStats[];
   total_players: number;
   team_stats: {
     avg_winrate: number;
@@ -103,11 +103,11 @@ export function AnalyticsDashboard({ data }: Props) {
   const getScatterLabel = (metric: 'gold' | 'damage' | 'cs' | 'kp' | 'kda') => {
     switch (metric) {
       case 'gold':
-        return { short: 'GPM', long: 'Gold par minute' };
+        return { short: 'GPM', long: 'Gold per minute' };
       case 'damage':
-        return { short: 'DPM', long: 'Dégâts par minute' };
+        return { short: 'DPM', long: 'Damage per minute' };
       case 'cs':
-        return { short: 'CS/min', long: 'CS par minute' };
+        return { short: 'CS/min', long: 'CS per minute' };
       case 'kp':
         return { short: 'KP%', long: 'Kill Participation %' };
       case 'kda':

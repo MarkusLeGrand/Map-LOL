@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { COLORS } from '../../constants/theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTeam } from '../../contexts/TeamContext';
+import { useToast } from '../../contexts/ToastContext';
 
 interface HeaderProps {
     brandName?: string;
@@ -19,7 +20,8 @@ export function Header({
 }: HeaderProps) {
     const navigate = useNavigate();
     const { isAuthenticated, user, logout } = useAuth();
-    const { invites, acceptInvite, getMyInvites, teams } = useTeam();
+    const { invites, joinRequests, acceptInvite, getMyInvites, acceptJoinRequest, rejectJoinRequest, getMyJoinRequests, teams } = useTeam();
+    const toast = useToast();
     const [showNotifications, setShowNotifications] = useState(false);
 
     // Get user's team tag
@@ -68,6 +70,14 @@ export function Header({
                             Tools
                         </button>
                     )}
+                    {isAuthenticated && (
+                        <button
+                            onClick={() => navigate('/teams')}
+                            className="ml-6 text-sm font-medium text-[#F5F5F5]/50 hover:text-[#F5F5F5] transition-colors"
+                        >
+                            Teams
+                        </button>
+                    )}
                 </div>
                 <nav className="flex gap-4 items-center">
                     {isAuthenticated ? (
@@ -90,7 +100,7 @@ export function Header({
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                     </svg>
-                                    {invites.length > 0 && (
+                                    {(invites.length > 0 || joinRequests.length > 0) && (
                                         <span className="absolute top-1 right-1 w-2 h-2 bg-[#3D7A5F] rounded-full"></span>
                                     )}
                                 </button>
@@ -102,12 +112,13 @@ export function Header({
                                             <h3 className="text-[#F5F5F5] font-semibold">Notifications</h3>
                                         </div>
                                         <div className="max-h-96 overflow-y-auto">
-                                            {invites.length === 0 ? (
+                                            {invites.length === 0 && joinRequests.length === 0 ? (
                                                 <div className="p-6 text-center">
                                                     <p className="text-[#F5F5F5]/50 text-sm">No new notifications</p>
                                                 </div>
                                             ) : (
                                                 <div className="p-2">
+                                                    {/* Team Invitations */}
                                                     {invites.map((invite) => (
                                                         <div key={invite.id} className="p-3 mb-2 border border-[#3D7A5F]/20 bg-[#3D7A5F]/10 rounded">
                                                             <div className="flex items-start gap-2">
@@ -132,6 +143,61 @@ export function Header({
                                                                             className="px-3 py-1 border border-[#F5F5F5]/20 text-[#F5F5F5] text-xs hover:bg-[#F5F5F5]/10 transition-colors"
                                                                         >
                                                                             View
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+
+                                                    {/* Join Requests */}
+                                                    {joinRequests.map((request) => (
+                                                        <div key={request.id} className="p-3 mb-2 border border-[#B4975A]/20 bg-[#B4975A]/10 rounded">
+                                                            <div className="flex items-start gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-[#B4975A] mt-1.5 flex-shrink-0"></div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-[#F5F5F5] text-sm font-medium">Join Request</p>
+                                                                    <p className="text-[#F5F5F5]/60 text-xs mt-1">
+                                                                        <span className="font-medium">{request.username}</span> wants to join <span className="font-medium">{request.team_name}</span>
+                                                                    </p>
+                                                                    {request.riot_game_name && request.riot_tag_line && (
+                                                                        <p className="text-[#F5F5F5]/40 text-xs mt-0.5">
+                                                                            {request.riot_game_name}#{request.riot_tag_line}
+                                                                        </p>
+                                                                    )}
+                                                                    {request.message && (
+                                                                        <p className="text-[#F5F5F5]/50 text-xs mt-1 italic">
+                                                                            "{request.message}"
+                                                                        </p>
+                                                                    )}
+                                                                    <div className="flex gap-2 mt-2">
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                const success = await acceptJoinRequest(request.id);
+                                                                                if (success) {
+                                                                                    toast?.success(`${request.username} has joined the team`);
+                                                                                    getMyJoinRequests();
+                                                                                } else {
+                                                                                    toast?.error('Failed to accept join request');
+                                                                                }
+                                                                            }}
+                                                                            className="px-3 py-1 bg-[#3D7A5F] text-[#F5F5F5] text-xs hover:bg-[#3D7A5F]/90 transition-colors"
+                                                                        >
+                                                                            Accept
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                const success = await rejectJoinRequest(request.id);
+                                                                                if (success) {
+                                                                                    toast?.success('Join request rejected');
+                                                                                    getMyJoinRequests();
+                                                                                } else {
+                                                                                    toast?.error('Failed to reject join request');
+                                                                                }
+                                                                            }}
+                                                                            className="px-3 py-1 border border-[#C75B5B]/50 text-[#C75B5B] text-xs hover:bg-[#C75B5B]/10 transition-colors"
+                                                                        >
+                                                                            Reject
                                                                         </button>
                                                                     </div>
                                                                 </div>

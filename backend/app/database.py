@@ -8,7 +8,8 @@ from datetime import datetime
 import uuid
 
 # SQLite database (easy for dev, switch to PostgreSQL for prod)
-SQLALCHEMY_DATABASE_URL = "sqlite:///./openrift.db"
+import os
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./openrift.db")
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
@@ -46,6 +47,9 @@ class User(Base):
     riot_tag_line = Column(String, nullable=True)
     riot_puuid = Column(String, nullable=True)
     riot_region = Column(String, default="EUW1")
+
+    # Discord integration
+    discord = Column(String, nullable=True)
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -173,6 +177,73 @@ class TeamInvite(Base):
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=True)
+
+
+class JoinRequest(Base):
+    """Join request model - user requests to join a team"""
+    __tablename__ = "join_requests"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    team_id = Column(String, ForeignKey("teams.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+
+    # Request details
+    message = Column(String, nullable=True)  # Optional message from user
+    status = Column(String, default="pending")  # pending, accepted, rejected
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AvailabilitySlot(Base):
+    """User availability slot model - flexible time slots for scheduling"""
+    __tablename__ = "availability_slots"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    team_id = Column(String, ForeignKey("teams.id"), nullable=True)  # Optional: team-specific availability
+
+    # Time slot (custom precision - can be 17:23 to 19:37, not just 30min blocks)
+    start_time = Column(DateTime, nullable=False)  # Full datetime with timezone awareness
+    end_time = Column(DateTime, nullable=False)
+
+    # Recurrence
+    is_recurring = Column(Boolean, default=False)
+    recurrence_pattern = Column(String, nullable=True)  # 'weekly_thursday', 'daily', 'weekly_monday', etc.
+    recurrence_end_date = Column(DateTime, nullable=True)  # When to stop recurring
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    notes = Column(String, nullable=True)
+
+
+class TeamEvent(Base):
+    """Team event model - scrims, training, soloq, meetings"""
+    __tablename__ = "team_events"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    team_id = Column(String, ForeignKey("teams.id"), nullable=False)
+    created_by_id = Column(String, ForeignKey("users.id"), nullable=False)
+
+    # Event details
+    title = Column(String, nullable=False)
+    event_type = Column(String, nullable=False)  # 'scrim', 'training', 'soloq', 'meeting'
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=False)
+
+    # Recurrence
+    is_recurring = Column(Boolean, default=False)
+    recurrence_pattern = Column(String, nullable=True)  # 'weekly_thursday', etc.
+    recurrence_end_date = Column(DateTime, nullable=True)
+
+    # Optional details
+    opponent_name = Column(String, nullable=True)  # For scrims
+    notes = Column(String, nullable=True)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 # Database initialization

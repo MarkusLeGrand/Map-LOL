@@ -7,7 +7,9 @@ import DataAnalyticsPage from './pages/site/DataAnalyticsPage';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
 import DashboardPage from './pages/auth/DashboardPage';
-import TeamManagementPage from './pages/auth/TeamManagementPage';
+import ScrimSchedulerPage from './pages/auth/ScrimSchedulerPage';
+import TeamManagerPage from './pages/auth/TeamManagerPage';
+import TeamsPage from './pages/TeamsPage';
 import ProfilePage from './pages/auth/ProfilePage';
 import AdminPage from './pages/auth/AdminPage';
 import { AuthProvider } from './contexts/AuthContext';
@@ -29,7 +31,9 @@ export default function App() {
                             <Route path="/login" element={<LoginPage />} />
                             <Route path="/signup" element={<SignupPage />} />
                             <Route path="/dashboard" element={<DashboardPage />} />
-                            <Route path="/teams" element={<TeamManagementPage />} />
+                            <Route path="/teams" element={<TeamsPage />} />
+                            <Route path="/team-manager" element={<TeamManagerPage />} />
+                            <Route path="/scrim-scheduler" element={<ScrimSchedulerPage />} />
                             <Route path="/profile" element={<ProfilePage />} />
                             <Route path="/admin" element={<AdminPage />} />
                         </Routes>

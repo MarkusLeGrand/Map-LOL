@@ -8,12 +8,17 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { AnalyticsDashboard } from '../../components/analytics/AnalyticsDashboard';
 
 interface ChampionStats {
-  champion: string;
+  name: string;
+  champion?: string;
   games: number;
   wins: number;
   losses: number;
   winrate: number;
-  kda: number;
+  kda?: number;
+  avg_kills: number;
+  avg_deaths: number;
+  avg_assists: number;
+  avg_damage: number;
 }
 
 interface PlayerStats {
@@ -590,7 +595,7 @@ export default function DataAnalyticsPage() {
       )}
 
       <Footer
-        copyright="© 2025 LeagueHub — Professional Tools Platform"
+        copyright="© 2025 OpenRift — Professional Tools Platform"
         links={[
           { label: 'About', href: '#' },
           { label: 'Privacy', href: '#' },

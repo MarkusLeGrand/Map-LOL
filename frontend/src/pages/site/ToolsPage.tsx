@@ -27,6 +27,10 @@ export default function ToolsPage() {
       navigate('/data-analytics');
     } else if (toolId === 'teams') {
       navigate('/teams');
+    } else if (toolId === 'team-manager') {
+      navigate('/team-manager');
+    } else if (toolId === 'scrim-scheduler') {
+      navigate('/scrim-scheduler');
     }
   };
 
@@ -156,7 +160,7 @@ export default function ToolsPage() {
       </div>
 
       <Footer
-        copyright="© 2025 LeagueHub — Professional Tools Platform"
+        copyright="© 2025 OpenRift — Professional Tools Platform"
         links={[
           { label: 'About', href: '#' },
           { label: 'Privacy', href: '#' },

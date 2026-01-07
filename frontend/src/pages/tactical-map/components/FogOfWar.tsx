@@ -35,7 +35,6 @@ export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, on
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
 
-        // Créer masques séparés walls et brush
         const wallsCanvas = document.createElement('canvas');
         wallsCanvas.width = 512;
         wallsCanvas.height = 512;
@@ -142,7 +141,6 @@ export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, on
             }
         });
 
-        // Wards (seulement les actives et non désactivées)
         wards.forEach(ward => {
             if (!ward.active || ward.disabled) return;
             const shouldShow =
@@ -271,14 +269,11 @@ export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, on
             }
         }
 
-        // Créer le fog final
         const fogData = ctx.createImageData(boardSize, boardSize);
         for (let i = 0; i < visionData.data.length; i += 4) {
             if (visionData.data[i] > 0) {
-                // Vision = transparent
                 fogData.data[i + 3] = 0;
             } else {
-                // Fog = noir
                 fogData.data[i] = 0;
                 fogData.data[i + 1] = 0;
                 fogData.data[i + 2] = 0;
@@ -288,13 +283,11 @@ export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, on
 
         ctx.putImageData(fogData, 0, 0);
 
-        // Notifier le parent des données de vision et brush
         if (onVisionUpdate) {
             onVisionUpdate(visionData, brushData);
         }
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [boardSize, tokens, towers, wards, visionMode, wallsImg, brushImg, faelights, faelightActivations, faelightMasks]);
+    }, [boardSize, tokens, towers, wards, visionMode, wallsImg, brushImg, faelights, faelightActivations, faelightMasks, onVisionUpdate]);
 
     if (visionMode === 'off') return null;
 

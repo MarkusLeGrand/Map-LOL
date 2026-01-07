@@ -32,6 +32,7 @@ class UserCreate(BaseModel):
     password: str
     riot_game_name: Optional[str] = None
     riot_tag_line: Optional[str] = None
+    discord: Optional[str] = None
 
 
 class UserLogin(BaseModel):
@@ -54,6 +55,7 @@ class UserResponse(BaseModel):
     username: str
     riot_game_name: Optional[str]
     riot_tag_line: Optional[str]
+    discord: Optional[str]
     created_at: datetime
     favorite_tools: list
     theme: str
@@ -172,6 +174,7 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         hashed_password=hashed_password,
         riot_game_name=user_data.riot_game_name,
         riot_tag_line=user_data.riot_tag_line,
+        discord=user_data.discord,
     )
 
     db.add(db_user)

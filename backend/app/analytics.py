@@ -258,10 +258,10 @@ class ScrimAnalytics:
         result.sort(key=lambda x: position_order.get(x["position"], 6))
 
         # Store both: all players and team-only players
-        self.all_players = result  # Tous les joueurs (équipe + adversaires anonymisés)
-        self.team_players = [p for p in result if p.get("is_team_member", False)]  # Seulement l'équipe
+        self.all_players = result
+        self.team_players = [p for p in result if p.get("is_team_member", False)]
 
-        return self.team_players  # Par défaut, retourne seulement l'équipe
+        return self.team_players
 
     def _setup_plotting(self):
         """Configure matplotlib style"""
@@ -327,10 +327,7 @@ class ScrimAnalytics:
 
     def get_players_overview(self) -> Dict[str, Any]:
         """Get overview statistics - returns team players + all players for comparison"""
-        # Team players only (for most displays)
         team_players = self.raw_data.get("players", [])
-
-        # All players raw data (for Performance Overview and Comparaison Métrique)
         all_players_raw = getattr(self, 'all_players', team_players)
 
         # Process team players
@@ -423,8 +420,8 @@ class ScrimAnalytics:
                         xytext=(5, 5), textcoords='offset points', fontsize=9)
 
         plt.xlabel("KDA")
-        plt.ylabel("Dégâts par minute (DPM)")
-        plt.title("KDA vs DPM par joueur")
+        plt.ylabel("Damage per minute (DPM)")
+        plt.title("KDA vs DPM per player")
         plt.grid(alpha=0.3)
         plt.tight_layout()
 

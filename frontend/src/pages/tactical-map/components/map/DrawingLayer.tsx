@@ -6,9 +6,11 @@ interface DrawingLayerProps {
     currentDrawing: { x: number; y: number }[];
     isDrawing: boolean;
     boardSize: number;
+    penColor?: string;
+    penWidth?: number;
 }
 
-export function DrawingLayer({ drawings, currentDrawing, isDrawing, boardSize }: DrawingLayerProps) {
+export function DrawingLayer({ drawings, currentDrawing, isDrawing, boardSize, penColor, penWidth }: DrawingLayerProps) {
     function createPathData(points: { x: number; y: number }[]): string {
         return points
             .map((point, i) => {

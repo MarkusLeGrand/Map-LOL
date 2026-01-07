@@ -11,16 +11,15 @@ import { COLORS } from '../../constants/theme';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
-  const { teams, invites, createTeam, getMyTeams, acceptInvite, inviteToTeam, getMyInvites, kickMember, promoteToOwner, updateTeam } = useTeam();
+  const { user, logout, updateUser } = useAuth();
+  const { teams, invites, createTeam, getMyTeams, acceptInvite, getMyInvites } = useTeam();
   const navigate = useNavigate();
   const toast = useToast();
 
   const [isEditingRiot, setIsEditingRiot] = useState(false);
+  const [isEditingDiscord, setIsEditingDiscord] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
-  const [showEditTeamModal, setShowEditTeamModal] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const [profileFormData, setProfileFormData] = useState({
@@ -29,8 +28,13 @@ export default function ProfilePage() {
   });
 
   const [riotFormData, setRiotFormData] = useState({
-    riot_game_name: user?.riot_game_name || '',
-    riot_tag_line: user?.riot_tag_line || '',
+    riot_id: user?.riot_game_name && user?.riot_tag_line
+      ? `${user.riot_game_name}#${user.riot_tag_line}`
+      : '',
+  });
+
+  const [discordFormData, setDiscordFormData] = useState({
+    discord: user?.discord || '',
   });
 
   const [passwordFormData, setPasswordFormData] = useState({
@@ -46,16 +50,6 @@ export default function ProfilePage() {
     team_color: '#3D7A5F',
   });
 
-  const [editTeamFormData, setEditTeamFormData] = useState({
-    name: '',
-    tag: '',
-    description: '',
-    team_color: '#3D7A5F',
-  });
-
-  const [inviteFormData, setInviteFormData] = useState({
-    user_id: '',
-  });
 
   const [confirmDialog, setConfirmDialog] = useState<{
     show: boolean;
@@ -101,11 +95,10 @@ export default function ProfilePage() {
         throw new Error(error.detail || 'Failed to update profile');
       }
 
+      const updatedUser = await response.json();
+      updateUser(updatedUser);
       toast?.success('Profile updated successfully');
       setIsEditingProfile(false);
-
-      // Refresh user data
-      window.location.reload();
     } catch (error) {
       console.error('Failed to update profile:', error);
       toast?.error(error instanceof Error ? error.message : 'Failed to update profile');
@@ -120,6 +113,23 @@ export default function ProfilePage() {
         return;
       }
 
+      // Parse single-line Riot ID format: GameName#TAG
+      const riotId = riotFormData.riot_id.trim();
+
+      if (!riotId.includes('#')) {
+        toast?.error('Invalid format. Use: GameName#TAG');
+        return;
+      }
+
+      const parts = riotId.split('#');
+      if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
+        toast?.error('Invalid format. Use: GameName#TAG');
+        return;
+      }
+
+      const riot_game_name = parts[0].trim();
+      const riot_tag_line = parts[1].trim();
+
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'PUT',
         headers: {
@@ -127,23 +137,59 @@ export default function ProfilePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          riot_game_name: riotFormData.riot_game_name,
-          riot_tag_line: riotFormData.riot_tag_line,
+          riot_game_name,
+          riot_tag_line,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update Riot account');
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to update Riot account');
       }
 
+      const updatedUser = await response.json();
+      updateUser(updatedUser);
       toast?.success('Riot account updated successfully');
       setIsEditingRiot(false);
-
-      // Refresh user data - force a page reload to update the auth context
-      window.location.reload();
     } catch (error) {
       console.error('Failed to update Riot account:', error);
-      toast?.error('Failed to update Riot account');
+      toast?.error(error instanceof Error ? error.message : 'Failed to update Riot account');
+    }
+  };
+
+  const handleUpdateDiscord = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast?.error('You must be logged in');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          discord: discordFormData.discord.trim() || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to update Discord');
+      }
+
+      const updatedUser = await response.json();
+      updateUser(updatedUser);
+      toast?.success('Discord updated successfully');
+      setIsEditingDiscord(false);
+    } catch (error) {
+      console.error('Failed to update Discord:', error);
+      toast?.error(error instanceof Error ? error.message : 'Failed to update Discord');
     }
   };
 
@@ -187,12 +233,6 @@ export default function ProfilePage() {
     }
   };
 
-  const copyUserId = () => {
-    if (user?.id) {
-      navigator.clipboard.writeText(user.id);
-    }
-  };
-
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     const team = await createTeam(teamFormData);
@@ -200,36 +240,6 @@ export default function ProfilePage() {
       setShowCreateTeamModal(false);
       setTeamFormData({ name: '', tag: '', description: '', team_color: '#3D7A5F' });
       getMyTeams();
-    }
-  };
-
-  const handleEditTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!myTeam) return;
-
-    try {
-      const updated = await updateTeam(myTeam.id, editTeamFormData);
-      if (updated) {
-        toast?.success('Team updated successfully');
-        setShowEditTeamModal(false);
-        getMyTeams();
-      } else {
-        toast?.error('Failed to update team');
-      }
-    } catch (error) {
-      console.error('Failed to update team:', error);
-      toast?.error('Failed to update team');
-    }
-  };
-
-  const handleInviteUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (myTeam) {
-      const invite = await inviteToTeam(myTeam.id, inviteFormData);
-      if (invite) {
-        setShowInviteModal(false);
-        setInviteFormData({ user_id: '' });
-      }
     }
   };
 
@@ -260,67 +270,6 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Failed to leave team:', error);
     }
-  };
-
-  const handleDeleteTeam = async () => {
-    if (!myTeam || !window.confirm(`Are you sure you want to delete ${myTeam.name}? This action cannot be undone.`)) return;
-
-    // TODO: Implement API call to delete team
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/teams/${myTeam.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        getMyTeams();
-      }
-    } catch (error) {
-      console.error('Failed to delete team:', error);
-    }
-  };
-
-  const handleKickMember = (memberId: string, memberName: string) => {
-    if (!myTeam) return;
-
-    setConfirmDialog({
-      show: true,
-      title: 'Kick Member',
-      message: `Are you sure you want to kick ${memberName} from the team? They will need to be re-invited to rejoin.`,
-      type: 'danger',
-      onConfirm: async () => {
-        setConfirmDialog({ ...confirmDialog, show: false });
-        const success = await kickMember(myTeam.id, memberId);
-        if (success) {
-          toast.success(`${memberName} has been kicked from the team`);
-        } else {
-          toast.error('Failed to kick member');
-        }
-      }
-    });
-  };
-
-  const handlePromoteMember = (memberId: string, memberName: string) => {
-    if (!myTeam) return;
-
-    setConfirmDialog({
-      show: true,
-      title: 'Transfer Ownership',
-      message: `Are you sure you want to transfer ownership to ${memberName}? You will become a regular member.`,
-      type: 'warning',
-      onConfirm: async () => {
-        setConfirmDialog({ ...confirmDialog, show: false });
-        const success = await promoteToOwner(myTeam.id, memberId);
-        if (success) {
-          toast.success(`${memberName} is now the team owner`);
-        } else {
-          toast.error('Failed to promote member');
-        }
-      }
-    });
   };
 
   // Get user's main team (first team they're in)
@@ -451,25 +400,6 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* Divider */}
-                <div className="my-6 border-t border-[#F5F5F5]/10"></div>
-
-                {/* User ID */}
-                <div>
-                  <label className="block text-[#F5F5F5]/50 text-xs mb-2">USER ID</label>
-                  <div className="flex gap-2">
-                    <p className="flex-1 text-[#F5F5F5] text-xs font-mono bg-[#F5F5F5]/[0.05] px-3 py-2 rounded truncate">
-                      {user?.id}
-                    </p>
-                    <button
-                      onClick={copyUserId}
-                      className="px-3 py-2 bg-[#F5F5F5]/10 text-[#F5F5F5] text-xs hover:bg-[#F5F5F5]/20 transition-colors rounded"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-
                 {/* Change Password Button */}
                 <div className="mt-6 pt-6 border-t border-[#F5F5F5]/10">
                   <button
@@ -498,28 +428,26 @@ export default function ProfilePage() {
                 {isEditingRiot ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">GAME NAME</label>
+                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">RIOT ID</label>
                       <input
                         type="text"
-                        value={riotFormData.riot_game_name}
-                        onChange={(e) => setRiotFormData({ ...riotFormData, riot_game_name: e.target.value })}
+                        value={riotFormData.riot_id}
+                        onChange={(e) => setRiotFormData({ riot_id: e.target.value })}
                         className="w-full px-3 py-2 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] text-sm focus:outline-none focus:border-[#3D7A5F] rounded"
-                        placeholder="Your Riot ID"
+                        placeholder="GameName#TAG"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">TAG LINE</label>
-                      <input
-                        type="text"
-                        value={riotFormData.riot_tag_line}
-                        onChange={(e) => setRiotFormData({ ...riotFormData, riot_tag_line: e.target.value })}
-                        className="w-full px-3 py-2 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] text-sm focus:outline-none focus:border-[#3D7A5F] rounded"
-                        placeholder="EUW"
-                      />
+                      <p className="text-[#F5F5F5]/40 text-xs mt-2">Format: GameName#TAG (ex: Faker#KR1)</p>
                     </div>
                     <div className="flex gap-2 pt-2">
                       <button
-                        onClick={() => setIsEditingRiot(false)}
+                        onClick={() => {
+                          setIsEditingRiot(false);
+                          setRiotFormData({
+                            riot_id: user?.riot_game_name && user?.riot_tag_line
+                              ? `${user.riot_game_name}#${user.riot_tag_line}`
+                              : '',
+                          });
+                        }}
                         className="flex-1 px-4 py-2 bg-[#F5F5F5]/5 text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded"
                       >
                         Cancel
@@ -540,6 +468,66 @@ export default function ProfilePage() {
                         {user?.riot_game_name && user?.riot_tag_line
                           ? `${user.riot_game_name}#${user.riot_tag_line}`
                           : 'Not set'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Discord */}
+              <div className="border border-[#F5F5F5]/10 p-6 bg-[#F5F5F5]/[0.02]">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-[#F5F5F5] text-xl font-semibold">Discord</h2>
+                  {!isEditingDiscord && (
+                    <button
+                      onClick={() => setIsEditingDiscord(true)}
+                      className="text-[#3D7A5F] text-sm hover:text-[#3D7A5F]/80 transition-colors"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
+
+                {isEditingDiscord ? (
+                  <form onSubmit={handleUpdateDiscord} className="space-y-4">
+                    <div>
+                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">DISCORD USERNAME</label>
+                      <input
+                        type="text"
+                        value={discordFormData.discord}
+                        onChange={(e) => setDiscordFormData({ discord: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] text-sm focus:outline-none focus:border-[#3D7A5F] rounded"
+                        placeholder="username#1234"
+                      />
+                      <p className="text-[#F5F5F5]/40 text-xs mt-2">Visible to your team members</p>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingDiscord(false);
+                          setDiscordFormData({
+                            discord: user?.discord || '',
+                          });
+                        }}
+                        className="flex-1 px-4 py-2 bg-[#F5F5F5]/5 text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 px-4 py-2 bg-[#3D7A5F] text-[#F5F5F5] text-sm hover:bg-[#3D7A5F]/90 transition-colors rounded"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">DISCORD USERNAME</label>
+                      <p className="text-[#F5F5F5] text-base">
+                        {user?.discord || 'Not set'}
                       </p>
                     </div>
                   </div>
@@ -615,30 +603,6 @@ export default function ProfilePage() {
                           <p className="text-[#F5F5F5]/60">{myTeam.description || 'No description'}</p>
                         </div>
                       </div>
-                      {isTeamOwner && (
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => {
-                              setEditTeamFormData({
-                                name: myTeam.name,
-                                tag: myTeam.tag || '',
-                                description: myTeam.description || '',
-                                team_color: myTeam.team_color,
-                              });
-                              setShowEditTeamModal(true);
-                            }}
-                            className="px-5 py-2.5 bg-[#F5F5F5]/10 text-[#F5F5F5] hover:bg-[#F5F5F5]/20 transition-colors rounded"
-                          >
-                            Edit Team
-                          </button>
-                          <button
-                            onClick={() => setShowInviteModal(true)}
-                            className="px-5 py-2.5 bg-[#F5F5F5]/10 text-[#F5F5F5] hover:bg-[#F5F5F5]/20 transition-colors rounded"
-                          >
-                            + Invite
-                          </button>
-                        </div>
-                      )}
                     </div>
 
                     {/* Members */}
@@ -673,29 +637,6 @@ export default function ProfilePage() {
                                 )}
                               </div>
 
-                              {/* Action Buttons - Only show for team owner on other members */}
-                              {canManage && (
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    onClick={() => handlePromoteMember(member.id, member.username)}
-                                    className="p-2 bg-[#B8945E]/20 text-[#B8945E] hover:bg-[#B8945E]/30 transition-colors rounded"
-                                    title="Promote to owner"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                                    </svg>
-                                  </button>
-                                  <button
-                                    onClick={() => handleKickMember(member.id, member.username)}
-                                    className="p-2 bg-[#A85C5C]/20 text-[#A85C5C] hover:bg-[#A85C5C]/30 transition-colors rounded"
-                                    title="Kick member"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              )}
                             </div>
                           );
                         })}
@@ -705,12 +646,12 @@ export default function ProfilePage() {
                     {/* Actions */}
                     <div className="flex gap-4 pt-6 border-t border-[#F5F5F5]/10">
                       <button
-                        onClick={() => navigate('/teams')}
+                        onClick={() => navigate('/team-manager')}
                         className="flex-1 px-6 py-4 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded-lg"
                       >
                         Open Team Manager
                       </button>
-                      {!isTeamOwner ? (
+                      {!isTeamOwner && (
                         <button
                           onClick={handleLeaveTeam}
                           className="px-6 py-4 border transition-colors rounded-lg"
@@ -721,18 +662,6 @@ export default function ProfilePage() {
                           }}
                         >
                           Leave Team
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handleDeleteTeam}
-                          className="px-6 py-4 border transition-colors rounded-lg"
-                          style={{
-                            backgroundColor: `${COLORS.danger}1A`,
-                            color: COLORS.danger,
-                            borderColor: `${COLORS.danger}4D`
-                          }}
-                        >
-                          Delete Team
                         </button>
                       )}
                     </div>
@@ -831,122 +760,6 @@ export default function ProfilePage() {
                   className="flex-1 px-6 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded"
                 >
                   Create Team
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Team Modal */}
-      {showEditTeamModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowEditTeamModal(false)}>
-          <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 p-8 max-w-lg w-full rounded-lg" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-[#F5F5F5] text-2xl font-bold mb-6">Edit Team</h2>
-            <form onSubmit={handleEditTeam}>
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-[#F5F5F5]/60 text-sm mb-2">Team Name *</label>
-                  <input
-                    type="text"
-                    value={editTeamFormData.name}
-                    onChange={(e) => setEditTeamFormData({ ...editTeamFormData, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] rounded"
-                    required
-                    placeholder="e.g., Kingslayers"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#F5F5F5]/60 text-sm mb-2">Team Tag (2-4 letters)</label>
-                  <input
-                    type="text"
-                    value={editTeamFormData.tag}
-                    onChange={(e) => setEditTeamFormData({ ...editTeamFormData, tag: e.target.value.toUpperCase() })}
-                    className="w-full px-4 py-3 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] rounded uppercase"
-                    maxLength={4}
-                    minLength={2}
-                    placeholder="e.g., KC, T1, FNC"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#F5F5F5]/60 text-sm mb-2">Description</label>
-                  <textarea
-                    value={editTeamFormData.description}
-                    onChange={(e) => setEditTeamFormData({ ...editTeamFormData, description: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] resize-none rounded"
-                    rows={3}
-                    placeholder="A few words about your team..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#F5F5F5]/60 text-sm mb-3">Team Color</label>
-                  <div className="flex gap-3">
-                    {['#3D7A5F', '#5B8FB9', '#B4975A', '#8B5A9F', '#C75B5B', '#E07B39'].map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => setEditTeamFormData({ ...editTeamFormData, team_color: color })}
-                        className={`w-12 h-12 rounded-lg transition-all ${editTeamFormData.team_color === color ? 'ring-2 ring-[#F5F5F5] ring-offset-2 ring-offset-[#1A1A1A] scale-110' : 'hover:scale-105'}`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-8">
-                <button
-                  type="button"
-                  onClick={() => setShowEditTeamModal(false)}
-                  className="flex-1 px-6 py-3 bg-[#F5F5F5]/5 text-[#F5F5F5] hover:bg-[#F5F5F5]/10 transition-colors rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Invite User Modal */}
-      {showInviteModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowInviteModal(false)}>
-          <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 p-8 max-w-lg w-full rounded-lg" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-[#F5F5F5] text-2xl font-bold mb-2">Invite to {myTeam?.name}</h2>
-            <p className="text-[#F5F5F5]/50 text-sm mb-6">The user will receive a notification with the invitation</p>
-            <form onSubmit={handleInviteUser}>
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-[#F5F5F5]/60 text-sm mb-2">User ID *</label>
-                  <input
-                    type="text"
-                    value={inviteFormData.user_id}
-                    onChange={(e) => setInviteFormData({ ...inviteFormData, user_id: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] font-mono text-sm focus:outline-none focus:border-[#3D7A5F] rounded"
-                    required
-                    placeholder="User can copy this from their profile"
-                  />
-                  <p className="text-[#F5F5F5]/40 text-xs mt-2">The user will be added as a team member</p>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-8">
-                <button
-                  type="button"
-                  onClick={() => setShowInviteModal(false)}
-                  className="flex-1 px-6 py-3 bg-[#F5F5F5]/5 text-[#F5F5F5] hover:bg-[#F5F5F5]/10 transition-colors rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded"
-                >
-                  Send Invitation
                 </button>
               </div>
             </form>

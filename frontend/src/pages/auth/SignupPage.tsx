@@ -12,8 +12,8 @@ export default function SignupPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [riotGameName, setRiotGameName] = useState('');
-  const [riotTagLine, setRiotTagLine] = useState('');
+  const [riotId, setRiotId] = useState('');
+  const [discord, setDiscord] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,6 +32,25 @@ export default function SignupPage() {
       return;
     }
 
+    // Parse Riot ID if provided
+    let riotGameName: string | undefined;
+    let riotTagLine: string | undefined;
+
+    if (riotId.trim()) {
+      if (!riotId.includes('#')) {
+        setError('Invalid Riot ID format. Use: GameName#TAG');
+        return;
+      }
+      const parts = riotId.split('#');
+      riotGameName = parts[0].trim();
+      riotTagLine = parts[1].trim();
+
+      if (!riotGameName || !riotTagLine) {
+        setError('Invalid Riot ID format. Use: GameName#TAG');
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
@@ -39,10 +58,11 @@ export default function SignupPage() {
         email,
         username,
         password,
-        riotGameName || undefined,
-        riotTagLine || undefined
+        riotGameName,
+        riotTagLine,
+        discord.trim() || undefined
       );
-      navigate('/dashboard');
+      navigate('/profile');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -95,27 +115,28 @@ export default function SignupPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[#F5F5F5]/70 text-sm mb-2">Riot ID (optional)</label>
-                  <input
-                    type="text"
-                    value={riotGameName}
-                    onChange={(e) => setRiotGameName(e.target.value)}
-                    className="w-full bg-[#0E0E0E] border border-[#F5F5F5]/20 text-[#F5F5F5] px-4 py-2.5 focus:outline-none focus:border-[#F5F5F5]/40"
-                    placeholder="Faker"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#F5F5F5]/70 text-sm mb-2">Tag</label>
-                  <input
-                    type="text"
-                    value={riotTagLine}
-                    onChange={(e) => setRiotTagLine(e.target.value)}
-                    className="w-full bg-[#0E0E0E] border border-[#F5F5F5]/20 text-[#F5F5F5] px-4 py-2.5 focus:outline-none focus:border-[#F5F5F5]/40"
-                    placeholder="KR1"
-                  />
-                </div>
+              <div>
+                <label className="block text-[#F5F5F5]/70 text-sm mb-2">Riot ID (optional)</label>
+                <input
+                  type="text"
+                  value={riotId}
+                  onChange={(e) => setRiotId(e.target.value)}
+                  className="w-full bg-[#0E0E0E] border border-[#F5F5F5]/20 text-[#F5F5F5] px-4 py-2.5 focus:outline-none focus:border-[#F5F5F5]/40"
+                  placeholder="Faker#KR1"
+                />
+                <p className="text-[#F5F5F5]/40 text-xs mt-2">Format: GameName#TAG (ex: Faker#KR1)</p>
+              </div>
+
+              <div>
+                <label className="block text-[#F5F5F5]/70 text-sm mb-2">Discord (optional)</label>
+                <input
+                  type="text"
+                  value={discord}
+                  onChange={(e) => setDiscord(e.target.value)}
+                  className="w-full bg-[#0E0E0E] border border-[#F5F5F5]/20 text-[#F5F5F5] px-4 py-2.5 focus:outline-none focus:border-[#F5F5F5]/40"
+                  placeholder="username#1234"
+                />
+                <p className="text-[#F5F5F5]/40 text-xs mt-2">Your Discord username (visible to team members)</p>
               </div>
 
               <div>
@@ -164,7 +185,7 @@ export default function SignupPage() {
       </div>
 
       <Footer
-        copyright="© 2025 LeagueHub — Professional Tools Platform"
+        copyright="© 2025 OpenRift — Professional Tools Platform"
         links={[
           { label: 'About', href: '#' },
           { label: 'Privacy', href: '#' },
