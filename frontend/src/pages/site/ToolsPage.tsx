@@ -162,9 +162,9 @@ export default function ToolsPage() {
       <Footer
         copyright="© 2025 OpenRift — Professional Tools Platform"
         links={[
-          { label: 'About', href: '#' },
-          { label: 'Privacy', href: '#' },
-          { label: 'Terms', href: '#' },
+          { label: 'About', href: '/about' },
+          { label: 'Privacy', href: '/privacy' },
+          { label: 'Terms', href: '/terms' },
         ]}
       />
     </div>

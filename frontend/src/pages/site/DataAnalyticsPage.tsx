@@ -71,7 +71,7 @@ interface SavedAnalytics {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-type ViewMode = 'upload' | 'team';
+type ViewMode = 'guide' | 'upload' | 'team';
 
 export default function DataAnalyticsPage() {
   const { isAuthenticated, user } = useAuth();
@@ -79,7 +79,7 @@ export default function DataAnalyticsPage() {
   const toast = useToast();
   const myTeam = teams.length > 0 ? teams[0] : null;
 
-  const [viewMode, setViewMode] = useState<ViewMode>('upload');
+  const [viewMode, setViewMode] = useState<ViewMode>('guide');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<UploadResponse | null>(null);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
@@ -316,20 +316,30 @@ export default function DataAnalyticsPage() {
       </div>
 
       {/* Navigation Tabs */}
-      {isAuthenticated && (
-        <div className="border-b border-[#F5F5F5]/10 bg-[#0E0E0E]/50 sticky top-[73px] z-40">
-          <div className="max-w-[1600px] mx-auto px-12">
-            <div className="flex gap-1">
-              <button
-                onClick={() => setViewMode('upload')}
-                className={`px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
-                  viewMode === 'upload'
-                    ? 'text-[#F5F5F5] border-[#3D7A5F]'
-                    : 'text-[#F5F5F5]/50 border-transparent hover:text-[#F5F5F5]/80'
-                }`}
-              >
-                Upload & Analyze
-              </button>
+      <div className="border-b border-[#F5F5F5]/10 bg-[#0E0E0E]/50 sticky top-[73px] z-40">
+        <div className="max-w-[1600px] mx-auto px-12">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setViewMode('guide')}
+              className={`px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
+                viewMode === 'guide'
+                  ? 'text-[#F5F5F5] border-[#3D7A5F]'
+                  : 'text-[#F5F5F5]/50 border-transparent hover:text-[#F5F5F5]/80'
+              }`}
+            >
+              ROFL Parser Guide
+            </button>
+            <button
+              onClick={() => setViewMode('upload')}
+              className={`px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
+                viewMode === 'upload'
+                  ? 'text-[#F5F5F5] border-[#3D7A5F]'
+                  : 'text-[#F5F5F5]/50 border-transparent hover:text-[#F5F5F5]/80'
+              }`}
+            >
+              Upload & Analyze
+            </button>
+            {isAuthenticated && (
               <button
                 onClick={() => setViewMode('team')}
                 className={`px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
@@ -340,14 +350,137 @@ export default function DataAnalyticsPage() {
               >
                 Team Data ({myTeam ? `${teamAnalytics.length}/${teamLimit}` : 'No Team'})
               </button>
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 py-16">
         <div className="max-w-[1600px] mx-auto px-12">
+
+          {/* ROFL Parser Guide View */}
+          {viewMode === 'guide' && (
+            <div className="max-w-5xl mx-auto">
+              <div className="flex items-start justify-between gap-8">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-lg bg-[#3D7A5F]/20 flex items-center justify-center">
+                      <svg className="w-7 h-7 text-[#3D7A5F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-[#F5F5F5] text-3xl font-bold">Convert .rofl Files to JSON</h2>
+                      <p className="text-[#F5F5F5]/50 text-sm mt-1">Step-by-step guide to generate analytics data from League of Legends replays</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 text-[#F5F5F5]/70">
+                    <p className="text-base leading-relaxed">
+                      <strong className="text-[#F5F5F5]">.rofl files</strong> are League of Legends replay files.
+                      This Python script converts them into JSON format compatible with our analytics dashboard.
+                    </p>
+
+                    <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg p-6">
+                      <h3 className="text-[#F5F5F5] font-semibold mb-3 text-lg flex items-center gap-2">
+                        <span>📁</span> Step 1: Organization
+                      </h3>
+                      <ul className="text-base space-y-2 ml-6 list-disc">
+                        <li>Find your replays: <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">C:\Users\[Name]\Documents\League of Legends\Replays\</code></li>
+                        <li>Create folders named <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">Scrim1</code>, <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">Scrim2</code>, etc.</li>
+                        <li>Move your .rofl files into these folders</li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg p-6">
+                      <h3 className="text-[#F5F5F5] font-semibold mb-3 text-lg flex items-center gap-2">
+                        <span>🐍</span> Step 2: Python Installation
+                      </h3>
+                      <p className="text-base mb-3">Install Python 3.8+ from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer" className="text-[#3D7A5F] hover:underline font-medium">python.org</a></p>
+                      <p className="text-base mb-2">Then install the required dependencies:</p>
+                      <code className="block mt-3 p-4 bg-[#0E0E0E] rounded text-sm text-[#F5F5F5] font-mono border border-[#F5F5F5]/10">
+                        pip install requests
+                      </code>
+                    </div>
+
+                    <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg p-6">
+                      <h3 className="text-[#F5F5F5] font-semibold mb-3 text-lg flex items-center gap-2">
+                        <span>▶️</span> Step 3: Running the Script
+                      </h3>
+                      <ol className="text-base space-y-2 ml-6 list-decimal">
+                        <li>Download the script using the button on the right</li>
+                        <li>Place it in the same folder as your Scrim folders</li>
+                        <li>Double-click the script or run: <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">python parse_rofl_direct.py</code></li>
+                        <li>Find your JSON files in the <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">outputs/</code> folder</li>
+                      </ol>
+                    </div>
+
+                    <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg p-6">
+                      <h3 className="text-[#F5F5F5] font-semibold mb-3 text-lg flex items-center gap-2">
+                        <span>📊</span> Step 4: Upload to Dashboard
+                      </h3>
+                      <p className="text-base">
+                        Go to the <strong className="text-[#F5F5F5]">Upload & Analyze</strong> tab and upload the <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">global_matches.json</code> file to view your team statistics.
+                      </p>
+                    </div>
+
+                    <div className="bg-[#3D7A5F]/10 border border-[#3D7A5F]/30 rounded-lg p-6">
+                      <h3 className="text-[#F5F5F5] font-semibold mb-2 text-base flex items-center gap-2">
+                        <span>💡</span> Pro Tip
+                      </h3>
+                      <p className="text-[#F5F5F5]/80 text-sm">
+                        The script processes all .rofl files in your Scrim folders and generates both individual scrim JSONs and a combined global_matches.json file. Use the global file for comprehensive team analysis.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-shrink-0">
+                  <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg p-8 w-80 text-center sticky top-32">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#3D7A5F]/20 flex items-center justify-center">
+                      <svg className="w-10 h-10 text-[#3D7A5F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </div>
+                    <h3 className="text-[#F5F5F5] font-bold text-xl mb-2">ROFL Parser Script</h3>
+                    <p className="text-[#F5F5F5]/50 text-sm mb-6">
+                      Python script to convert your League of Legends replays to JSON
+                    </p>
+                    <a
+                      href={`${API_BASE_URL}/api/download/parse_rofl_direct.py`}
+                      download="parse_rofl_direct.py"
+                      className="block w-full px-6 py-4 bg-[#3D7A5F] text-[#F5F5F5] text-base font-semibold hover:bg-[#3D7A5F]/90 transition-colors rounded-lg"
+                    >
+                      Download Script
+                    </a>
+                    <p className="text-[#F5F5F5]/40 text-xs mt-4">
+                      Version 1.0 • Python 3.8+
+                    </p>
+                    <div className="mt-6 pt-6 border-t border-[#F5F5F5]/10">
+                      <p className="text-[#F5F5F5]/50 text-xs mb-3">Quick Links</p>
+                      <div className="space-y-2">
+                        <a
+                          href="https://www.python.org/downloads/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-[#3D7A5F] hover:text-[#3D7A5F]/80 text-sm"
+                        >
+                          Download Python →
+                        </a>
+                        <button
+                          onClick={() => setViewMode('upload')}
+                          className="block w-full text-[#3D7A5F] hover:text-[#3D7A5F]/80 text-sm"
+                        >
+                          Go to Upload →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Upload & Analyze View */}
           {viewMode === 'upload' && (
@@ -597,9 +730,9 @@ export default function DataAnalyticsPage() {
       <Footer
         copyright="© 2025 OpenRift — Professional Tools Platform"
         links={[
-          { label: 'About', href: '#' },
-          { label: 'Privacy', href: '#' },
-          { label: 'Terms', href: '#' },
+          { label: 'About', href: '/about' },
+          { label: 'Privacy', href: '/privacy' },
+          { label: 'Terms', href: '/terms' },
         ]}
       />
     </div>

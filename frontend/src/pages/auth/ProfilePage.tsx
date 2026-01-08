@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
 import { COLORS } from '../../constants/theme';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -69,6 +70,18 @@ export default function ProfilePage() {
     getMyTeams();
     getMyInvites();
   }, []);
+
+  // Auto-refresh invites and teams every 30 seconds
+  useAutoRefresh({
+    onRefresh: () => {
+      if (user) {
+        getMyTeams();
+        getMyInvites();
+      }
+    },
+    interval: 30000,
+    enabled: Boolean(user)
+  });
 
   const handleSaveProfile = async () => {
     try {
@@ -849,9 +862,9 @@ export default function ProfilePage() {
       <Footer
         copyright="© 2025 OpenRift — Professional Tools Platform"
         links={[
-          { label: 'About', href: '#' },
-          { label: 'Privacy', href: '#' },
-          { label: 'Terms', href: '#' },
+          { label: 'About', href: '/about' },
+          { label: 'Privacy', href: '/privacy' },
+          { label: 'Terms', href: '/terms' },
         ]}
       />
     </div>

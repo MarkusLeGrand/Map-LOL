@@ -4,6 +4,8 @@ import ToolsPage from './pages/site/ToolsPage';
 import TacticalMapPage from './pages/tactical-map/TacticalMapPage';
 import AboutPage from './pages/site/AboutPage';
 import DataAnalyticsPage from './pages/site/DataAnalyticsPage';
+import PrivacyPage from './pages/site/PrivacyPage';
+import TermsPage from './pages/site/TermsPage';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
 import DashboardPage from './pages/auth/DashboardPage';
@@ -28,6 +30,8 @@ export default function App() {
                             <Route path="/tacticalmap" element={<TacticalMapPage />} />
                             <Route path="/data-analytics" element={<DataAnalyticsPage />} />
                             <Route path="/about" element={<AboutPage />} />
+                            <Route path="/privacy" element={<PrivacyPage />} />
+                            <Route path="/terms" element={<TermsPage />} />
                             <Route path="/login" element={<LoginPage />} />
                             <Route path="/signup" element={<SignupPage />} />
                             <Route path="/dashboard" element={<DashboardPage />} />
