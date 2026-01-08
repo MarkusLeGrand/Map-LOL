@@ -15,7 +15,10 @@
 [x] Page teams publiques (voir toutes les équipes)
 [x] ajout du discord a l'user (optinnel) visible par les membre de la team si il est la 
 [x] envoyer des invites par user name pas userid et le cacher car ca sert a rien pour le user
-[ ] ajouter invite a discord dans le footer partout!
+[x] ajoute discord dans le footer partout avec le lins vers le discord !
+    et creer les page Privacy Terms et explique a quoi elle servent
+[x] je sais pas mais je crois que doit f5 pour toute les nouvelle modif d'un autre user ! cchiant 
+[ ] voir si c'est securiser l'updload des gens il peuvent aps upload des virus !
 
 ==============================================
 🟡 RIOT API INTEGRATION
@@ -25,6 +28,7 @@
 [ ] Amélioration profil: 3 champions préférés, icon LOL, rank, lane
 [ ] Voir comment faire l'analyse pour les joueurs
 [ ] Google OAuth (optionnel, après Riot)
+[ ] Gerer la recuperation du mots de passe via l'adresse mail (verification de l'addresse mail, et tout !)
 
 ==============================================
 🎮 MAP / TACTICAL BOARD - CORE FEATURES
@@ -41,15 +45,15 @@
 ==============================================
 [ ] Clean calendrier: slots personnalisés (17h23 → 19h37, pas limité à 30min)
 [ ] Pouvoir bouger un slot dans la journée (drag & drop)
-[ ] chaque joueurs mes ses slot et les slot ou tout le monde est dispo se mette en couleurs
+[x] chaque joueurs mes ses slot et les slot ou tout le monde est dispo se mette en couleurs
 [ ] prevoir un slot tout les jeudi boucle cron 
 
 ==============================================
 📊 ANALYTICS / DATA MANAGEMENT
 ==============================================
-[ ] Proposer script a dl pour faire des JSON à partir des .rofl
-[ ] Faire un guide pour uttiliser le script
-[ ] Guide utilisateur pour download + utilisation script
+[x] Proposer script a dl pour faire des JSON à partir des .rofl
+[x] Faire un guide pour uttiliser le script
+[x] Guide utilisateur pour download + utilisation script
 
 ==============================================
 🛡️ MONITORING & MAINTENANCE (MANDATORY)

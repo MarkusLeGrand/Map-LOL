@@ -6,6 +6,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -81,6 +82,17 @@ export default function TeamManagerPage() {
       setSelectedTeam(teams[0]);
     }
   }, [teams]);
+
+  // Auto-refresh team data every 30 seconds
+  useAutoRefresh({
+    onRefresh: () => {
+      if (isAuthenticated) {
+        getMyTeams();
+      }
+    },
+    interval: 30000, // 30 seconds
+    enabled: isAuthenticated
+  });
 
   const handleEditTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,9 +256,9 @@ export default function TeamManagerPage() {
         <Footer
           copyright="© 2025 OpenRift — Professional Tools Platform"
           links={[
-            { label: 'About', href: '#' },
-            { label: 'Privacy', href: '#' },
-            { label: 'Terms', href: '#' },
+            { label: 'About', href: '/about' },
+            { label: 'Privacy', href: '/privacy' },
+            { label: 'Terms', href: '/terms' },
           ]}
         />
       </div>
@@ -588,9 +600,9 @@ export default function TeamManagerPage() {
       <Footer
         copyright="© 2025 OpenRift — Professional Tools Platform"
         links={[
-          { label: 'About', href: '#' },
-          { label: 'Privacy', href: '#' },
-          { label: 'Terms', href: '#' },
+          { label: 'About', href: '/about' },
+          { label: 'Privacy', href: '/privacy' },
+          { label: 'Terms', href: '/terms' },
         ]}
       />
     </div>

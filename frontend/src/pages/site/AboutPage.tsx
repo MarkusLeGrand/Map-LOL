@@ -158,8 +158,8 @@ export default function AboutPage() {
                 copyright="© 2025 OpenRift — Professional Tools Platform"
                 links={[
                     { label: 'About', href: '/about' },
-                    { label: 'Privacy', href: '#' },
-                    { label: 'Terms', href: '#' },
+                    { label: 'Privacy', href: '/privacy' },
+                    { label: 'Terms', href: '/terms' },
                 ]}
             />
         </div>

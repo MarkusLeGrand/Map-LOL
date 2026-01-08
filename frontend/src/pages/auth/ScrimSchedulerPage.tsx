@@ -5,6 +5,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
 import { COLORS } from '../../constants/theme';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -86,6 +87,19 @@ export default function ScrimSchedulerPage() {
       loadTeamEvents();
     }
   }, [user, myTeam]);
+
+  // Auto-refresh calendar data every 30 seconds
+  useAutoRefresh({
+    onRefresh: () => {
+      if (user && myTeam) {
+        loadMySlots();
+        loadTeamAvailability();
+        loadTeamEvents();
+      }
+    },
+    interval: 30000, // 30 seconds
+    enabled: Boolean(user && myTeam)
+  });
 
   const loadMySlots = async () => {
     try {
@@ -1130,9 +1144,9 @@ export default function ScrimSchedulerPage() {
       <Footer
         copyright="© 2025 OpenRift — Professional Tools Platform"
         links={[
-          { label: 'About', href: '#' },
-          { label: 'Privacy', href: '#' },
-          { label: 'Terms', href: '#' },
+          { label: 'About', href: '/about' },
+          { label: 'Privacy', href: '/privacy' },
+          { label: 'Terms', href: '/terms' },
         ]}
       />
     </div>

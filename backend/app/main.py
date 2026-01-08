@@ -356,6 +356,34 @@ async def list_uploads():
         raise HTTPException(status_code=500, detail=f"Failed to list uploads: {str(e)}")
 
 
+@app.get("/api/download/{filename}")
+async def download_file(filename: str):
+    """Download script files (e.g., parse_rofl_direct.py)"""
+    try:
+        # Security: Only allow downloading specific whitelisted files
+        ALLOWED_FILES = ["parse_rofl_direct.py"]
+
+        if filename not in ALLOWED_FILES:
+            raise HTTPException(status_code=403, detail="File not allowed for download")
+
+        # Look for the file in the backend directory
+        file_path = BASE_DIR / filename
+
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="File not found")
+
+        return FileResponse(
+            path=str(file_path),
+            filename=filename,
+            media_type="text/x-python"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+
+
 # ===== Analytics Saving/Loading Endpoints =====
 
 # Constants for save limits
