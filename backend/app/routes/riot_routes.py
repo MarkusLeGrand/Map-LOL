@@ -228,11 +228,41 @@ async def sync_riot_data(
     """
     Manually sync summoner data from Riot API
     Refreshes rank, level, top champions, etc.
-    """
-    if not current_user.riot_puuid:
-        raise HTTPException(status_code=400, detail="No Riot account linked")
 
+    If user has riot_game_name but no riot_puuid, will verify first.
+    """
     try:
+        # Case 1: User has Riot ID but hasn't verified yet (no PUUID)
+        if not current_user.riot_puuid and current_user.riot_game_name and current_user.riot_tag_line:
+            print(f"🔄 User has Riot ID but no PUUID - verifying first...")
+
+            # Verify the account to get PUUID
+            verification_data = await riot_api_service.verify_summoner_exists(
+                game_name=current_user.riot_game_name,
+                tag_line=current_user.riot_tag_line,
+                region=current_user.riot_region or "europe",
+                platform=current_user.riot_platform or "EUW1"
+            )
+
+            account = verification_data["account"]
+            summoner = verification_data["summoner"]
+
+            # Update user with PUUID
+            current_user.riot_puuid = account["puuid"]
+            current_user.riot_game_name = account["gameName"]
+            current_user.riot_tag_line = account["tagLine"]
+            db.commit()
+
+            print(f"✅ Account verified, now syncing data...")
+
+        # Case 2: No Riot account linked at all
+        if not current_user.riot_puuid:
+            raise HTTPException(
+                status_code=400,
+                detail="No Riot account linked. Please add your Riot ID in Settings first."
+            )
+
+        # Sync the summoner data
         await sync_summoner_data(current_user.id, db)
 
         return {
@@ -240,7 +270,13 @@ async def sync_riot_data(
             "message": "Summoner data synced successfully"
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
+        db.rollback()
+        print(f"❌ Sync error: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
 
 
