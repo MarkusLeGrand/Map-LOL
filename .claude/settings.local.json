@@ -51,7 +51,12 @@
       "Bash(docker exec openrift-frontend sh -c \"grep -r ''getMyJoinRequests'' /usr/share/nginx/html/assets/ | head -5\")",
       "Bash(docker-compose down:*)",
       "Bash(copy:*)",
-      "Bash(docker ps:*)"
+      "Bash(docker ps:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker compose:*)",
+      "Bash(start \"\" \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(npx tsc:*)",
+      "Bash(awk:*)"
     ]
   }
 }

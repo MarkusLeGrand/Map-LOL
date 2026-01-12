@@ -1,10 +1,25 @@
 ==============================================
-🔴 URGENT - CRITICAL (À FAIRE CETTE SEMAINE)
+🔴 URGENT - CRITICAL AVANT PRODUCTION
 ==============================================
 [x] DÉSACTIVER /docs en production (SÉCURITÉ)
 [x] DELETE fichiers JSON analytics non-sauvés (gestion espace VPS)
 [x] Setup backup DB automatique (daily cron)
 [x] UptimeRobot monitoring (gratuit, 5min setup)
+
+🚨 BLOCKERS PRODUCTION - SÉCURITÉ:
+[x] Créer ProtectedRoute component (wrap /admin /dashboard /profile)
+[x] Ajouter rate limiting sur auth routes (@limiter.limit("5/minute") sur login/register)
+[x] Fix CORS production (remove allow_methods=["*"], allow_headers=["*"])
+[x] Vérifier permissions team (owner_id check avant edit/delete)
+[x] Ajouter auth check sur /api/list-uploads et /api/players-stats
+[x] Token refresh handling (auto logout après 24h)
+
+🚨 BLOCKERS PRODUCTION - UX CRITIQUE:
+[x] Error Boundary React + pages 404/500
+[x] Loading states: DashboardPage.loadSummonerData(), TeamManagerPage
+[x] Confirmation dialogs avant delete (team, analytics, account) - DÉJÀ FAIT
+[x] Empty states partout (teams list, invites, analytics) - DÉJÀ FAIT
+[x] Validation formulaires complète (team name, tag, lengths) - Hook créé + formulaires OK
 
 ==============================================
 🟠 HIGH PRIORITY - QUICK WINS
@@ -18,21 +33,32 @@
 [x] ajoute discord dans le footer partout avec le lins vers le discord !
     et creer les page Privacy Terms et explique a quoi elle servent
 [x] je sais pas mais je crois que doit f5 pour toute les nouvelle modif d'un autre user ! cchiant 
-[ ] voir si c'est securiser l'updload des gens il peuvent aps upload des virus !
+[x] mettre l'icon lol en haut a droite a la pace de logout ! 
+    menu deroulant avec team manager (My team) en page ! 
+    profils !
+    logout !
+[x] ajouter delete account a la page profils!
+[x] gros pb avec les favorite tool remmetre comme avatn !
+[x] reflechis au dashboard ! quoi mettre et tout !
+[x] ajouter le dashboard au menu deroulant du header ! 
+
 
 ==============================================
 🟡 RIOT API INTEGRATION
 ==============================================
 [ ] OAuth Riot - connexion via compte Riot
-[ ] Vérification compte LOL (si il existe via API)
-[ ] Amélioration profil: 3 champions préférés, icon LOL, rank, lane
-[ ] Voir comment faire l'analyse pour les joueurs
+[x] Vérification compte LOL (si il existe via API)
+[X] reagencer ces section pour plus de sytle!
+[x] Amélioration de team manager ! 3 champions préférés, icon LOL, rank, lane
+[x] page teams avec l'elo average et les role qu'il manque dans l'equipe !
+[ ] faire la vision des profils d'un user ! 
 [ ] Google OAuth (optionnel, après Riot)
 [ ] Gerer la recuperation du mots de passe via l'adresse mail (verification de l'addresse mail, et tout !)
+[ ] rajouter un lock team pour le owner et donc la team n'aaparait plus dans teams ! +impossible de rejoindre plusieur team a la fois
 
 ==============================================
 🎮 MAP / TACTICAL BOARD - CORE FEATURES
-==============================================
+==============================================`
 [ ] Pathing point par point (traits auto esquivant les murs)
 [ ] Gold gain tracker
 [ ] All maps (by drakes - différents terrains)
@@ -44,7 +70,6 @@
 📅 CALENDRIER / SCHEDULING
 ==============================================
 [ ] Clean calendrier: slots personnalisés (17h23 → 19h37, pas limité à 30min)
-[ ] Pouvoir bouger un slot dans la journée (drag & drop)
 [x] chaque joueurs mes ses slot et les slot ou tout le monde est dispo se mette en couleurs
 [ ] prevoir un slot tout les jeudi boucle cron 
 
@@ -62,6 +87,17 @@
 [x] Create backup restoration procedure
 [x] Document deployment process
 [ ] Set up CI/CD pipeline (GitHub Actions - optionnel)
+
+==============================================
+🎨 UX IMPROVEMENTS (NICE-TO-HAVE)
+==============================================
+[ ] Responsive design mobile (test + fix tailwind breakpoints)
+[ ] Code splitting React.lazy() + Suspense
+[ ] Image lazy loading (loading="lazy" decoding="async")
+[ ] SEO basique (meta tags, robots.txt, sitemap.xml)
+[ ] Skeleton loaders pour loading states
+[ ] Breadcrumbs navigation
+[ ] Active tab indication claire
 
 ==============================================
 📝 INFO À VÉRIFIER

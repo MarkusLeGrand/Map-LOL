@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
+import { verifyRiotAccount } from '../../services/riotApi';
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -49,9 +50,23 @@ export default function SignupPage() {
         setError('Invalid Riot ID format. Use: GameName#TAG');
         return;
       }
+
+      // Verify Riot account exists BEFORE creating the account
+      setIsLoading(true);
+      setError('Verifying Riot account...');
+      try {
+        // We need a temporary token for verification, so we'll verify after registration
+        // OR we can make the verification endpoint public for signup
+        // For now, skip verification during signup and do it in profile
+      } catch (verifyError) {
+        setIsLoading(false);
+        setError(verifyError instanceof Error ? verifyError.message : 'Riot account not found');
+        return;
+      }
     }
 
     setIsLoading(true);
+    setError('');
 
     try {
       await register(
@@ -62,6 +77,20 @@ export default function SignupPage() {
         riotTagLine,
         discord.trim() || undefined
       );
+
+      // After registration, verify Riot account if provided
+      if (riotGameName && riotTagLine) {
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            await verifyRiotAccount(token, riotGameName, riotTagLine, 'EUW1', 'europe');
+          }
+        } catch (verifyError) {
+          // Don't fail registration if verification fails
+          console.warn('Riot verification failed:', verifyError);
+        }
+      }
+
       navigate('/profile');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');

@@ -8,6 +8,8 @@ import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
 import { COLORS } from '../../constants/theme';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
+import { verifyRiotAccount, getSummonerData, syncRiotData, type SummonerData, type RiotAccount } from '../../services/riotApi';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -16,6 +18,10 @@ export default function ProfilePage() {
   const { teams, invites, createTeam, getMyTeams, acceptInvite, getMyInvites } = useTeam();
   const navigate = useNavigate();
   const toast = useToast();
+
+  const [summonerData, setSummonerData] = useState<SummonerData | null>(null);
+  const [riotAccount, setRiotAccount] = useState<RiotAccount | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const [isEditingRiot, setIsEditingRiot] = useState(false);
   const [isEditingDiscord, setIsEditingDiscord] = useState(false);
@@ -71,6 +77,26 @@ export default function ProfilePage() {
     getMyInvites();
   }, []);
 
+  useEffect(() => {
+    if (user?.riot_game_name) {
+      loadSummonerData();
+    }
+  }, [user?.riot_game_name]);
+
+  const loadSummonerData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const data = await getSummonerData(token);
+      console.log('Summoner data loaded:', data);
+      setSummonerData(data.summoner);
+      setRiotAccount(data.riot_account);
+    } catch (error) {
+      console.error('Failed to load summoner data:', error);
+    }
+  };
+
   // Auto-refresh invites and teams every 30 seconds
   useAutoRefresh({
     onRefresh: () => {
@@ -82,6 +108,46 @@ export default function ProfilePage() {
     interval: 30000,
     enabled: Boolean(user)
   });
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast?.error('Not authenticated');
+        return;
+      }
+
+      await syncRiotData(token);
+      toast?.success('Summoner data synced successfully!');
+      await loadSummonerData();
+    } catch (error) {
+      console.error('Failed to sync data:', error);
+      toast?.error(error instanceof Error ? error.message : 'Failed to sync data');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const needsUpdate = () => {
+    if (!summonerData?.last_synced) return false;
+    const lastSync = new Date(summonerData.last_synced);
+    const now = new Date();
+    const hoursSinceSync = (now.getTime() - lastSync.getTime()) / (1000 * 60 * 60);
+    return hoursSinceSync >= 48; // 48 hours = 2 days
+  };
+
+  const getTimeSinceUpdate = () => {
+    if (!summonerData?.last_synced) return '';
+    const lastSync = new Date(summonerData.last_synced);
+    const now = new Date();
+    const hoursSinceSync = (now.getTime() - lastSync.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceSync < 1) return 'Updated recently';
+    if (hoursSinceSync < 24) return `Updated ${Math.floor(hoursSinceSync)}h ago`;
+    const days = Math.floor(hoursSinceSync / 24);
+    return `Updated ${days}d ago`;
+  };
 
   const handleSaveProfile = async () => {
     try {
@@ -143,6 +209,16 @@ export default function ProfilePage() {
       const riot_game_name = parts[0].trim();
       const riot_tag_line = parts[1].trim();
 
+      // STEP 1: Verify the Riot account exists via Riot API
+      toast?.info('Verifying Riot account...');
+      try {
+        await verifyRiotAccount(token, riot_game_name, riot_tag_line, 'EUW1', 'europe');
+      } catch (verifyError) {
+        toast?.error(verifyError instanceof Error ? verifyError.message : 'Riot account not found');
+        return; // Stop if verification fails
+      }
+
+      // STEP 2: If verification succeeded, update user profile
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'PUT',
         headers: {
@@ -162,8 +238,11 @@ export default function ProfilePage() {
 
       const updatedUser = await response.json();
       updateUser(updatedUser);
-      toast?.success('Riot account updated successfully');
+      toast?.success('Riot account updated and verified successfully!');
       setIsEditingRiot(false);
+
+      // Reload summoner data
+      await loadSummonerData();
     } catch (error) {
       console.error('Failed to update Riot account:', error);
       toast?.error(error instanceof Error ? error.message : 'Failed to update Riot account');
@@ -264,30 +343,39 @@ export default function ProfilePage() {
     }
   };
 
-  const handleLeaveTeam = async () => {
-    if (!myTeam || !window.confirm('Are you sure you want to leave this team?')) return;
-
-    // TODO: Implement API call to leave team
-    const token = localStorage.getItem('token');
+  const handleDeleteAccount = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/teams/${myTeam.id}/leave`, {
-        method: 'POST',
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast?.error('Not authenticated');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
-      if (response.ok) {
-        getMyTeams();
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to delete account');
       }
+
+      toast?.success('Account deleted successfully');
+      logout();
+      navigate('/');
     } catch (error) {
-      console.error('Failed to leave team:', error);
+      console.error('Failed to delete account:', error);
+      toast?.error(error instanceof Error ? error.message : 'Failed to delete account');
+    } finally {
+      setConfirmDialog({ ...confirmDialog, show: false });
     }
   };
 
   // Get user's main team (first team they're in)
   const myTeam = teams.length > 0 ? teams[0] : null;
-  const isTeamOwner = myTeam?.owner_id === user?.id;
 
   return (
     <div className="min-h-screen bg-[#0E0E0E] flex flex-col overflow-x-hidden" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -300,404 +388,450 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <div className="border-b border-[#F5F5F5]/10 py-16">
         <div className="max-w-[1600px] mx-auto px-12">
-          <div>
-            {/* Tag + Username */}
-            <h1 className="text-[#F5F5F5] text-6xl font-bold mb-4">
-              {myTeam?.tag && (
-                <span style={{ color: myTeam.team_color }}>{myTeam.tag} </span>
+          <div className="flex gap-8 items-start">
+            {/* Profile Picture - League Icon */}
+            <div className="flex-shrink-0">
+              {summonerData?.profile_icon_id ? (
+                <ImageWithFallback
+                  src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${summonerData.profile_icon_id}.png`}
+                  alt="Profile Icon"
+                  fallbackType="profile"
+                  className="w-40 h-40 rounded-lg border-2 border-[#F5F5F5]/20"
+                  style={{ width: '10rem', height: '10rem' }}
+                />
+              ) : (
+                <div className="w-40 h-40 rounded-lg border-2 border-[#F5F5F5]/20 bg-[#F5F5F5]/5 flex items-center justify-center">
+                  <span className="text-[#F5F5F5]/40 text-4xl font-bold">
+                    {user?.username?.substring(0, 2).toUpperCase()}
+                  </span>
+                </div>
               )}
-              {user?.username}
-            </h1>
+            </div>
 
-            {/* Riot ID */}
-            <p className="text-[#F5F5F5]/60 text-2xl mb-6">
-              {user?.riot_game_name && user?.riot_tag_line
-                ? `${user.riot_game_name}#${user.riot_tag_line}`
-                : 'No Riot ID set'}
-            </p>
+            {/* Info Section */}
+            <div className="flex-1">
+              {/* Tag + Username */}
+              <h1 className="text-[#F5F5F5] text-6xl font-bold mb-4">
+                {myTeam?.tag && (
+                  <span style={{ color: myTeam.team_color }}>{myTeam.tag} </span>
+                )}
+                {user?.username}
+              </h1>
 
-            {/* Stats Bar */}
-            <div className="flex items-center gap-8 mt-6">
-              <div className="flex items-center gap-3">
-                <span className="text-[#F5F5F5]/40 text-sm uppercase tracking-wider">Team:</span>
-                <span className="text-[#F5F5F5] text-base font-semibold">
-                  {myTeam ? myTeam.name : 'No team'}
-                </span>
-              </div>
-              <div className="w-px h-5 bg-[#F5F5F5]/20"></div>
-              <div className="flex items-center gap-3">
-                <span className="text-[#F5F5F5]/40 text-sm uppercase tracking-wider">Status:</span>
-                <span className="text-[#F5F5F5] text-base font-semibold">
-                  {isTeamOwner ? 'Owner' : 'Member'}
-                </span>
-              </div>
-              <div className="w-px h-5 bg-[#F5F5F5]/20"></div>
-              <div className="flex items-center gap-3">
-                <span className="text-[#F5F5F5]/40 text-sm uppercase tracking-wider">Favorite Tools:</span>
-                <span className="text-[#F5F5F5] text-base font-semibold">
-                  {user?.favorite_tools?.length || 0}
-                </span>
+              {/* Riot ID */}
+              <p className="text-[#F5F5F5]/60 text-2xl mb-6">
+                {user?.riot_game_name && user?.riot_tag_line
+                  ? `${user.riot_game_name}#${user.riot_tag_line}`
+                  : 'No Riot ID set'}
+              </p>
+
+              {/* First Stats Line: Role, Team, Rank, Level */}
+              <div className="flex items-center gap-6">
+                {/* Role */}
+                {summonerData?.preferred_lane && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#F5F5F5]/40 text-sm uppercase tracking-wider">Role:</span>
+                      <ImageWithFallback
+                        src={`/riot/role/${summonerData.preferred_lane === 'BOT' ? 'Bottom' : summonerData.preferred_lane === 'MID' ? 'Middle' : summonerData.preferred_lane.charAt(0) + summonerData.preferred_lane.slice(1).toLowerCase()}_icon.png`}
+                        alt={summonerData.preferred_lane}
+                        fallbackType="champion"
+                        className="w-8 h-8"
+                        style={{ width: '2rem', height: '2rem' }}
+                      />
+                      <span className="text-[#F5F5F5] text-base font-semibold">
+                        {summonerData.preferred_lane}
+                      </span>
+                    </div>
+                    <div className="w-px h-5 bg-[#F5F5F5]/20"></div>
+                  </>
+                )}
+
+                {/* Team */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[#F5F5F5]/40 text-sm uppercase tracking-wider">Team:</span>
+                  <span className="text-[#F5F5F5] text-base font-semibold">
+                    {myTeam ? myTeam.name : 'No team'}
+                  </span>
+                </div>
+
+                {/* Rank with BIG Icon */}
+                {summonerData?.solo_tier && summonerData?.solo_rank && (
+                  <>
+                    <div className="w-px h-5 bg-[#F5F5F5]/20"></div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#F5F5F5]/40 text-sm uppercase tracking-wider">Rank:</span>
+                      <ImageWithFallback
+                        src={`/riot/Season_2022_-_${summonerData.solo_tier.charAt(0).toUpperCase() + summonerData.solo_tier.slice(1).toLowerCase()}.png`}
+                        alt={summonerData.solo_tier}
+                        fallbackType="champion"
+                        className="w-12 h-12"
+                        style={{ width: '3rem', height: '3rem' }}
+                      />
+                      <span className="text-[#F5F5F5] text-base font-semibold">
+                        {summonerData.solo_tier} {summonerData.solo_rank}
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {/* Level */}
+                <div className="w-px h-5 bg-[#F5F5F5]/20"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#F5F5F5]/40 text-sm uppercase tracking-wider">Level:</span>
+                  <span className="text-[#F5F5F5] text-base font-semibold">
+                    {summonerData?.summoner_level || 'N/A'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - Single Unified Section */}
       <div className="flex-1 py-16">
         <div className="max-w-[1600px] mx-auto px-12">
-          <div className="grid grid-cols-3 gap-8">
-
-            {/* Left Column - Personal Info */}
-            <div className="col-span-1 space-y-6">
-
-              {/* Account Info */}
-              <div className="border border-[#F5F5F5]/10 p-6 bg-[#F5F5F5]/[0.02]">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-[#F5F5F5] text-xl font-semibold">Account</h2>
-                  {!isEditingProfile && (
-                    <button
-                      onClick={() => setIsEditingProfile(true)}
-                      className="text-[#3D7A5F] text-sm hover:text-[#3D7A5F]/80 transition-colors"
-                    >
-                      Edit
-                    </button>
-                  )}
-                </div>
-
-                {isEditingProfile ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">USERNAME</label>
-                      <input
-                        type="text"
-                        value={profileFormData.username}
-                        onChange={(e) => setProfileFormData({ ...profileFormData, username: e.target.value })}
-                        className="w-full px-3 py-2 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] text-sm focus:outline-none focus:border-[#3D7A5F] rounded"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">EMAIL</label>
-                      <input
-                        type="email"
-                        value={profileFormData.email}
-                        onChange={(e) => setProfileFormData({ ...profileFormData, email: e.target.value })}
-                        className="w-full px-3 py-2 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] text-sm focus:outline-none focus:border-[#3D7A5F] rounded"
-                      />
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <button
-                        onClick={() => setIsEditingProfile(false)}
-                        className="flex-1 px-4 py-2 bg-[#F5F5F5]/5 text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSaveProfile}
-                        className="flex-1 px-4 py-2 bg-[#3D7A5F] text-[#F5F5F5] text-sm hover:bg-[#3D7A5F]/90 transition-colors rounded"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">USERNAME</label>
-                      <p className="text-[#F5F5F5] text-base">{user?.username}</p>
-                    </div>
-                    <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">EMAIL</label>
-                      <p className="text-[#F5F5F5] text-base">{user?.email}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Change Password Button */}
-                <div className="mt-6 pt-6 border-t border-[#F5F5F5]/10">
-                  <button
-                    onClick={() => setShowChangePasswordModal(true)}
-                    className="w-full px-4 py-2.5 bg-[#F5F5F5]/5 text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded border border-[#F5F5F5]/10"
-                  >
-                    Change Password
-                  </button>
-                </div>
-              </div>
-
-              {/* Riot Account */}
-              <div className="border border-[#F5F5F5]/10 p-6 bg-[#F5F5F5]/[0.02]">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-[#F5F5F5] text-xl font-semibold">Riot Account</h2>
-                  {!isEditingRiot && (
-                    <button
-                      onClick={() => setIsEditingRiot(true)}
-                      className="text-[#3D7A5F] text-sm hover:text-[#3D7A5F]/80 transition-colors"
-                    >
-                      Edit
-                    </button>
-                  )}
-                </div>
-
-                {isEditingRiot ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">RIOT ID</label>
-                      <input
-                        type="text"
-                        value={riotFormData.riot_id}
-                        onChange={(e) => setRiotFormData({ riot_id: e.target.value })}
-                        className="w-full px-3 py-2 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] text-sm focus:outline-none focus:border-[#3D7A5F] rounded"
-                        placeholder="GameName#TAG"
-                      />
-                      <p className="text-[#F5F5F5]/40 text-xs mt-2">Format: GameName#TAG (ex: Faker#KR1)</p>
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <button
-                        onClick={() => {
-                          setIsEditingRiot(false);
-                          setRiotFormData({
-                            riot_id: user?.riot_game_name && user?.riot_tag_line
-                              ? `${user.riot_game_name}#${user.riot_tag_line}`
-                              : '',
-                          });
-                        }}
-                        className="flex-1 px-4 py-2 bg-[#F5F5F5]/5 text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSaveRiot}
-                        className="flex-1 px-4 py-2 bg-[#3D7A5F] text-[#F5F5F5] text-sm hover:bg-[#3D7A5F]/90 transition-colors rounded"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">RIOT ID</label>
-                      <p className="text-[#F5F5F5] text-base">
-                        {user?.riot_game_name && user?.riot_tag_line
-                          ? `${user.riot_game_name}#${user.riot_tag_line}`
-                          : 'Not set'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Discord */}
-              <div className="border border-[#F5F5F5]/10 p-6 bg-[#F5F5F5]/[0.02]">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-[#F5F5F5] text-xl font-semibold">Discord</h2>
-                  {!isEditingDiscord && (
-                    <button
-                      onClick={() => setIsEditingDiscord(true)}
-                      className="text-[#3D7A5F] text-sm hover:text-[#3D7A5F]/80 transition-colors"
-                    >
-                      Edit
-                    </button>
-                  )}
-                </div>
-
-                {isEditingDiscord ? (
-                  <form onSubmit={handleUpdateDiscord} className="space-y-4">
-                    <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">DISCORD USERNAME</label>
-                      <input
-                        type="text"
-                        value={discordFormData.discord}
-                        onChange={(e) => setDiscordFormData({ discord: e.target.value })}
-                        className="w-full px-3 py-2 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] text-sm focus:outline-none focus:border-[#3D7A5F] rounded"
-                        placeholder="username#1234"
-                      />
-                      <p className="text-[#F5F5F5]/40 text-xs mt-2">Visible to your team members</p>
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditingDiscord(false);
-                          setDiscordFormData({
-                            discord: user?.discord || '',
-                          });
-                        }}
-                        className="flex-1 px-4 py-2 bg-[#F5F5F5]/5 text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="flex-1 px-4 py-2 bg-[#3D7A5F] text-[#F5F5F5] text-sm hover:bg-[#3D7A5F]/90 transition-colors rounded"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-[#F5F5F5]/50 text-xs mb-2">DISCORD USERNAME</label>
-                      <p className="text-[#F5F5F5] text-base">
-                        {user?.discord || 'Not set'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Team Invitations */}
-              {invites.length > 0 && (
-                <div className="border border-[#3D7A5F]/30 p-6 bg-[#3D7A5F]/[0.08]">
-                  <h3 className="text-[#F5F5F5] text-lg font-semibold mb-4">Invitations ({invites.length})</h3>
-                  <div className="space-y-3">
-                    {invites.map((invite) => (
-                      <div key={invite.id} className="p-4 bg-[#0E0E0E]/50 border border-[#3D7A5F]/20 rounded">
-                        <p className="text-[#F5F5F5] font-medium mb-1">{invite.team_name}</p>
-                        <p className="text-[#F5F5F5]/50 text-xs mb-3">as {invite.role}</p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleAcceptInvite(invite.id)}
-                            className="flex-1 px-3 py-2 bg-[#3D7A5F] text-[#F5F5F5] text-sm hover:bg-[#3D7A5F]/90 transition-colors rounded"
-                          >
-                            Accept
-                          </button>
-                          <button className="flex-1 px-3 py-2 bg-[#F5F5F5]/5 text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded">
-                            Decline
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Logout */}
-              <button
-                onClick={logout}
-                className="w-full px-4 py-3 text-[#F5F5F5] font-medium transition-colors rounded"
-                style={{ backgroundColor: COLORS.danger }}
-              >
-                Logout
-              </button>
+          <div className="border border-[#F5F5F5]/10 bg-[#F5F5F5]/[0.02] overflow-hidden">
+            {/* Main Header */}
+            <div className="px-6 py-4 border-b border-[#F5F5F5]/10 bg-[#F5F5F5]/[0.02]">
+              <h2 className="text-[#F5F5F5] text-xl font-semibold tracking-wide">PROFILE SETTINGS</h2>
             </div>
 
-            {/* Right Column - Team Management */}
-            <div className="col-span-2">
-              <div className="border border-[#F5F5F5]/10 p-8 bg-[#F5F5F5]/[0.02]">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-[#F5F5F5] text-2xl font-bold">My Team</h2>
-                  {!myTeam && (
-                    <button
-                      onClick={() => setShowCreateTeamModal(true)}
-                      className="px-6 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded"
-                    >
-                      Create Team
-                    </button>
-                  )}
-                </div>
-
-                {myTeam ? (
-                  <div className="space-y-8">
-                    {/* Team Header */}
-                    <div className="flex items-center justify-between pb-6 border-b border-[#F5F5F5]/10">
-                      <div className="flex items-center gap-6">
+            <div className="grid grid-cols-12">
+              {/* Left Column - Team Section */}
+              <div className="col-span-5 p-6 border-r border-[#F5F5F5]/10 flex flex-col">
+                <div className="flex-1">
+                  <h3 className="text-[#F5F5F5]/80 text-sm font-semibold uppercase tracking-wider mb-5">My Team</h3>
+                  {myTeam ? (
+                    <div className="space-y-5">
+                      {/* Team Info */}
+                      <div className="flex items-center gap-4">
                         <div
-                          className="w-20 h-20 rounded-lg flex items-center justify-center text-[#F5F5F5] font-bold text-3xl shadow-lg"
+                          className="w-14 h-14 rounded-lg flex items-center justify-center text-[#F5F5F5] font-bold text-xl shadow-lg flex-shrink-0"
                           style={{ backgroundColor: myTeam.team_color }}
                         >
                           {myTeam.tag || myTeam.name.charAt(0)}
                         </div>
-                        <div>
-                          <h3 className="text-[#F5F5F5] text-3xl font-bold mb-2">
+                        <div className="flex-1">
+                          <h4 className="text-[#F5F5F5] text-lg font-bold mb-1">
                             {myTeam.name}
-                          </h3>
-                          <p className="text-[#F5F5F5]/60">{myTeam.description || 'No description'}</p>
+                          </h4>
+                          <p className="text-[#F5F5F5]/60 text-sm">{myTeam.description || 'No description'}</p>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Members */}
-                    <div>
-                      <h4 className="text-[#F5F5F5]/60 text-sm font-medium mb-4 uppercase tracking-wider">
-                        Members ({myTeam.member_count})
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        {myTeam.members.map((member) => {
-                          const isMemberOwner = member.id === myTeam.owner_id;
-                          const isCurrentUser = member.id === user?.id;
-                          const canManage = isTeamOwner && !isCurrentUser && !isMemberOwner;
-
-                          return (
-                            <div
-                              key={member.id}
-                              className="flex items-center gap-3 p-4 bg-[#F5F5F5]/[0.03] border border-[#F5F5F5]/10 rounded-lg hover:bg-[#F5F5F5]/[0.05] transition-colors group"
-                            >
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[#F5F5F5] font-medium truncate">
-                                  {myTeam.tag && (
-                                    <span style={{ color: myTeam.team_color }} className="font-bold">
-                                      {myTeam.tag}{' '}
-                                    </span>
-                                  )}
-                                  {member.username}
-                                </p>
-                                {member.riot_game_name && member.riot_tag_line && (
-                                  <p className="text-[#F5F5F5]/50 text-xs mt-0.5">
-                                    {member.riot_game_name}#{member.riot_tag_line}
-                                  </p>
-                                )}
-                              </div>
-
-                            </div>
-                          );
-                        })}
+                      {/* Actions */}
+                      <div className="space-y-2.5">
+                        <button
+                          onClick={() => navigate('/team-manager')}
+                          className="w-full px-5 py-2.5 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded text-sm"
+                        >
+                          Open Team Manager
+                        </button>
                       </div>
                     </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-4 pt-6 border-t border-[#F5F5F5]/10">
+                  ) : (
+                    <div className="text-center py-10">
+                      <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-[#F5F5F5]/5 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-[#F5F5F5]/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                      <h4 className="text-[#F5F5F5] text-base font-semibold mb-1.5">No Team Yet</h4>
+                      <p className="text-[#F5F5F5]/50 text-xs mb-5">
+                        Create your own team or wait for an invitation
+                      </p>
                       <button
-                        onClick={() => navigate('/team-manager')}
-                        className="flex-1 px-6 py-4 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded-lg"
+                        onClick={() => setShowCreateTeamModal(true)}
+                        className="px-5 py-2.5 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded text-sm"
                       >
-                        Open Team Manager
+                        Create Team
                       </button>
-                      {!isTeamOwner && (
+                    </div>
+                  )}
+
+                  {/* Team Invitations - Integrated */}
+                  {invites.length > 0 && (
+                    <div className="pt-6 mt-6 border-t border-[#F5F5F5]/10">
+                      <h3 className="text-[#F5F5F5]/80 text-sm font-semibold uppercase tracking-wider mb-4">
+                        Team Invitations ({invites.length})
+                      </h3>
+                      <div className="space-y-3">
+                        {invites.map((invite) => (
+                          <div key={invite.id} className="p-3.5 bg-[#3D7A5F]/10 border border-[#3D7A5F]/20 rounded">
+                            <p className="text-[#F5F5F5] font-semibold text-sm mb-0.5">{invite.team_name}</p>
+                            <p className="text-[#F5F5F5]/50 text-xs mb-2.5">as {invite.role}</p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleAcceptInvite(invite.id)}
+                                className="flex-1 px-3 py-1.5 bg-[#3D7A5F] text-[#F5F5F5] text-xs hover:bg-[#3D7A5F]/90 transition-colors rounded font-medium"
+                              >
+                                Accept
+                              </button>
+                              <button className="flex-1 px-3 py-1.5 bg-[#F5F5F5]/5 text-[#F5F5F5] text-xs hover:bg-[#F5F5F5]/10 transition-colors rounded">
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Riot Games Section */}
+                  <div className="pt-6 mt-6 border-t border-[#F5F5F5]/10">
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-[#F5F5F5]/80 text-sm font-semibold uppercase tracking-wider">Riot Games</h3>
+                      {!isEditingRiot && (
                         <button
-                          onClick={handleLeaveTeam}
-                          className="px-6 py-4 border transition-colors rounded-lg"
-                          style={{
-                            backgroundColor: `${COLORS.danger}1A`,
-                            color: COLORS.danger,
-                            borderColor: `${COLORS.danger}4D`
-                          }}
+                          onClick={() => setIsEditingRiot(true)}
+                          className="text-[#3D7A5F] text-sm hover:text-[#3D7A5F]/80 transition-colors font-medium"
                         >
-                          Leave Team
+                          Edit
                         </button>
                       )}
                     </div>
+
+                    {isEditingRiot ? (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-[#F5F5F5]/50 text-xs uppercase tracking-wider mb-2">Riot ID</label>
+                          <input
+                            type="text"
+                            value={riotFormData.riot_id}
+                            onChange={(e) => setRiotFormData({ riot_id: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] rounded"
+                            placeholder="GameName#TAG"
+                          />
+                          <p className="text-[#F5F5F5]/40 text-xs mt-2">Format: GameName#TAG (ex: Faker#KR1)</p>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <button
+                            onClick={() => {
+                              setIsEditingRiot(false);
+                              setRiotFormData({
+                                riot_id: user?.riot_game_name && user?.riot_tag_line
+                                  ? `${user.riot_game_name}#${user.riot_tag_line}`
+                                  : '',
+                              });
+                            }}
+                            className="flex-1 px-4 py-2.5 bg-[#F5F5F5]/5 text-[#F5F5F5] hover:bg-[#F5F5F5]/10 transition-colors rounded"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleSaveRiot}
+                            className="flex-1 px-4 py-2.5 bg-[#3D7A5F] text-[#F5F5F5] hover:bg-[#3D7A5F]/90 transition-colors rounded font-medium"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-[#F5F5F5]/50 text-xs uppercase tracking-wider mb-2">Riot ID</label>
+                          <p className="text-[#F5F5F5] text-base font-medium">
+                            {user?.riot_game_name && user?.riot_tag_line
+                              ? `${user.riot_game_name}#${user.riot_tag_line}`
+                              : 'Not set'}
+                          </p>
+                        </div>
+
+                        {/* Sync Button - only show if user has Riot ID */}
+                        {user?.riot_game_name && user?.riot_tag_line && summonerData && (
+                          <div className="flex items-center justify-between pt-2">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[#F5F5F5]/50 text-xs">
+                                {getTimeSinceUpdate() || 'Never synced'}
+                              </span>
+                            </div>
+                            <button
+                              onClick={handleSync}
+                              disabled={isSyncing}
+                              className="px-4 py-2 rounded font-medium text-sm transition-all relative"
+                              style={{
+                                backgroundColor: needsUpdate() ? '#D4A855' : 'rgba(61, 122, 95, 0.2)',
+                                color: needsUpdate() ? '#F5F5F5' : '#3D7A5F',
+                                border: needsUpdate() ? '1px solid #D4A855' : '1px solid #3D7A5F',
+                                cursor: isSyncing ? 'not-allowed' : 'pointer',
+                                opacity: isSyncing ? 0.6 : 1,
+                              }}
+                            >
+                              {isSyncing ? 'Syncing...' : '↻ Sync Data'}
+                              {needsUpdate() && !isSyncing && (
+                                <span
+                                  className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
+                                  style={{
+                                    backgroundColor: '#E74C3C',
+                                    border: '2px solid #1A1A1A'
+                                  }}
+                                />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-center py-16">
-                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[#F5F5F5]/5 flex items-center justify-center">
-                      <svg className="w-12 h-12 text-[#F5F5F5]/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
+                </div>
+              </div>
+
+              {/* Right Column - Account & Discord Settings */}
+              <div className="col-span-7 p-6">
+                {/* Account Info Section */}
+                <div className="mb-6 pb-6 border-b border-[#F5F5F5]/10">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-[#F5F5F5]/80 text-sm font-semibold uppercase tracking-wider">Account Information</h3>
+                    {!isEditingProfile && (
+                      <button
+                        onClick={() => setIsEditingProfile(true)}
+                        className="text-[#3D7A5F] text-sm hover:text-[#3D7A5F]/80 transition-colors font-medium"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingProfile ? (
+                    <div className="space-y-5">
+                      <div>
+                        <label className="block text-[#F5F5F5]/50 text-xs uppercase tracking-wider mb-2">Username</label>
+                        <input
+                          type="text"
+                          value={profileFormData.username}
+                          onChange={(e) => setProfileFormData({ ...profileFormData, username: e.target.value })}
+                          className="w-full px-4 py-2.5 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[#F5F5F5]/50 text-xs uppercase tracking-wider mb-2">Email</label>
+                        <input
+                          type="email"
+                          value={profileFormData.email}
+                          onChange={(e) => setProfileFormData({ ...profileFormData, email: e.target.value })}
+                          className="w-full px-4 py-2.5 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] rounded"
+                        />
+                      </div>
+                      <div className="flex gap-3 pt-3">
+                        <button
+                          onClick={() => setIsEditingProfile(false)}
+                          className="flex-1 px-4 py-2.5 bg-[#F5F5F5]/5 text-[#F5F5F5] hover:bg-[#F5F5F5]/10 transition-colors rounded"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleSaveProfile}
+                          className="flex-1 px-4 py-2.5 bg-[#3D7A5F] text-[#F5F5F5] hover:bg-[#3D7A5F]/90 transition-colors rounded font-medium"
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
-                    <h3 className="text-[#F5F5F5] text-2xl font-semibold mb-3">No Team Yet</h3>
-                    <p className="text-[#F5F5F5]/50 mb-8 max-w-md mx-auto">
-                      Create your own team or wait for an invitation to join one
-                    </p>
-                    <button
-                      onClick={() => setShowCreateTeamModal(true)}
-                      className="px-8 py-4 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded-lg"
-                    >
-                      Create Your Team
-                    </button>
+                  ) : (
+                    <div className="space-y-5">
+                      <div>
+                        <label className="block text-[#F5F5F5]/50 text-xs uppercase tracking-wider mb-2">Username</label>
+                        <p className="text-[#F5F5F5] text-base font-medium">{user?.username}</p>
+                      </div>
+                      <div>
+                        <label className="block text-[#F5F5F5]/50 text-xs uppercase tracking-wider mb-2">Email</label>
+                        <p className="text-[#F5F5F5] text-base font-medium">{user?.email}</p>
+                      </div>
+                      <div className="pt-2">
+                        <button
+                          onClick={() => setShowChangePasswordModal(true)}
+                          className="w-full px-4 py-2.5 bg-[#F5F5F5]/5 text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded border border-[#F5F5F5]/10 font-medium"
+                        >
+                          Change Password
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Discord Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-[#F5F5F5]/80 text-sm font-semibold uppercase tracking-wider">Discord</h3>
+                    {!isEditingDiscord && (
+                      <button
+                        onClick={() => setIsEditingDiscord(true)}
+                        className="text-[#3D7A5F] text-sm hover:text-[#3D7A5F]/80 transition-colors font-medium"
+                      >
+                        Edit
+                      </button>
+                    )}
                   </div>
-                )}
+
+                  {isEditingDiscord ? (
+                    <form onSubmit={handleUpdateDiscord} className="space-y-4">
+                      <div>
+                        <label className="block text-[#F5F5F5]/50 text-xs uppercase tracking-wider mb-2">Discord Username</label>
+                        <input
+                          type="text"
+                          value={discordFormData.discord}
+                          onChange={(e) => setDiscordFormData({ discord: e.target.value })}
+                          className="w-full px-4 py-2.5 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] rounded"
+                          placeholder="username#1234"
+                        />
+                        <p className="text-[#F5F5F5]/40 text-xs mt-2">Visible to your team members</p>
+                      </div>
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingDiscord(false);
+                            setDiscordFormData({
+                              discord: user?.discord || '',
+                            });
+                          }}
+                          className="flex-1 px-4 py-2.5 bg-[#F5F5F5]/5 text-[#F5F5F5] hover:bg-[#F5F5F5]/10 transition-colors rounded"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 px-4 py-2.5 bg-[#3D7A5F] text-[#F5F5F5] hover:bg-[#3D7A5F]/90 transition-colors rounded font-medium"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div>
+                      <label className="block text-[#F5F5F5]/50 text-xs uppercase tracking-wider mb-2">Discord Username</label>
+                      <p className="text-[#F5F5F5] text-base font-medium">
+                        {user?.discord || 'Not set'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Danger Zone - Delete Account */}
+                <div className="pt-6 mt-6 border-t border-[#F5F5F5]/10">
+                  <h3 className="text-[#F5F5F5]/80 text-sm font-semibold uppercase tracking-wider mb-4">Danger Zone</h3>
+                  <button
+                    onClick={() => {
+                      setConfirmDialog({
+                        show: true,
+                        title: 'Delete Account',
+                        message: 'Are you sure you want to delete your account? This action cannot be undone. All your data, including teams and statistics, will be permanently deleted.',
+                        type: 'danger',
+                        onConfirm: handleDeleteAccount
+                      });
+                    }}
+                    className="w-full px-4 py-3 border transition-colors text-left font-medium"
+                    style={{
+                      backgroundColor: `${COLORS.danger}1A`,
+                      color: COLORS.danger,
+                      borderColor: `${COLORS.danger}4D`
+                    }}
+                  >
+                    Delete Account
+                  </button>
+                </div>
               </div>
             </div>
           </div>

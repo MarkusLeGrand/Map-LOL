@@ -1,24 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTeam } from '../contexts/TeamContext';
+import { useTeam, type Team as TeamType } from '../contexts/TeamContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
 import { TeamCard } from '../components/ui/TeamCard';
 
-interface Team {
-  id: string;
-  name: string;
-  tag?: string;
-  description?: string;
-  owner_id: string;
-  created_at: string;
-  team_color: string;
-  max_members: string;
-  member_count: number;
-  members: any[];
-}
+type Team = TeamType;
 
 export default function TeamsPage() {
   const navigate = useNavigate();
@@ -160,6 +149,7 @@ export default function TeamsPage() {
                 maxMembers={team.max_members}
                 color={team.team_color}
                 createdAt={team.created_at}
+                members={team.members}
                 onRequestJoin={() => handleRequestJoin(team.id, team.name)}
               />
             ))}

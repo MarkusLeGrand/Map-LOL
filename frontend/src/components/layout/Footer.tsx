@@ -26,7 +26,7 @@ export function Footer({
 
     return (
         <footer className="border-t border-[#F5F5F5]/10 py-8">
-            <div className={`max-w-[${SPACING.containerMaxWidth}] mx-auto ${SPACING.containerPadding} flex items-center justify-between`}>
+            <div className="w-full px-12 flex items-center justify-between">
                 <p className="text-[#F5F5F5]/30 text-xs tracking-wide">
                     {copyright}
                 </p>

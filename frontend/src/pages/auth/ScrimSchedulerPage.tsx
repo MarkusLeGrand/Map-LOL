@@ -455,7 +455,8 @@ export default function ScrimSchedulerPage() {
   };
 
   const weekDays = getWeekDays(selectedDate);
-  const hours = Array.from({ length: 16 }, (_, i) => i + 8);
+  // Hours: 10-23, then 0-1 (10am to 1am next day)
+  const hours = [...Array.from({ length: 14 }, (_, i) => i + 10), 0, 1];
 
   const getSlotForCell = (slots: AvailabilitySlot[], day: Date, hour: number) => {
     return slots.filter((slot) => {
@@ -511,34 +512,15 @@ export default function ScrimSchedulerPage() {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Calculate slot position and dimensions for absolute positioning
-  const getSlotStyle = (slot: AvailabilitySlot, dayIndex: number) => {
-    const startTime = new Date(slot.start_time);
-    const endTime = new Date(slot.end_time);
-
-    const startHour = startTime.getHours();
-    const endHour = endTime.getHours();
-
-    // Row index (0-15 for hours 8-23)
-    const rowStart = startHour - 8;
-    const rowEnd = endHour - 8;
-    const rowSpan = rowEnd - rowStart;
-
-    // Each cell is 60px tall, time column is 100px wide, each day column is calculated
-    const dayColumnWidth = `calc((100% - 100px) / 7)`;
-    const left = `calc(100px + ${dayIndex} * ${dayColumnWidth})`;
-    const top = `${rowStart * 60}px`;
-    const height = `${rowSpan * 60}px`;
-    const width = dayColumnWidth;
-
-    return {
-      position: 'absolute' as const,
-      left,
-      top,
-      width,
-      height,
-      zIndex: 10,
-    };
+  // Map hour (0-23) to row index in calendar
+  // Hours displayed: 10, 11, 12, ..., 23, 0, 1
+  const getHourIndex = (hour: number) => {
+    if (hour >= 10 && hour <= 23) {
+      return hour - 10; // 10->0, 11->1, ..., 23->13
+    }
+    if (hour === 0) return 14; // 0 (midnight) comes after 23
+    if (hour === 1) return 15; // 1am comes after midnight
+    return 0; // Fallback for hours 2-9 (not displayed)
   };
 
   if (!myTeam) {
@@ -606,18 +588,6 @@ export default function ScrimSchedulerPage() {
       {/* Main Content */}
       <div className="flex-1 py-8">
         <div className="max-w-[1800px] mx-auto px-12">
-          {/* Instructions */}
-          <div className="mb-4 bg-[#1A1A1A] border border-[#F5F5F5]/10 p-4 rounded">
-            {viewMode === 'personal' ? (
-              <p className="text-[#F5F5F5]/70 text-sm">
-                <strong>Click and drag</strong> on the calendar to create your availability slots. Drag existing slots to move them.
-              </p>
-            ) : (
-              <p className="text-[#F5F5F5]/70 text-sm">
-                <strong>Team calendar</strong> shows combined availability: <span className="text-[#C75B5B]">Red</span> (≤20% available) → <span className="text-[#E8C547]">Orange</span> (20-80% available) → <span className="text-[#3D7A5F]">Green</span> (≥80% available). <strong>Click and drag</strong> to create team events (scrims, training, etc.)
-              </p>
-            )}
-          </div>
 
           {/* Week Navigation */}
           <div className="flex items-center justify-between mb-6">
@@ -683,8 +653,8 @@ export default function ScrimSchedulerPage() {
             <div
               className="grid relative select-none"
               style={{
-                gridTemplateColumns: '100px repeat(7, 1fr)',
-                gridTemplateRows: 'auto repeat(16, 60px)',
+                gridTemplateColumns: '80px repeat(7, 1fr)',
+                gridTemplateRows: 'auto repeat(16, 45px)',
                 userSelect: 'none',
                 WebkitUserSelect: 'none',
               }}
@@ -786,8 +756,9 @@ export default function ScrimSchedulerPage() {
 
                 const startHour = startTime.getHours();
                 const endHour = endTime.getHours();
-                const rowStart = (startHour - 8) + 2;
-                const rowSpan = endHour - startHour;
+
+                const rowStart = getHourIndex(startHour) + 2; // +2 for header row
+                const rowSpan = getHourIndex(endHour) - getHourIndex(startHour);
 
                 return (
                   <div
@@ -808,7 +779,13 @@ export default function ScrimSchedulerPage() {
                         handleDragStart(slot);
                       }}
                       onDragEnd={handleDragEnd}
-                      className="w-full h-full bg-[#3D7A5F] border-2 border-[#F5F5F5]/30 p-2 cursor-move hover:bg-[#3D7A5F]/80 group flex flex-col m-[1px]"
+                      className="bg-[#3D7A5F] border-2 border-[#F5F5F5]/30 p-2 cursor-move hover:bg-[#3D7A5F]/80 group flex flex-col"
+                      style={{
+                        width: 'calc(100% - 2px)',
+                        height: 'calc(100% - 2px)',
+                        margin: '1px',
+                        boxSizing: 'border-box'
+                      }}
                     >
                       <div className="text-xs text-white font-medium">
                         {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
@@ -841,8 +818,9 @@ export default function ScrimSchedulerPage() {
 
                 const startHour = startTime.getHours();
                 const endHour = endTime.getHours();
-                const rowStart = (startHour - 8) + 2; // +2 because row 1 is header
-                const rowSpan = endHour - startHour;
+
+                const rowStart = getHourIndex(startHour) + 2; // +2 for header row
+                const rowSpan = getHourIndex(endHour) - getHourIndex(startHour);
 
                 // Color by event type
                 const eventColors = {
@@ -862,8 +840,14 @@ export default function ScrimSchedulerPage() {
                     }}
                   >
                     <div
-                      className="w-full h-full border-2 border-[#F5F5F5]/30 p-2 group flex flex-col m-[1px]"
-                      style={{ backgroundColor: eventColors[event.event_type] }}
+                      className="border-2 border-[#F5F5F5]/30 p-2 group flex flex-col"
+                      style={{
+                        backgroundColor: eventColors[event.event_type],
+                        width: 'calc(100% - 2px)',
+                        height: 'calc(100% - 2px)',
+                        margin: '1px',
+                        boxSizing: 'border-box'
+                      }}
                     >
                       <div className="text-xs text-white font-semibold">
                         {event.event_type.toUpperCase()}
