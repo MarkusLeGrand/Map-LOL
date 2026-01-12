@@ -30,6 +30,7 @@ from routes.teams_routes import router as teams_router
 from routes.scrims_routes import router as scrims_router
 from routes.availability_routes import router as availability_router
 from routes.team_events_routes import router as team_events_router
+from routes.riot_routes import router as riot_router
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -54,13 +55,24 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # CORS configuration
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Stricter CORS for production
+if ENVIRONMENT == "production":
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+        allow_headers=["Content-Type", "Authorization"],
+    )
+else:
+    # More permissive for development
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Directories
 BASE_DIR = Path(__file__).parent.parent
@@ -79,6 +91,11 @@ app.mount("/exports", StaticFiles(directory=str(EXPORT_DIR)), name="exports")
 @app.on_event("startup")
 async def startup_event():
     init_db()
+
+    # Start background scheduler for auto-syncing
+    from services.scheduler import start_scheduler
+    start_scheduler()
+
     print("OpenRift API started successfully!")
 
 
@@ -101,6 +118,9 @@ app.include_router(availability_router)
 
 # Team Events routes (includes /api/team-events prefix)
 app.include_router(team_events_router)
+
+# Riot API routes (includes /api/riot prefix)
+app.include_router(riot_router)
 
 
 # ==================== ANALYTICS ENDPOINTS (TODO: Extract to routes/analytics_routes.py) ====================
@@ -306,8 +326,11 @@ async def analyze_scrim(
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.get("/api/players-stats")
-async def get_players_stats(file_path: Optional[str] = None):
-    """Get player statistics from the most recent upload or specified file"""
+async def get_players_stats(
+    file_path: Optional[str] = None,
+    current_user: DBUser = Depends(get_current_user)
+):
+    """Get player statistics from the most recent upload or specified file (requires auth)"""
     try:
         if file_path:
             path = Path(file_path)
@@ -337,8 +360,8 @@ async def get_chart(chart_name: str):
     return FileResponse(chart_path)
 
 @app.get("/api/list-uploads")
-async def list_uploads():
-    """List all uploaded data files"""
+async def list_uploads(current_user: DBUser = Depends(get_current_user)):
+    """List all uploaded data files (requires auth)"""
     try:
         files = []
         for file_path in sorted(UPLOAD_DIR.glob("analytics_data_*.json"), key=lambda x: x.stat().st_mtime, reverse=True):
@@ -880,6 +903,14 @@ async def admin_delete_team(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete team: {str(e)}")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on app shutdown"""
+    from services.scheduler import shutdown_scheduler
+    shutdown_scheduler()
+    print("OpenRift API shutdown successfully!")
 
 
 if __name__ == "__main__":

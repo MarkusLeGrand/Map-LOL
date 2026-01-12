@@ -4,17 +4,32 @@ import { useAuth } from './AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-interface TeamMember {
+export interface ChampionMastery {
+  championId: number;
+  championLevel: number;
+  championPoints: number;
+}
+
+export interface TeamMember {
   id: string;
   username: string;
   email: string;
   riot_game_name?: string;
   riot_tag_line?: string;
+  discord?: string;
   role: string;
   joined_at: string;
+  // Summoner data
+  summoner_level?: string | null;
+  profile_icon_id?: string | null;
+  solo_tier?: string | null;
+  solo_rank?: string | null;
+  solo_lp?: string | null;
+  preferred_lane?: string | null;
+  top_champions?: ChampionMastery[];
 }
 
-interface Team {
+export interface Team {
   id: string;
   name: string;
   tag?: string;

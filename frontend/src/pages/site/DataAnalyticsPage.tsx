@@ -140,10 +140,25 @@ export default function DataAnalyticsPage() {
     setError(null);
 
     try {
+      // Validate file type
+      if (!file.name.endsWith('.json')) {
+        throw new Error('Invalid file type. Please upload a .json file containing match data.');
+      }
+
+      // Validate file size (max 50MB)
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      if (file.size > maxSize) {
+        throw new Error('File is too large. Maximum size is 50MB.');
+      }
+
       const formData = new FormData();
       formData.append('file', file);
 
       const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('You must be logged in to upload data.');
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/upload-scrim-data`, {
         method: 'POST',
         headers: {
@@ -154,22 +169,47 @@ export default function DataAnalyticsPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Upload failed');
+
+        // Provide user-friendly error messages
+        let errorMessage = 'Upload failed';
+        if (errorData.detail) {
+          if (errorData.detail.includes('must be part of a team')) {
+            errorMessage = 'You need to join or create a team before uploading scrim data.';
+          } else if (errorData.detail.includes('No team member has configured their Riot ID')) {
+            errorMessage = 'No team members have set their Riot ID. Please add your Riot ID in your profile to link matches.';
+          } else if (errorData.detail.includes('Invalid JSON format')) {
+            errorMessage = 'Invalid file format. The file must contain valid JSON match data from Riot API.';
+          } else if (errorData.detail.includes('must contain a \'matches\' array')) {
+            errorMessage = 'Invalid data structure. The file must contain a "matches" array with Riot API match data.';
+          } else if (errorData.detail.includes('No matches found')) {
+            errorMessage = 'The file does not contain any match data.';
+          } else if (errorData.detail.includes('No team members were found in the matches')) {
+            errorMessage = 'No team members found in the match data. Make sure the Riot IDs in your team profiles match the players in the uploaded matches.';
+          } else {
+            errorMessage = errorData.detail;
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       const data: UploadResponse = await response.json();
       setUploadedFile(data);
       setCurrentFilePath(data.file_path);
 
+      toast?.success(`Upload successful! Found ${data.matches_count} matches with ${data.found_players?.length || 0} team members.`);
+
       // Automatically analyze after upload with team filter
       await analyzeData(data.file_path, data.found_players || []);
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      const errorMessage = err instanceof Error ? err.message : 'Upload failed. Please try again.';
+      setError(errorMessage);
+      toast?.error(errorMessage);
     } finally {
       setIsUploading(false);
     }
-  }, []);
+  }, [toast]);
 
   const analyzeData = async (filePath: string, teamRiotIds: string[] = []) => {
     console.log('=== ANALYZE DATA CALLED ===');
@@ -181,6 +221,11 @@ export default function DataAnalyticsPage() {
     try {
       console.log('Calling backend API...');
       const token = localStorage.getItem('token');
+
+      if (!token) {
+        throw new Error('You must be logged in to analyze data.');
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/analyze-scrim`, {
         method: 'POST',
         headers: {
@@ -194,7 +239,20 @@ export default function DataAnalyticsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Analysis failed');
+        const errorData = await response.json().catch(() => ({}));
+        let errorMessage = 'Analysis failed';
+
+        if (errorData.detail) {
+          if (errorData.detail.includes('File not found')) {
+            errorMessage = 'The uploaded file could not be found. Please try uploading again.';
+          } else if (errorData.detail.includes('No matches')) {
+            errorMessage = 'No valid match data found in the file.';
+          } else {
+            errorMessage = errorData.detail;
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -203,14 +261,18 @@ export default function DataAnalyticsPage() {
       if (result.success) {
         console.log('Analysis successful!');
         setAnalyticsData(result.data);
+        toast?.success('Analysis completed successfully!');
       } else {
         console.error('Analysis failed:', result.error);
-        throw new Error(result.error || 'Analysis failed');
+        const errorMessage = result.error || 'Analysis failed. Please check the uploaded data format.';
+        throw new Error(errorMessage);
       }
 
     } catch (err) {
       console.error('CATCH ERROR:', err);
-      setError(err instanceof Error ? err.message : 'Analysis failed');
+      const errorMessage = err instanceof Error ? err.message : 'Analysis failed. Please try again.';
+      setError(errorMessage);
+      toast?.error(errorMessage);
     } finally {
       setIsAnalyzing(false);
     }

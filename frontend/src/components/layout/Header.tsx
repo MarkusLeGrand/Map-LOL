@@ -4,6 +4,8 @@ import { COLORS } from '../../constants/theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTeam } from '../../contexts/TeamContext';
 import { useToast } from '../../contexts/ToastContext';
+import { getSummonerData } from '../../services/riotApi';
+import { ImageWithFallback } from '../ui/ImageWithFallback';
 
 interface HeaderProps {
     brandName?: string;
@@ -23,9 +25,32 @@ export function Header({
     const { invites, joinRequests, acceptInvite, getMyInvites, acceptJoinRequest, rejectJoinRequest, getMyJoinRequests, teams } = useTeam();
     const toast = useToast();
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showUserMenu, setShowUserMenu] = useState(false);
+    const [profileIconId, setProfileIconId] = useState<number | string | null>(null);
 
     // Get user's team tag
     const myTeam = teams.length > 0 ? teams[0] : null;
+
+    // Load user's profile icon from Riot
+    useEffect(() => {
+        const loadProfileIcon = async () => {
+            if (isAuthenticated && user?.riot_game_name) {
+                try {
+                    const token = localStorage.getItem('token');
+                    if (!token) return;
+
+                    const data = await getSummonerData(token);
+                    if (data?.summoner?.profile_icon_id) {
+                        setProfileIconId(data.summoner.profile_icon_id);
+                    }
+                } catch (error) {
+                    console.error('Failed to load profile icon:', error);
+                }
+            }
+        };
+
+        loadProfileIcon();
+    }, [isAuthenticated, user?.riot_game_name]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -34,15 +59,18 @@ export function Header({
             if (showNotifications && !target.closest('.notifications-dropdown')) {
                 setShowNotifications(false);
             }
+            if (showUserMenu && !target.closest('.user-menu-dropdown')) {
+                setShowUserMenu(false);
+            }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showNotifications]);
+    }, [showNotifications, showUserMenu]);
 
     return (
         <header className="border-b border-[#F5F5F5]/10 sticky top-0 bg-[#0E0E0E] z-50">
-            <div className="max-w-[1600px] mx-auto px-12 py-6 flex items-center justify-between">
+            <div className="w-full px-12 py-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate('/')}
@@ -72,7 +100,7 @@ export function Header({
                     )}
                     {isAuthenticated && (
                         <button
-                            onClick={() => navigate('/teams')}
+                            onClick={() => navigate('/team-manager')}
                             className="ml-6 text-sm font-medium text-[#F5F5F5]/50 hover:text-[#F5F5F5] transition-colors"
                         >
                             Teams
@@ -83,7 +111,7 @@ export function Header({
                     {isAuthenticated ? (
                         <>
                             <button
-                                onClick={() => navigate('/dashboard')}
+                                onClick={() => navigate('/favorite-tools')}
                                 className="px-3 py-2 text-[#F5F5F5]/60 hover:text-[#F5F5F5] transition-colors"
                             >
                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -220,7 +248,7 @@ export function Header({
                                 </button>
                             )}
                             <button
-                                onClick={() => navigate('/profile')}
+                                onClick={() => navigate('/dashboard')}
                                 className="text-sm transition-colors group"
                             >
                                 {myTeam?.tag && (
@@ -228,13 +256,83 @@ export function Header({
                                 )}
                                 <span className="text-[#F5F5F5]/50 group-hover:text-[#F5F5F5] transition-colors">{user?.username}</span>
                             </button>
-                            <button
-                                onClick={logout}
-                                className="px-5 py-2 text-[#F5F5F5] text-sm font-medium transition-colors"
-                                style={{ backgroundColor: COLORS.danger }}
-                            >
-                                Logout
-                            </button>
+
+                            {/* User Menu Dropdown */}
+                            <div className="relative user-menu-dropdown">
+                                <button
+                                    onClick={() => setShowUserMenu(!showUserMenu)}
+                                    className="w-10 h-10 rounded-full border-2 border-[#3D7A5F]/40 hover:border-[#3D7A5F]/60 transition-colors overflow-hidden flex items-center justify-center bg-[#1A1A1A]"
+                                >
+                                    {profileIconId ? (
+                                        <ImageWithFallback
+                                            src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${profileIconId}.png`}
+                                            alt="Profile Icon"
+                                            fallbackType="profile"
+                                            className="w-full h-full object-cover"
+                                            style={{ width: '100%', height: '100%' }}
+                                        />
+                                    ) : (
+                                        <svg className="w-5 h-5 text-[#3D7A5F]" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                        </svg>
+                                    )}
+                                </button>
+
+                                {/* User Dropdown Menu */}
+                                {showUserMenu && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-[#1A1A1A] border border-[#F5F5F5]/10 shadow-lg z-50">
+                                        <div className="p-2">
+                                            <button
+                                                onClick={() => {
+                                                    navigate('/dashboard');
+                                                    setShowUserMenu(false);
+                                                }}
+                                                className="w-full px-4 py-2 text-left text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded"
+                                            >
+                                                Dashboard
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    navigate('/favorite-tools');
+                                                    setShowUserMenu(false);
+                                                }}
+                                                className="w-full px-4 py-2 text-left text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded"
+                                            >
+                                                Favorite Tools
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    navigate('/team-manager');
+                                                    setShowUserMenu(false);
+                                                }}
+                                                className="w-full px-4 py-2 text-left text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded"
+                                            >
+                                                My Team
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    navigate('/settings');
+                                                    setShowUserMenu(false);
+                                                }}
+                                                className="w-full px-4 py-2 text-left text-[#F5F5F5] text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded"
+                                            >
+                                                Settings
+                                            </button>
+                                            <div className="h-px bg-[#F5F5F5]/10 my-2"></div>
+                                            <button
+                                                onClick={() => {
+                                                    logout();
+                                                    setShowUserMenu(false);
+                                                }}
+                                                className="w-full px-4 py-2 text-left text-sm hover:bg-[#F5F5F5]/10 transition-colors rounded"
+                                                style={{ color: COLORS.danger }}
+                                            >
+                                                Logout
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </>
                     ) : (
                         <>

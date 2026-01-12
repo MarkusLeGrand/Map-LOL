@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import Optional
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from database import get_db, User as DBUser
 from auth import (
@@ -18,6 +20,7 @@ from auth import (
 )
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 # ==================== PYDANTIC SCHEMAS ====================
@@ -45,6 +48,7 @@ class PasswordChange(BaseModel):
 # ==================== ENDPOINTS ====================
 
 @router.post("/register", response_model=UserResponse)
+@limiter.limit("5/minute")
 async def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     """Register a new user (rate limited: 5 per minute)"""
     try:
@@ -57,6 +61,7 @@ async def register(request: Request, user_data: UserCreate, db: Session = Depend
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Login with email/username and password (rate limited: 5 per minute)"""
     user = authenticate_user(db, form_data.username, form_data.password)
@@ -153,12 +158,14 @@ async def update_profile(
 
 
 @router.put("/password")
+@limiter.limit("3/minute")
 async def change_password(
+    request: Request,
     data: PasswordChange,
     current_user: DBUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Change user password"""
+    """Change user password (rate limited: 3 per minute)"""
     # Verify current password
     if not verify_password(data.current_password, current_user.hashed_password):
         raise HTTPException(
@@ -171,3 +178,19 @@ async def change_password(
     db.commit()
 
     return {"message": "Password changed successfully"}
+
+
+@router.delete("/me")
+async def delete_account(
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete current user account"""
+    try:
+        # Delete user (cascades will handle related data)
+        db.delete(current_user)
+        db.commit()
+        return {"message": "Account deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete account: {str(e)}")

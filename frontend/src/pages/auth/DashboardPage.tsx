@@ -1,28 +1,48 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTeam } from '../../contexts/TeamContext';
+import { useToast } from '../../contexts/ToastContext';
 import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
-import { ToolCard } from '../../components/ui/ToolCard';
-import { ALL_TOOLS } from '../../config/tools';
+import { getSummonerData, type SummonerData, type RiotAccount } from '../../services/riotApi';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 
 export default function DashboardPage() {
-  const { user, toggleFavoriteTool } = useAuth();
+  const { user } = useAuth();
+  const { teams, invites, joinRequests } = useTeam();
   const navigate = useNavigate();
+  const toast = useToast();
 
-  // Filter tools to only show favorited ones
-  const favoriteTools = ALL_TOOLS.filter(tool =>
-    user?.favorite_tools?.includes(tool.name)
-  );
+  const [summonerData, setSummonerData] = useState<SummonerData | null>(null);
+  const [riotAccount, setRiotAccount] = useState<RiotAccount | null>(null);
+  const [isLoadingSummoner, setIsLoadingSummoner] = useState(false);
 
-  const handleToolClick = (toolId: string) => {
-    if (toolId === 'tacticalmap') {
-      navigate('/tacticalmap');
-    } else if (toolId === 'data-analytics') {
-      navigate('/data-analytics');
-    } else if (toolId === 'teams') {
-      navigate('/teams');
+  useEffect(() => {
+    if (user?.riot_game_name) {
+      loadSummonerData();
+    }
+  }, [user?.riot_game_name]);
+
+  const loadSummonerData = async () => {
+    setIsLoadingSummoner(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const data = await getSummonerData(token);
+      setSummonerData(data.summoner);
+      setRiotAccount(data.riot_account);
+    } catch (error) {
+      console.error('Failed to load summoner data:', error);
+    } finally {
+      setIsLoadingSummoner(false);
     }
   };
+
+  // Get user's main team (first team they're in)
+  const myTeam = teams.length > 0 ? teams[0] : null;
+  const totalNotifications = invites.length + joinRequests.length;
 
   return (
     <div className="min-h-screen bg-[#0E0E0E] flex flex-col overflow-x-hidden" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -32,54 +52,280 @@ export default function DashboardPage() {
         showToolsLink={true}
       />
 
-      {/* Dashboard Header */}
+      {/* Profile Header */}
       <div className="border-b border-[#F5F5F5]/10 py-16">
         <div className="max-w-[1600px] mx-auto px-12">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-[#F5F5F5] text-5xl font-semibold mb-4 tracking-tight">
-                Your Favorite Tools
+          <div className="flex gap-8 items-start">
+            {/* Profile Picture - League Icon */}
+            <div className="flex-shrink-0 relative">
+              {isLoadingSummoner ? (
+                <div className="w-40 h-40 rounded-lg border-2 border-[#F5F5F5]/20 bg-[#F5F5F5]/5 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B4975A]"></div>
+                </div>
+              ) : summonerData?.profile_icon_id ? (
+                <ImageWithFallback
+                  src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${summonerData.profile_icon_id}.png`}
+                  alt="Profile Icon"
+                  fallbackType="profile"
+                  className="w-40 h-40 rounded-lg border-2 border-[#F5F5F5]/20"
+                  style={{ width: '10rem', height: '10rem' }}
+                />
+              ) : (
+                <div className="w-40 h-40 rounded-lg border-2 border-[#F5F5F5]/20 bg-[#F5F5F5]/5 flex items-center justify-center">
+                  <span className="text-[#F5F5F5]/40 text-4xl font-bold">
+                    {user?.username?.substring(0, 2).toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Info Section */}
+            <div className="flex-1">
+              {/* Tag + Username */}
+              <h1 className="text-[#F5F5F5] text-6xl font-bold mb-4">
+                {myTeam?.tag && (
+                  <span style={{ color: myTeam.team_color }}>{myTeam.tag} </span>
+                )}
+                {user?.username}
               </h1>
-              <p className="text-[#F5F5F5]/50 text-lg">
-                Quick access to the tools you use most
+
+              {/* Riot ID */}
+              <p className="text-[#F5F5F5]/60 text-2xl mb-6">
+                {user?.riot_game_name && user?.riot_tag_line
+                  ? `${user.riot_game_name}#${user.riot_tag_line}`
+                  : 'No Riot ID set'}
               </p>
+
+              {/* Stats Line: Role, Team, Rank, Level */}
+              <div className="flex items-center gap-6">
+                {/* Role */}
+                {summonerData?.preferred_lane && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#F5F5F5]/40 text-sm uppercase tracking-wider">Role:</span>
+                      <ImageWithFallback
+                        src={`/riot/role/${summonerData.preferred_lane === 'BOT' ? 'Bottom' : summonerData.preferred_lane === 'MID' ? 'Middle' : summonerData.preferred_lane.charAt(0) + summonerData.preferred_lane.slice(1).toLowerCase()}_icon.png`}
+                        alt={summonerData.preferred_lane}
+                        fallbackType="champion"
+                        className="w-8 h-8"
+                        style={{ width: '2rem', height: '2rem' }}
+                      />
+                      <span className="text-[#F5F5F5] text-base font-semibold">
+                        {summonerData.preferred_lane}
+                      </span>
+                    </div>
+                    <div className="w-px h-5 bg-[#F5F5F5]/20"></div>
+                  </>
+                )}
+
+                {/* Team */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[#F5F5F5]/40 text-sm uppercase tracking-wider">Team:</span>
+                  <span className="text-[#F5F5F5] text-base font-semibold">
+                    {myTeam ? myTeam.name : 'No team'}
+                  </span>
+                </div>
+
+                {/* Rank with BIG Icon */}
+                {summonerData?.solo_tier && summonerData?.solo_rank && (
+                  <>
+                    <div className="w-px h-5 bg-[#F5F5F5]/20"></div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#F5F5F5]/40 text-sm uppercase tracking-wider">Rank:</span>
+                      <ImageWithFallback
+                        src={`/riot/Season_2022_-_${summonerData.solo_tier.charAt(0).toUpperCase() + summonerData.solo_tier.slice(1).toLowerCase()}.png`}
+                        alt={summonerData.solo_tier}
+                        fallbackType="champion"
+                        className="w-12 h-12"
+                        style={{ width: '3rem', height: '3rem' }}
+                      />
+                      <span className="text-[#F5F5F5] text-base font-semibold">
+                        {summonerData.solo_tier} {summonerData.solo_rank}
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {/* Level */}
+                <div className="w-px h-5 bg-[#F5F5F5]/20"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#F5F5F5]/40 text-sm uppercase tracking-wider">Level:</span>
+                  <span className="text-[#F5F5F5] text-base font-semibold">
+                    {summonerData?.summoner_level || 'N/A'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Access Tools */}
-      <div className="flex-1 py-16">
+      {/* Main Content - Command Center */}
+      <div className="flex-1 py-12">
         <div className="max-w-[1600px] mx-auto px-12">
-          <div className="grid grid-cols-4 gap-6 auto-rows-fr">
-            {favoriteTools.map((tool, index) => (
-              <ToolCard
-                key={index}
-                name={tool.name}
-                description={tool.description}
-                status={tool.status}
-                color={tool.color}
-                onClick={() => tool.onClick && handleToolClick(tool.onClick)}
-                disabled={tool.status === 'Coming Soon'}
-                showLikeButton={true}
-                isLiked={true}
-                onLikeToggle={() => toggleFavoriteTool(tool.name)}
-              />
-            ))}
-          </div>
+          <div className="grid grid-cols-12 gap-6">
 
-          {favoriteTools.length === 0 && (
-            <div className="text-center py-16 border border-[#F5F5F5]/10 bg-[#F5F5F5]/[0.02]">
-              <p className="text-[#F5F5F5]/50 text-lg mb-4">No favorite tools yet</p>
-              <p className="text-[#F5F5F5]/40 mb-6">Browse our tools and mark your favorites for quick access</p>
-              <button
-                onClick={() => navigate('/tools')}
-                className="px-6 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors"
-              >
-                Browse Tools
-              </button>
+            {/* Left Column - Quick Navigation */}
+            <div className="col-span-4 space-y-6">
+              {/* Quick Navigation */}
+              <div className="border border-[#F5F5F5]/10 bg-[#F5F5F5]/[0.02] rounded">
+                <div className="px-5 py-4 border-b border-[#F5F5F5]/10">
+                  <h2 className="text-[#F5F5F5] text-lg font-semibold">Quick Navigation</h2>
+                </div>
+                <div className="p-4 space-y-2">
+                  <button
+                    onClick={() => navigate('/favorite-tools')}
+                    className="w-full px-4 py-3 text-left border border-[#F5F5F5]/10 hover:border-[#3D7A5F]/40 hover:bg-[#3D7A5F]/5 transition-all rounded flex items-center gap-3"
+                  >
+                    <svg className="w-5 h-5 text-[#F5F5F5]/60" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+                    </svg>
+                    <span className="text-[#F5F5F5] font-medium">Favorite Tools</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/teams')}
+                    className="w-full px-4 py-3 text-left border border-[#F5F5F5]/10 hover:border-[#3D7A5F]/40 hover:bg-[#3D7A5F]/5 transition-all rounded flex items-center gap-3"
+                  >
+                    <svg className="w-5 h-5 text-[#F5F5F5]/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <span className="text-[#F5F5F5] font-medium">Find a Team</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/team-manager')}
+                    className="w-full px-4 py-3 text-left border border-[#F5F5F5]/10 hover:border-[#3D7A5F]/40 hover:bg-[#3D7A5F]/5 transition-all rounded flex items-center gap-3"
+                  >
+                    <svg className="w-5 h-5 text-[#F5F5F5]/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span className="text-[#F5F5F5] font-medium">My Team</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/scrim-scheduler')}
+                    className="w-full px-4 py-3 text-left border border-[#F5F5F5]/10 hover:border-[#3D7A5F]/40 hover:bg-[#3D7A5F]/5 transition-all rounded flex items-center gap-3"
+                  >
+                    <svg className="w-5 h-5 text-[#F5F5F5]/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-[#F5F5F5] font-medium">Scrim Scheduler</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/tools')}
+                    className="w-full px-4 py-3 text-left border border-[#F5F5F5]/10 hover:border-[#3D7A5F]/40 hover:bg-[#3D7A5F]/5 transition-all rounded flex items-center gap-3"
+                  >
+                    <svg className="w-5 h-5 text-[#F5F5F5]/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                    <span className="text-[#F5F5F5] font-medium">All Tools</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/settings')}
+                    className="w-full px-4 py-3 text-left border border-[#F5F5F5]/10 hover:border-[#3D7A5F]/40 hover:bg-[#3D7A5F]/5 transition-all rounded flex items-center gap-3"
+                  >
+                    <svg className="w-5 h-5 text-[#F5F5F5]/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="text-[#F5F5F5] font-medium">Settings</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Riot Data Sync */}
+              {user?.riot_game_name && (
+                <div className="border border-[#F5F5F5]/10 bg-[#F5F5F5]/[0.02] rounded">
+                  <div className="px-5 py-4 border-b border-[#F5F5F5]/10">
+                    <h2 className="text-[#F5F5F5] text-lg font-semibold">Riot Data</h2>
+                  </div>
+                  <div className="p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[#F5F5F5]/60 text-sm">Last synced</span>
+                      <span className="text-[#F5F5F5] text-sm font-medium">
+                        {summonerData?.last_synced ? new Date(summonerData.last_synced).toLocaleDateString() : 'Never'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const { syncRiotData } = await import('../../services/riotApi');
+                        const token = localStorage.getItem('token');
+                        if (!token) return;
+                        await syncRiotData(token);
+                        await loadSummonerData();
+                        toast?.success('Data synced successfully!');
+                      }}
+                      className="w-full px-4 py-2 bg-[#3D7A5F] text-[#F5F5F5] hover:bg-[#3D7A5F]/90 transition-colors rounded font-medium"
+                    >
+                      Sync Now
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Right Column - Widgets */}
+            <div className="col-span-8 space-y-6">
+              {/* Notifications Widget */}
+              {totalNotifications > 0 && (
+                <div className="border border-[#B4975A]/20 bg-[#B4975A]/5 rounded">
+                  <div className="px-5 py-4 border-b border-[#B4975A]/20">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-[#F5F5F5] text-lg font-semibold">Notifications</h2>
+                      <span className="px-2 py-1 bg-[#B4975A] text-[#F5F5F5] text-xs font-bold rounded">
+                        {totalNotifications}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    <p className="text-[#F5F5F5]/80 mb-4">
+                      You have {invites.length} team {invites.length === 1 ? 'invite' : 'invites'} and {joinRequests.length} join {joinRequests.length === 1 ? 'request' : 'requests'} pending.
+                    </p>
+                    <button
+                      onClick={() => navigate('/teams')}
+                      className="px-6 py-2 bg-[#B4975A] text-[#F5F5F5] hover:bg-[#B4975A]/90 transition-colors rounded font-medium"
+                    >
+                      View All Notifications
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Access Tools */}
+              <div className="border border-[#F5F5F5]/10 bg-[#F5F5F5]/[0.02] rounded">
+                <div className="px-5 py-4 border-b border-[#F5F5F5]/10">
+                  <h2 className="text-[#F5F5F5] text-lg font-semibold">Quick Access</h2>
+                </div>
+                <div className="p-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      onClick={() => navigate('/tacticalmap')}
+                      className="px-6 py-8 border border-[#F5F5F5]/10 hover:border-[#3D7A5F]/40 hover:bg-[#3D7A5F]/5 transition-all rounded text-center"
+                    >
+                      <div className="mb-3">
+                        <svg className="w-10 h-10 mx-auto text-[#3D7A5F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                      </div>
+                      <p className="text-[#F5F5F5] font-semibold">Tactical Map</p>
+                      <p className="text-[#F5F5F5]/50 text-xs mt-1">Plan strategies</p>
+                    </button>
+                    <button
+                      onClick={() => navigate('/data-analytics')}
+                      className="px-6 py-8 border border-[#F5F5F5]/10 hover:border-[#3D7A5F]/40 hover:bg-[#3D7A5F]/5 transition-all rounded text-center"
+                    >
+                      <div className="mb-3">
+                        <svg className="w-10 h-10 mx-auto text-[#3D7A5F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                      <p className="text-[#F5F5F5] font-semibold">Data Analytics</p>
+                      <p className="text-[#F5F5F5]/50 text-xs mt-1">View stats</p>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
 

@@ -41,7 +41,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Load token from localStorage on mount
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
-    if (storedToken) {
+    const tokenTimestamp = localStorage.getItem('token_timestamp');
+
+    if (storedToken && tokenTimestamp) {
+      // Check if token is expired (24 hours)
+      const now = Date.now();
+      const tokenAge = now - parseInt(tokenTimestamp);
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+
+      if (tokenAge > twentyFourHours) {
+        // Token expired - auto logout
+        localStorage.removeItem('token');
+        localStorage.removeItem('token_timestamp');
+        setIsLoading(false);
+        return;
+      }
+
       setToken(storedToken);
       fetchUser(storedToken);
     } else {
@@ -93,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const authToken = data.access_token;
 
     localStorage.setItem('token', authToken);
+    localStorage.setItem('token_timestamp', Date.now().toString());
     setToken(authToken);
 
     await fetchUser(authToken);
@@ -135,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
+    localStorage.removeItem('token_timestamp');
     setToken(null);
     setUser(null);
     // Call all registered logout callbacks (e.g., TeamContext cleanup)

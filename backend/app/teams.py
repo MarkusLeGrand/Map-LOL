@@ -35,6 +35,14 @@ class TeamMember(BaseModel):
     discord: Optional[str] = None
     role: str
     joined_at: datetime
+    # Summoner data fields
+    summoner_level: Optional[str] = None
+    profile_icon_id: Optional[str] = None
+    solo_tier: Optional[str] = None
+    solo_rank: Optional[str] = None
+    solo_lp: Optional[str] = None
+    preferred_lane: Optional[str] = None
+    top_champions: Optional[List[dict]] = []
 
     class Config:
         from_attributes = True
@@ -207,8 +215,9 @@ def update_team(db: Session, team_id: str, team_data: TeamUpdate) -> DBTeam:
 
 
 def get_team_members_with_roles(db: Session, team_id: str) -> List[dict]:
-    """Get team members with their roles"""
+    """Get team members with their roles and summoner data"""
     from sqlalchemy import text
+    from database import SummonerData
 
     result = db.execute(
         text("""
@@ -222,8 +231,9 @@ def get_team_members_with_roles(db: Session, team_id: str) -> List[dict]:
         {"team_id": team_id}
     ).fetchall()
 
-    return [
-        {
+    members = []
+    for row in result:
+        member_data = {
             "id": row[0],
             "username": row[1],
             "email": row[2],
@@ -231,10 +241,33 @@ def get_team_members_with_roles(db: Session, team_id: str) -> List[dict]:
             "riot_tag_line": row[4],
             "discord": row[5],
             "role": row[6],
-            "joined_at": row[7]
+            "joined_at": row[7],
+            # Add summoner data fields
+            "summoner_level": None,
+            "profile_icon_id": None,
+            "solo_tier": None,
+            "solo_rank": None,
+            "solo_lp": None,
+            "preferred_lane": None,
+            "top_champions": []
         }
-        for row in result
-    ]
+
+        # Fetch summoner data if exists
+        summoner = db.query(SummonerData).filter(SummonerData.user_id == row[0]).first()
+        if summoner:
+            member_data.update({
+                "summoner_level": summoner.summoner_level,
+                "profile_icon_id": summoner.profile_icon_id,
+                "solo_tier": summoner.solo_tier,
+                "solo_rank": summoner.solo_rank,
+                "solo_lp": summoner.solo_lp,
+                "preferred_lane": summoner.preferred_lane,
+                "top_champions": summoner.top_champions or []
+            })
+
+        members.append(member_data)
+
+    return members
 
 
 def create_team_invite(db: Session, team_id: str, invite_data: InviteCreate, invited_by_id: str) -> DBTeamInvite:

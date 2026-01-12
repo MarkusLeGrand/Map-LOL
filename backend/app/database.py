@@ -45,8 +45,10 @@ class User(Base):
     # Riot integration
     riot_game_name = Column(String, nullable=True)
     riot_tag_line = Column(String, nullable=True)
-    riot_puuid = Column(String, nullable=True)
+    riot_puuid = Column(String, nullable=True, unique=True, index=True)
     riot_region = Column(String, default="EUW1")
+    riot_platform = Column(String, default="EUW1")  # Platform for API calls
+    riot_verified = Column(Boolean, default=False)  # Whether Riot account is verified via OAuth
 
     # Discord integration
     discord = Column(String, nullable=True)
@@ -65,6 +67,8 @@ class User(Base):
     # Relationships
     analytics = relationship("UserAnalytics", back_populates="user", cascade="all, delete-orphan")
     teams = relationship("Team", secondary=team_members, back_populates="members")
+    riot_oauth = relationship("RiotOAuth", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    summoner_data = relationship("SummonerData", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 
 class UserAnalytics(Base):
@@ -244,6 +248,72 @@ class TeamEvent(Base):
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class RiotOAuth(Base):
+    """Riot OAuth tokens model"""
+    __tablename__ = "riot_oauth"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, unique=True)
+
+    # OAuth tokens
+    access_token = Column(String, nullable=False)
+    refresh_token = Column(String, nullable=False)
+    token_type = Column(String, default="Bearer")
+    expires_at = Column(DateTime, nullable=False)
+
+    # OAuth state for CSRF protection
+    state = Column(String, nullable=True)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    user = relationship("User", back_populates="riot_oauth")
+
+
+class SummonerData(Base):
+    """Summoner data from Riot API"""
+    __tablename__ = "summoner_data"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, unique=True)
+
+    # Summoner info
+    summoner_id = Column(String, nullable=False)  # Encrypted summoner ID
+    account_id = Column(String, nullable=False)  # Encrypted account ID
+    profile_icon_id = Column(String, nullable=False)
+    summoner_level = Column(String, nullable=False)
+
+    # Ranked info (RANKED_SOLO_5x5)
+    solo_tier = Column(String, nullable=True)  # IRON, BRONZE, SILVER, GOLD, PLATINUM, DIAMOND, MASTER, GRANDMASTER, CHALLENGER
+    solo_rank = Column(String, nullable=True)  # I, II, III, IV
+    solo_lp = Column(String, nullable=True)  # League Points
+    solo_wins = Column(String, nullable=True)
+    solo_losses = Column(String, nullable=True)
+
+    # Ranked info (RANKED_FLEX_SR)
+    flex_tier = Column(String, nullable=True)
+    flex_rank = Column(String, nullable=True)
+    flex_lp = Column(String, nullable=True)
+    flex_wins = Column(String, nullable=True)
+    flex_losses = Column(String, nullable=True)
+
+    # Top 3 champions (stored as JSON)
+    top_champions = Column(JSON, nullable=True)  # [{"championId": 157, "championLevel": 7, "championPoints": 123456}, ...]
+
+    # Preferred lane/role
+    preferred_lane = Column(String, nullable=True)  # TOP, JUNGLE, MID, BOT, SUPPORT
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_synced = Column(DateTime, default=datetime.utcnow)  # Last time we synced with Riot API
+
+    # Relationship
+    user = relationship("User", back_populates="summoner_data")
 
 
 # Database initialization
