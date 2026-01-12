@@ -74,6 +74,7 @@ export default function TeamManagerPage() {
     tag: '',
     description: '',
     team_color: '#3D7A5F',
+    is_locked: false,
   });
   const [inviteFormData, setInviteFormData] = useState({
     username: '',
@@ -191,8 +192,8 @@ export default function TeamManagerPage() {
           if (response.ok) {
             toast?.success('You have left the team');
             await getMyTeams();
-            // Redirect back to profile or teams list if user leaves
-            navigate('/profile');
+            // Redirect back to dashboard if user leaves
+            navigate('/dashboard');
           } else {
             const error = await response.json();
             toast?.error(error.detail || 'Failed to leave team');
@@ -260,6 +261,7 @@ export default function TeamManagerPage() {
       tag: selectedTeam.tag || '',
       description: selectedTeam.description || '',
       team_color: selectedTeam.team_color,
+      is_locked: selectedTeam.is_locked || false,
     });
     setShowEditModal(true);
   };
@@ -285,7 +287,7 @@ export default function TeamManagerPage() {
           if (response.ok) {
             toast?.success('Team deleted successfully');
             await getMyTeams();
-            navigate('/profile');
+            navigate('/dashboard');
           } else {
             toast?.error('Failed to delete team');
           }
@@ -316,10 +318,10 @@ export default function TeamManagerPage() {
             <h2 className="text-[#F5F5F5] text-2xl font-semibold mb-3">No Team</h2>
             <p className="text-[#F5F5F5]/50 mb-6">Create or join a team to access the team manager</p>
             <button
-              onClick={() => navigate('/profile')}
+              onClick={() => navigate('/dashboard')}
               className="px-8 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors"
             >
-              Go to Profile
+              Go to Dashboard
             </button>
           </div>
         </div>
@@ -420,9 +422,19 @@ export default function TeamManagerPage() {
                 {selectedTeam.tag || selectedTeam.name.substring(0, 2).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-[#F5F5F5] text-4xl font-semibold mb-2">
-                  {selectedTeam.name}
-                </h1>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-[#F5F5F5] text-4xl font-semibold">
+                    {selectedTeam.name}
+                  </h1>
+                  {selectedTeam.is_locked && (
+                    <span className="px-3 py-1 bg-[#B4975A]/20 border border-[#B4975A]/40 text-[#B4975A] text-sm font-medium rounded flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                      </svg>
+                      Locked
+                    </span>
+                  )}
+                </div>
                 <p className="text-[#F5F5F5]/50 text-lg mb-3">
                   {selectedTeam.description || 'No description'}
                 </p>
@@ -798,6 +810,20 @@ export default function TeamManagerPage() {
                       />
                     ))}
                   </div>
+                </div>
+                <div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editFormData.is_locked || false}
+                      onChange={(e) => setEditFormData({ ...editFormData, is_locked: e.target.checked })}
+                      className="w-4 h-4 bg-[#0E0E0E] border border-[#F5F5F5]/20 rounded focus:outline-none focus:ring-2 focus:ring-[#3D7A5F]"
+                    />
+                    <div>
+                      <span className="text-[#F5F5F5] text-sm font-medium">Lock Team</span>
+                      <p className="text-[#F5F5F5]/50 text-xs">Hide team from public listing (members stay)</p>
+                    </div>
+                  </label>
                 </div>
               </div>
               <div className="flex gap-3 mt-6">

@@ -18,7 +18,7 @@ export default function AboutPage() {
         {
             year: '2025',
             title: 'Expansion',
-            description: 'Adding new tools: Looser Tracker, Drafter, and Data Analytics.',
+            description: 'Adding new tools: Looser Tracker, Drafter, and Scrim Data Analytics.',
         },
         {
             year: 'Future',

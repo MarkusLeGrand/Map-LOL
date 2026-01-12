@@ -40,6 +40,7 @@ export interface Team {
   max_members: string;
   member_count: number;
   members: TeamMember[];
+  is_locked?: boolean;
 }
 
 interface TeamInvite {
@@ -102,6 +103,7 @@ interface UpdateTeamData {
   tag?: string;
   description?: string;
   team_color?: string;
+  is_locked?: boolean;
 }
 
 interface TeamContextType {

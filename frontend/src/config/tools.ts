@@ -29,7 +29,7 @@ export const ALL_TOOLS: Tool[] = [
     displayOnHomePage: true,
   },
   {
-    name: 'Data Analytics',
+    name: 'Scrim Data Analytics',
     description: 'Analyze scrim performance with detailed stats, charts, and player metrics from Riot API data',
     status: 'Available',
     color: COLORS.blue,

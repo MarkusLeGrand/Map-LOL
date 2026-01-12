@@ -109,6 +109,7 @@ class Team(Base):
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
+    is_locked = Column(Boolean, default=False)  # Owner can lock team to hide from public listing
 
     # Settings
     team_color = Column(String, default="#3D7A5F")

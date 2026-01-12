@@ -176,7 +176,7 @@ export default function DataAnalyticsPage() {
           if (errorData.detail.includes('must be part of a team')) {
             errorMessage = 'You need to join or create a team before uploading scrim data.';
           } else if (errorData.detail.includes('No team member has configured their Riot ID')) {
-            errorMessage = 'No team members have set their Riot ID. Please add your Riot ID in your profile to link matches.';
+            errorMessage = 'No team members have set their Riot ID. Please add your Riot ID in settings to link matches.';
           } else if (errorData.detail.includes('Invalid JSON format')) {
             errorMessage = 'Invalid file format. The file must contain valid JSON match data from Riot API.';
           } else if (errorData.detail.includes('must contain a \'matches\' array')) {
@@ -184,7 +184,7 @@ export default function DataAnalyticsPage() {
           } else if (errorData.detail.includes('No matches found')) {
             errorMessage = 'The file does not contain any match data.';
           } else if (errorData.detail.includes('No team members were found in the matches')) {
-            errorMessage = 'No team members found in the match data. Make sure the Riot IDs in your team profiles match the players in the uploaded matches.';
+            errorMessage = 'No team members found in the match data. Make sure the Riot IDs in settings match the players in the uploaded matches.';
           } else {
             errorMessage = errorData.detail;
           }
@@ -369,7 +369,7 @@ export default function DataAnalyticsPage() {
       <div className="border-b border-[#F5F5F5]/10 py-12">
         <div className="max-w-[1600px] mx-auto px-12">
           <h1 className="text-[#F5F5F5] text-5xl font-semibold mb-4 tracking-tight">
-            Data Analytics Dashboard
+            Scrim Data Analytics Dashboard
           </h1>
           <p className="text-[#F5F5F5]/50 text-lg">
             Upload, analyze, and save scrim data for your team
@@ -443,6 +443,16 @@ export default function DataAnalyticsPage() {
                       <strong className="text-[#F5F5F5]">.rofl files</strong> are League of Legends replay files.
                       This Python script converts them into JSON format compatible with our analytics dashboard.
                     </p>
+
+                    {/* Tutorial Image */}
+                    <div className="relative rounded-lg overflow-hidden border border-[#3D7A5F]/30 shadow-2xl">
+                      <img
+                        src="/tuto.png"
+                        alt="ROFL Parser Tutorial"
+                        className="w-full h-auto"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0E0E0E]/80 via-transparent to-transparent pointer-events-none" />
+                    </div>
 
                     <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg p-6">
                       <h3 className="text-[#F5F5F5] font-semibold mb-3 text-lg flex items-center gap-2">
