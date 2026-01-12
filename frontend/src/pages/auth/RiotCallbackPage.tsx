@@ -26,7 +26,7 @@ export default function RiotCallbackPage() {
       setStatus('error');
       setMessage(`Authentication failed: ${error}`);
       toast?.error(`Riot OAuth failed: ${error}`);
-      setTimeout(() => navigate('/profile'), 3000);
+      setTimeout(() => navigate('/dashboard'), 3000);
       return;
     }
 
@@ -35,7 +35,7 @@ export default function RiotCallbackPage() {
       setStatus('error');
       setMessage('Missing authentication parameters');
       toast?.error('Invalid callback parameters');
-      setTimeout(() => navigate('/profile'), 3000);
+      setTimeout(() => navigate('/dashboard'), 3000);
       return;
     }
 
@@ -68,13 +68,13 @@ export default function RiotCallbackPage() {
       toast?.success('Riot account linked successfully!');
 
       // Redirect to profile after 2 seconds
-      setTimeout(() => navigate('/profile'), 2000);
+      setTimeout(() => navigate('/dashboard'), 2000);
     } catch (error) {
       console.error('Callback error:', error);
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Failed to authenticate');
       toast?.error(error instanceof Error ? error.message : 'Authentication failed');
-      setTimeout(() => navigate('/profile'), 3000);
+      setTimeout(() => navigate('/dashboard'), 3000);
     }
   };
 
@@ -143,10 +143,10 @@ export default function RiotCallbackPage() {
 
             {status !== 'loading' && (
               <button
-                onClick={() => navigate('/profile')}
+                onClick={() => navigate('/dashboard')}
                 className="w-full px-4 py-3 bg-[#3D7A5F] text-[#F5F5F5] text-sm font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded"
               >
-                Go to Profile
+                Go to Dashboard
               </button>
             )}
           </div>

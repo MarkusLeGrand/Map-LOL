@@ -56,7 +56,9 @@
       "Bash(docker compose:*)",
       "Bash(start \"\" \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
       "Bash(npx tsc:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(dir /b /s *.png)"
     ]
   }
 }

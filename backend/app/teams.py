@@ -24,6 +24,7 @@ class TeamUpdate(BaseModel):
     tag: Optional[str] = None
     description: Optional[str] = None
     team_color: Optional[str] = None
+    is_locked: Optional[bool] = None
 
 
 class TeamMember(BaseModel):
@@ -59,6 +60,7 @@ class TeamResponse(BaseModel):
     max_members: str
     member_count: int
     members: List[TeamMember] = []
+    is_locked: bool = False
 
     class Config:
         from_attributes = True
@@ -129,6 +131,11 @@ class JoinRequestResponse(BaseModel):
 
 def create_team(db: Session, team_data: TeamCreate, owner_id: str) -> DBTeam:
     """Create a new team"""
+    # Check if owner is already in a team (prevent multi-team)
+    owner = db.query(DBUser).filter(DBUser.id == owner_id).first()
+    if owner and len(owner.teams) > 0:
+        raise HTTPException(status_code=400, detail="You can only be in one team at a time. Leave your current team first.")
+
     # Check if team name already exists
     existing = db.query(DBTeam).filter(DBTeam.name == team_data.name).first()
     if existing:
@@ -208,6 +215,10 @@ def update_team(db: Session, team_id: str, team_data: TeamUpdate) -> DBTeam:
     # Update color
     if team_data.team_color is not None:
         team.team_color = team_data.team_color
+
+    # Update is_locked
+    if team_data.is_locked is not None:
+        team.is_locked = team_data.is_locked
 
     db.commit()
     db.refresh(team)
@@ -322,9 +333,13 @@ def accept_team_invite(db: Session, invite_id: str, user_id: str) -> DBTeam:
     if invite.status != "pending":
         raise HTTPException(status_code=400, detail="Invite already processed")
 
+    # Check if user is already in a team (prevent multi-team)
+    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    if user and len(user.teams) > 0:
+        raise HTTPException(status_code=400, detail="You can only be in one team at a time. Leave your current team first.")
+
     # Add user to team
     team = db.query(DBTeam).filter(DBTeam.id == invite.team_id).first()
-    user = db.query(DBUser).filter(DBUser.id == user_id).first()
 
     if team and user:
         team.members.append(user)
@@ -470,18 +485,15 @@ def accept_join_request(db: Session, request_id: str, owner_id: str) -> DBTeam:
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Check if user is already in a team (prevent multi-team)
+    if len(user.teams) > 0:
+        raise HTTPException(status_code=400, detail="User is already in a team. They must leave it first.")
+
     # Check if user is already a member (safety check)
     if user in team.members:
         join_request.status = "accepted"
         db.commit()
         return team
-
-    # Check if user is already in another team
-    user_teams = db.query(DBTeam).filter(
-        (DBTeam.members.contains(user)) | (DBTeam.owner_id == user.id)
-    ).all()
-    if user_teams:
-        raise HTTPException(status_code=400, detail="User is already in another team")
 
     # Check if team is full
     current_member_count = len(team.members)

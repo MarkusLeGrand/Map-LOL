@@ -82,29 +82,39 @@ export default function SettingsPage() {
       }
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        method: 'PUT',
+
+      // Verify Riot account via API (this also saves it and gets PUUID)
+      const response = await fetch(`${API_BASE_URL}/api/riot/verify`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          riot_game_name: gameName,
-          riot_tag_line: tagLine,
+          game_name: gameName,
+          tag_line: tagLine,
+          platform: 'EUW1', // Default to EUW, could make this configurable
+          region: 'europe',
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || 'Failed to update Riot ID');
+        throw new Error(error.detail || 'Failed to verify Riot account');
       }
 
       const data = await response.json();
-      updateUser(data);
-      toast?.success('Riot ID updated successfully!');
+      // Refresh user data
+      const userResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const userData = await userResponse.json();
+      updateUser(userData);
+
+      toast?.success('Riot account verified and linked successfully!');
       setIsEditingRiot(false);
     } catch (error) {
-      toast?.error(error instanceof Error ? error.message : 'Failed to update Riot ID');
+      toast?.error(error instanceof Error ? error.message : 'Failed to verify Riot account');
     }
   };
 

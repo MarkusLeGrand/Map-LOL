@@ -187,7 +187,19 @@ async def delete_account(
 ):
     """Delete current user account"""
     try:
-        # Delete user (cascades will handle related data)
+        from database import Team as DBTeam
+
+        # Check if user owns any teams - if so, delete them (kicks all members)
+        owned_teams = db.query(DBTeam).filter(DBTeam.owner_id == current_user.id).all()
+        for team in owned_teams:
+            db.delete(team)
+
+        # Remove user from any teams they're a member of
+        for team in current_user.teams:
+            if team.owner_id != current_user.id:  # Already handled above
+                team.members.remove(current_user)
+
+        # Delete user (cascades will handle related data like summoner_data, etc.)
         db.delete(current_user)
         db.commit()
         return {"message": "Account deleted successfully"}

@@ -10,13 +10,20 @@ import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { teams, invites, joinRequests } = useTeam();
+  const { teams, invites, joinRequests, createTeam, getMyTeams, acceptInvite } = useTeam();
   const navigate = useNavigate();
   const toast = useToast();
 
   const [summonerData, setSummonerData] = useState<SummonerData | null>(null);
   const [riotAccount, setRiotAccount] = useState<RiotAccount | null>(null);
   const [isLoadingSummoner, setIsLoadingSummoner] = useState(false);
+  const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
+  const [teamFormData, setTeamFormData] = useState({
+    name: '',
+    tag: '',
+    description: '',
+    team_color: '#3D7A5F',
+  });
 
   useEffect(() => {
     if (user?.riot_game_name) {
@@ -37,6 +44,36 @@ export default function DashboardPage() {
       console.error('Failed to load summoner data:', error);
     } finally {
       setIsLoadingSummoner(false);
+    }
+  };
+
+  // Load teams on mount
+  useEffect(() => {
+    getMyTeams();
+  }, []);
+
+  // Handle create team
+  const handleCreateTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createTeam(teamFormData);
+      toast?.success('Team created successfully!');
+      setShowCreateTeamModal(false);
+      setTeamFormData({ name: '', tag: '', description: '', team_color: '#3D7A5F' });
+      await getMyTeams();
+    } catch (error) {
+      toast?.error(error instanceof Error ? error.message : 'Failed to create team');
+    }
+  };
+
+  // Handle accept invite
+  const handleAcceptInvite = async (inviteId: string) => {
+    try {
+      await acceptInvite(inviteId);
+      toast?.success('Invite accepted!');
+      await getMyTeams();
+    } catch (error) {
+      toast?.error('Failed to accept invite');
     }
   };
 
@@ -246,12 +283,21 @@ export default function DashboardPage() {
                     </div>
                     <button
                       onClick={async () => {
-                        const { syncRiotData } = await import('../../services/riotApi');
-                        const token = localStorage.getItem('token');
-                        if (!token) return;
-                        await syncRiotData(token);
-                        await loadSummonerData();
-                        toast?.success('Data synced successfully!');
+                        try {
+                          const { syncRiotData } = await import('../../services/riotApi');
+                          const token = localStorage.getItem('token');
+                          if (!token) return;
+                          await syncRiotData(token);
+                          await loadSummonerData();
+                          toast?.success('Data synced successfully!');
+                        } catch (error) {
+                          const errorMessage = error instanceof Error ? error.message : 'Failed to sync';
+                          if (errorMessage.includes('No Riot account linked')) {
+                            toast?.error('Please verify your Riot ID in Settings first by clicking the Save button.');
+                          } else {
+                            toast?.error(errorMessage);
+                          }
+                        }
                       }}
                       className="w-full px-4 py-2 bg-[#3D7A5F] text-[#F5F5F5] hover:bg-[#3D7A5F]/90 transition-colors rounded font-medium"
                     >
@@ -289,6 +335,104 @@ export default function DashboardPage() {
                 </div>
               )}
 
+              {/* My Team Section */}
+              <div className="border border-[#F5F5F5]/10 bg-[#F5F5F5]/[0.02] rounded">
+                <div className="px-5 py-4 border-b border-[#F5F5F5]/10">
+                  <h2 className="text-[#F5F5F5] text-lg font-semibold">My Team</h2>
+                </div>
+                <div className="p-5">
+                  {myTeam ? (
+                    <div className="space-y-4">
+                      {/* Team Info */}
+                      <div className="flex items-center gap-4">
+                        <div
+                          className="w-14 h-14 rounded-lg flex items-center justify-center text-[#F5F5F5] font-bold text-xl shadow-lg flex-shrink-0"
+                          style={{ backgroundColor: myTeam.team_color }}
+                        >
+                          {myTeam.tag || myTeam.name.charAt(0)}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-[#F5F5F5] text-lg font-bold mb-1">
+                            {myTeam.name}
+                          </h4>
+                          <p className="text-[#F5F5F5]/60 text-sm">{myTeam.description || 'No description'}</p>
+                        </div>
+                      </div>
+
+                      {/* Open Team Manager Button */}
+                      <button
+                        onClick={() => navigate('/team-manager')}
+                        className="w-full px-5 py-2.5 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded text-sm"
+                      >
+                        My Team
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-[#F5F5F5]/5 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-[#F5F5F5]/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                      <h4 className="text-[#F5F5F5] text-base font-semibold mb-1.5">No Team Yet</h4>
+                      <p className="text-[#F5F5F5]/50 text-xs mb-4">
+                        Create your own team or wait for an invitation
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowCreateTeamModal(true)}
+                          className="flex-1 px-4 py-2.5 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded text-sm"
+                        >
+                          Create Team
+                        </button>
+                        <button
+                          onClick={() => navigate('/teams')}
+                          className="flex-1 px-4 py-2.5 border border-[#F5F5F5]/20 text-[#F5F5F5] font-medium hover:bg-[#F5F5F5]/5 transition-colors rounded text-sm"
+                        >
+                          Find Teams
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Team Invitations */}
+                  {invites.length > 0 && (
+                    <div className="pt-5 mt-5 border-t border-[#F5F5F5]/10">
+                      <h3 className="text-[#F5F5F5]/80 text-sm font-semibold uppercase tracking-wider mb-3">
+                        Team Invitations ({invites.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {invites.slice(0, 3).map((invite) => (
+                          <div key={invite.id} className="p-3 bg-[#3D7A5F]/10 border border-[#3D7A5F]/20 rounded">
+                            <p className="text-[#F5F5F5] font-semibold text-sm mb-0.5">{invite.team_name}</p>
+                            <p className="text-[#F5F5F5]/50 text-xs mb-2">as {invite.role}</p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleAcceptInvite(invite.id)}
+                                className="flex-1 px-3 py-1.5 bg-[#3D7A5F] text-[#F5F5F5] text-xs hover:bg-[#3D7A5F]/90 transition-colors rounded font-medium"
+                              >
+                                Accept
+                              </button>
+                              <button className="flex-1 px-3 py-1.5 bg-[#F5F5F5]/5 text-[#F5F5F5] text-xs hover:bg-[#F5F5F5]/10 transition-colors rounded">
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {invites.length > 3 && (
+                          <button
+                            onClick={() => navigate('/team-manager')}
+                            className="w-full text-[#3D7A5F] text-xs hover:underline"
+                          >
+                            View {invites.length - 3} more
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Quick Access Tools */}
               <div className="border border-[#F5F5F5]/10 bg-[#F5F5F5]/[0.02] rounded">
                 <div className="px-5 py-4 border-b border-[#F5F5F5]/10">
@@ -317,7 +461,7 @@ export default function DashboardPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
                       </div>
-                      <p className="text-[#F5F5F5] font-semibold">Data Analytics</p>
+                      <p className="text-[#F5F5F5] font-semibold">Scrim Data Analytics</p>
                       <p className="text-[#F5F5F5]/50 text-xs mt-1">View stats</p>
                     </button>
                   </div>
@@ -337,6 +481,82 @@ export default function DashboardPage() {
           { label: 'Terms', href: '/terms' },
         ]}
       />
+
+      {/* Create Team Modal */}
+      {showCreateTeamModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowCreateTeamModal(false)}>
+          <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 p-8 max-w-lg w-full rounded-lg" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-[#F5F5F5] text-2xl font-bold mb-6">Create Team</h2>
+            <form onSubmit={handleCreateTeam}>
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-[#F5F5F5]/60 text-sm mb-2">Team Name *</label>
+                  <input
+                    type="text"
+                    value={teamFormData.name}
+                    onChange={(e) => setTeamFormData({ ...teamFormData, name: e.target.value })}
+                    className="w-full px-4 py-3 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] rounded"
+                    required
+                    placeholder="e.g., Kingslayers"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#F5F5F5]/60 text-sm mb-2">Team Tag (2-4 letters) *</label>
+                  <input
+                    type="text"
+                    value={teamFormData.tag}
+                    onChange={(e) => setTeamFormData({ ...teamFormData, tag: e.target.value.toUpperCase() })}
+                    className="w-full px-4 py-3 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] rounded uppercase"
+                    maxLength={4}
+                    minLength={2}
+                    required
+                    placeholder="e.g., KC, T1, FNC"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#F5F5F5]/60 text-sm mb-2">Description</label>
+                  <textarea
+                    value={teamFormData.description}
+                    onChange={(e) => setTeamFormData({ ...teamFormData, description: e.target.value })}
+                    className="w-full px-4 py-3 bg-[#0E0E0E] border border-[#F5F5F5]/10 text-[#F5F5F5] focus:outline-none focus:border-[#3D7A5F] resize-none rounded"
+                    rows={3}
+                    placeholder="A few words about your team..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#F5F5F5]/60 text-sm mb-3">Team Color</label>
+                  <div className="flex gap-3">
+                    {['#3D7A5F', '#5B8FB9', '#B4975A', '#8B5A9F', '#C75B5B', '#E07B39'].map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setTeamFormData({ ...teamFormData, team_color: color })}
+                        className={`w-12 h-12 rounded-lg transition-all ${teamFormData.team_color === color ? 'ring-2 ring-[#F5F5F5] ring-offset-2 ring-offset-[#1A1A1A] scale-110' : 'hover:scale-105'}`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-4 mt-8">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateTeamModal(false)}
+                  className="flex-1 px-6 py-3 border border-[#F5F5F5]/20 text-[#F5F5F5] font-medium hover:bg-[#F5F5F5]/5 transition-colors rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded"
+                >
+                  Create Team
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

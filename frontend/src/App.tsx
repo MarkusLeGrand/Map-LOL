@@ -12,7 +12,6 @@ import DashboardPage from './pages/auth/DashboardPage';
 import ScrimSchedulerPage from './pages/auth/ScrimSchedulerPage';
 import TeamManagerPage from './pages/auth/TeamManagerPage';
 import TeamsPage from './pages/TeamsPage';
-import ProfilePage from './pages/auth/ProfilePage';
 import SettingsPage from './pages/auth/SettingsPage';
 import AdminPage from './pages/auth/AdminPage';
 import RiotCallbackPage from './pages/auth/RiotCallbackPage';
@@ -45,7 +44,6 @@ export default function App() {
                             <Route path="/teams" element={<TeamsPage />} />
                             <Route path="/team-manager" element={<ProtectedRoute><TeamManagerPage /></ProtectedRoute>} />
                             <Route path="/scrim-scheduler" element={<ProtectedRoute><ScrimSchedulerPage /></ProtectedRoute>} />
-                            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
                             <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
                             <Route path="/favorite-tools" element={<ProtectedRoute><FavoriteToolsPage /></ProtectedRoute>} />

@@ -51,18 +51,6 @@ export default function SignupPage() {
         return;
       }
 
-      // Verify Riot account exists BEFORE creating the account
-      setIsLoading(true);
-      setError('Verifying Riot account...');
-      try {
-        // We need a temporary token for verification, so we'll verify after registration
-        // OR we can make the verification endpoint public for signup
-        // For now, skip verification during signup and do it in profile
-      } catch (verifyError) {
-        setIsLoading(false);
-        setError(verifyError instanceof Error ? verifyError.message : 'Riot account not found');
-        return;
-      }
     }
 
     setIsLoading(true);
@@ -83,15 +71,19 @@ export default function SignupPage() {
         try {
           const token = localStorage.getItem('token');
           if (token) {
+            setError('Verifying Riot account...');
             await verifyRiotAccount(token, riotGameName, riotTagLine, 'EUW1', 'europe');
           }
         } catch (verifyError) {
-          // Don't fail registration if verification fails
-          console.warn('Riot verification failed:', verifyError);
+          // Show error but don't fail registration
+          setError('Account created but Riot ID verification failed. Please verify it in Settings.');
+          setIsLoading(false);
+          setTimeout(() => navigate('/dashboard'), 3000);
+          return;
         }
       }
 
-      navigate('/profile');
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {

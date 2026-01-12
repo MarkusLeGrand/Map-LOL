@@ -40,8 +40,15 @@
 [x] ajouter delete account a la page profils!
 [x] gros pb avec les favorite tool remmetre comme avatn !
 [x] reflechis au dashboard ! quoi mettre et tout !
-[x] ajouter le dashboard au menu deroulant du header ! 
-
+[x] ajouter le dashboard au menu deroulant du header !
+[x] quand tu login tu arrive sur dashboard pas profils
+[x] quand tu as pas de team le message te renvoie vers settings pas profil !
+[x] sync marche pas - ameliore le message d'erreur pour indiquer de verifier le Riot ID dans Settings
+[x] tout le coter creation de team de la page profils faut le mettre dans le dashboard !
+[x] rajouter un lock team pour le owner et donc la team n'aaparait plus dans teams ! +impossible de rejoindre plusieur team a la fois
+[x] quand tu creer ton compte et que tu mets ton id riot ca verifie si l'id riot existe et met tout a jour
+[x] pb tu del ton compte ca quitte pas la team avant ! et si tu es owner ca doit del l'equipe et kick tout le monde logique ! 
+[ ] FAIRE LE PARTENARIAT GENRE LES STRUCTURE PARTENAIRE (MAIN PAGE ET LA TEAM APPARTIEN A UNE STRUCTURE OU APS !)
 
 ==============================================
 🟡 RIOT API INTEGRATION
@@ -54,7 +61,7 @@
 [ ] faire la vision des profils d'un user ! 
 [ ] Google OAuth (optionnel, après Riot)
 [ ] Gerer la recuperation du mots de passe via l'adresse mail (verification de l'addresse mail, et tout !)
-[ ] rajouter un lock team pour le owner et donc la team n'aaparait plus dans teams ! +impossible de rejoindre plusieur team a la fois
+
 
 ==============================================
 🎮 MAP / TACTICAL BOARD - CORE FEATURES

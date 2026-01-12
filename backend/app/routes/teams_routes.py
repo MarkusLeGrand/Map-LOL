@@ -25,10 +25,10 @@ async def get_all_teams(
     current_user: DBUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all teams (public listing)"""
+    """Get all teams (public listing) - excludes locked teams"""
     try:
         from database import Team as DBTeam
-        teams = db.query(DBTeam).all()
+        teams = db.query(DBTeam).filter(DBTeam.is_locked == False).all()
         print(f"[DEBUG] Found {len(teams)} teams in database")
         result = []
         for team in teams:
@@ -44,7 +44,8 @@ async def get_all_teams(
                 team_color=team.team_color,
                 max_members=team.max_members,
                 member_count=len(members),
-                members=members
+                members=members,
+                is_locked=team.is_locked
             ))
         print(f"[DEBUG] Returning {len(result)} teams")
         return result
@@ -73,7 +74,8 @@ async def create_team_endpoint(
             team_color=team.team_color,
             max_members=team.max_members,
             member_count=len(members),
-            members=members
+            members=members,
+            is_locked=team.is_locked
         )
     except HTTPException as e:
         raise e
@@ -102,7 +104,8 @@ async def get_my_teams(
                 team_color=team.team_color,
                 max_members=team.max_members,
                 member_count=len(members),
-                members=members
+                members=members,
+                is_locked=team.is_locked
             ))
         return result
     except Exception as e:
@@ -160,7 +163,8 @@ async def get_team(
         team_color=team.team_color,
         max_members=team.max_members,
         member_count=len(members),
-        members=members
+        members=members,
+        is_locked=team.is_locked
     )
 
 
@@ -384,7 +388,8 @@ async def accept_invite(
             team_color=team.team_color,
             max_members=team.max_members,
             member_count=len(members),
-            members=members
+            members=members,
+            is_locked=team.is_locked
         )
     except HTTPException as e:
         raise e
@@ -510,7 +515,8 @@ async def accept_join_request_endpoint(
             team_color=team.team_color,
             max_members=team.max_members,
             member_count=len(members),
-            members=members
+            members=members,
+            is_locked=team.is_locked
         )
     except HTTPException as e:
         raise e
