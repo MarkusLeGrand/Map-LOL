@@ -227,7 +227,7 @@ export default function TacticalMapPage() {
                 URL.revokeObjectURL(url);
             });
         } catch (error) {
-            console.error('Failed to export PNG:', error);
+
         }
     }, []);
 

@@ -106,8 +106,8 @@ export default function TeamManagerPage() {
 
   useEffect(() => {
     if (teams.length > 0 && !selectedTeam) {
-      console.log('🔍 Team data received:', teams[0]);
-      console.log('🔍 First member:', teams[0].members[0]);
+
+
       setSelectedTeam(teams[0]);
     }
   }, [teams]);
@@ -199,7 +199,7 @@ export default function TeamManagerPage() {
             toast?.error(error.detail || 'Failed to leave team');
           }
         } catch (error) {
-          console.error('Failed to leave team:', error);
+
           toast?.error('Failed to leave team');
         } finally {
           setConfirmDialog({ ...confirmDialog, show: false });
@@ -292,7 +292,7 @@ export default function TeamManagerPage() {
             toast?.error('Failed to delete team');
           }
         } catch (error) {
-          console.error('Failed to delete team:', error);
+
           toast?.error('Failed to delete team');
         }
         setConfirmDialog({ ...confirmDialog, show: false });

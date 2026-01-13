@@ -112,9 +112,7 @@ class RiotAPIService:
         endpoint = self.regional_endpoints.get(region, self.regional_endpoints["europe"])
         url = f"{endpoint}/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
 
-        print(f"🔍 Searching Riot account: {game_name}#{tag_line}")
-        print(f"📍 Region: {region}")
-        print(f"🌐 URL: {url}")
+
 
         async with httpx.AsyncClient() as client:
             try:
@@ -125,9 +123,7 @@ class RiotAPIService:
                     }
                 )
 
-                print(f"📊 Response status: {response.status_code}")
                 if response.status_code != 200:
-                    print(f"❌ Response body: {response.text}")
 
                 if response.status_code == 404:
                     raise HTTPException(
@@ -199,8 +195,6 @@ class RiotAPIService:
         endpoint = self.platform_endpoints.get(platform, self.platform_endpoints["EUW1"])
         url = f"{endpoint}/lol/summoner/v4/summoners/by-puuid/{puuid}"
 
-        print(f"🔎 Fetching summoner data from platform: {platform}")
-        print(f"🌐 URL: {url}")
 
         async with httpx.AsyncClient() as client:
             try:
@@ -211,27 +205,23 @@ class RiotAPIService:
                     }
                 )
 
-                print(f"📊 Summoner response status: {response.status_code}")
-
                 # Log response body for debugging
                 response_data = response.json() if response.status_code == 200 else None
                 if response.status_code == 200:
-                    print(f"📦 Summoner response data: {response_data}")
 
                     # CRITICAL FIX: Riot API v4 now returns 'id' field but some responses don't include it
                     # The 'id' is actually stored in a different field or we need to construct it
                     # For now, if 'id' is missing, we'll try to fetch ranked data using PUUID directly
                     if 'id' not in response_data and 'puuid' in response_data:
-                        print(f"⚠️ Summoner 'id' field missing from API response")
-                        print(f"🔧 Attempting to get summoner ID via ranked entries by PUUID...")
+
+
                         # Try to get the summoner ID from ranked entries
                         try:
                             ranked_url = f"{endpoint}/lol/league/v4/entries/by-summoner/{puuid}"
-                            print(f"🌐 Trying ranked URL with PUUID: {ranked_url}")
+
                         except Exception as e:
-                            print(f"⚠️ Could not fetch via PUUID: {str(e)}")
+                            pass
                 else:
-                    print(f"❌ Summoner response body: {response.text}")
 
                 if response.status_code == 404:
                     raise HTTPException(
@@ -268,8 +258,6 @@ class RiotAPIService:
         # Try the new PUUID-based endpoint first
         url = f"{endpoint}/lol/league/v4/entries/by-puuid/{puuid}"
 
-        print(f"🏆 Fetching ranked data for PUUID: {puuid[:20]}...")
-        print(f"🌐 URL: {url}")
 
         async with httpx.AsyncClient() as client:
             try:
@@ -280,21 +268,18 @@ class RiotAPIService:
                     }
                 )
 
-                print(f"📊 Ranked response status: {response.status_code}")
-
                 if response.status_code == 404:
-                    print(f"⚠️ Ranked endpoint with PUUID returned 404 - player may be unranked")
+
                     return []
                 elif response.status_code != 200:
-                    print(f"❌ Ranked response body: {response.text}")
+
                     return []
 
                 ranked_data = response.json()
-                print(f"✅ Ranked data received: {ranked_data}")
+
                 return ranked_data
 
             except httpx.HTTPError as e:
-                print(f"❌ HTTP error during ranked API call: {str(e)}")
                 return []
 
     async def get_league_entries(self, summoner_id: str, platform: str = "EUW1") -> List[Dict[str, Any]]:
@@ -311,8 +296,6 @@ class RiotAPIService:
         endpoint = self.platform_endpoints.get(platform, self.platform_endpoints["EUW1"])
         url = f"{endpoint}/lol/league/v4/entries/by-summoner/{summoner_id}"
 
-        print(f"🏆 Fetching ranked data for summoner: {summoner_id}")
-        print(f"🌐 URL: {url}")
 
         async with httpx.AsyncClient() as client:
             try:
@@ -323,21 +306,18 @@ class RiotAPIService:
                     }
                 )
 
-                print(f"📊 Ranked response status: {response.status_code}")
-
                 if response.status_code != 200:
-                    print(f"❌ Ranked response body: {response.text}")
+
                     raise HTTPException(
                         status_code=response.status_code,
                         detail=f"Riot API error: {response.text}"
                     )
 
                 ranked_data = response.json()
-                print(f"✅ Ranked data received: {ranked_data}")
+
                 return ranked_data
 
             except httpx.HTTPError as e:
-                print(f"❌ HTTP error during ranked API call: {str(e)}")
                 raise HTTPException(
                     status_code=500,
                     detail=f"HTTP error during Riot API call: {str(e)}"
@@ -423,13 +403,12 @@ class RiotAPIService:
                 )
 
                 if response.status_code != 200:
-                    print(f"⚠️ Match history error: {response.text}")
+
                     return []
 
                 return response.json()
 
             except httpx.HTTPError as e:
-                print(f"❌ HTTP error getting match history: {str(e)}")
                 return []
 
     async def get_match_details(self, match_id: str, region: str = "europe") -> Optional[Dict[str, Any]]:
@@ -483,7 +462,7 @@ class RiotAPIService:
         match_ids = await self.get_match_history(puuid, region, count=20, queue_id=420)
 
         if not match_ids:
-            print("⚠️ No ranked matches found, falling back to champion mastery")
+
             return None
 
         # Count roles played
@@ -528,14 +507,11 @@ class RiotAPIService:
                 role_counts[role] = role_counts.get(role, 0) + 1
                 matches_analyzed += 1
 
-        print(f"📊 Role distribution from {matches_analyzed} matches: {role_counts}")
-
         if not role_counts:
             return None
 
         # Return most played role
         most_played_role = max(role_counts, key=role_counts.get)
-        print(f"✅ Detected preferred role: {most_played_role}")
 
         return most_played_role
 
@@ -559,29 +535,23 @@ class RiotAPIService:
             Dict with account info, summoner info, rank, and top champions
         """
         # Step 1: Get account by Riot ID
-        print(f"📍 Step 1: Getting account by Riot ID")
+
         account = await self.get_account_by_riot_id(game_name, tag_line, region)
         puuid = account["puuid"]
-        print(f"✅ Step 1 complete: PUUID = {puuid}")
 
         # Step 2: Get summoner by PUUID
-        print(f"📍 Step 2: Getting summoner by PUUID on platform {platform}")
+
         try:
             summoner = await self.get_summoner_by_puuid(puuid, platform)
-            print(f"✅ Step 2 complete: Summoner ID = {summoner.get('id')}")
         except Exception as e:
-            print(f"❌ Step 2 failed: {type(e).__name__}: {str(e)}")
             raise
 
         # Step 3: Get ranked info using PUUID (new method)
-        print(f"📍 Step 3: Getting ranked info using PUUID")
+
         try:
             ranked_info = await self.get_league_entries_by_puuid(puuid, platform)
-            print(f"📊 Ranked info retrieved: {ranked_info}")
+
         except Exception as e:
-            print(f"❌ Failed to get ranked info: {type(e).__name__}: {str(e)}")
-            import traceback
-            traceback.print_exc()
             ranked_info = []
 
         # Step 4: Get top champions

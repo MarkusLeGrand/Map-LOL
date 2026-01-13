@@ -52,6 +52,8 @@ class User(Base):
 
     # Discord integration
     discord = Column(String, nullable=True)
+    discord_id = Column(String, nullable=True, unique=True, index=True)
+    discord_verified = Column(Boolean, default=False)  # Whether Discord account is verified via OAuth
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -68,6 +70,7 @@ class User(Base):
     analytics = relationship("UserAnalytics", back_populates="user", cascade="all, delete-orphan")
     teams = relationship("Team", secondary=team_members, back_populates="members")
     riot_oauth = relationship("RiotOAuth", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    discord_oauth = relationship("DiscordOAuth", back_populates="user", uselist=False, cascade="all, delete-orphan")
     summoner_data = relationship("SummonerData", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 
@@ -275,6 +278,35 @@ class RiotOAuth(Base):
     user = relationship("User", back_populates="riot_oauth")
 
 
+class DiscordOAuth(Base):
+    """Discord OAuth tokens model"""
+    __tablename__ = "discord_oauth"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, unique=True)
+
+    # OAuth tokens
+    access_token = Column(String, nullable=False)
+    refresh_token = Column(String, nullable=False)
+    token_type = Column(String, default="Bearer")
+    expires_at = Column(DateTime, nullable=False)
+
+    # OAuth state for CSRF protection
+    state = Column(String, nullable=True)
+
+    # Discord user info
+    discord_id = Column(String, nullable=False)
+    discord_username = Column(String, nullable=False)
+    discord_discriminator = Column(String, nullable=False)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    user = relationship("User", back_populates="discord_oauth")
+
+
 class SummonerData(Base):
     """Summoner data from Riot API"""
     __tablename__ = "summoner_data"
@@ -321,8 +353,6 @@ class SummonerData(Base):
 def init_db():
     """Create all tables"""
     Base.metadata.create_all(bind=engine)
-    print("Database initialized successfully!")
-
 
 def get_db():
     """Dependency to get DB session"""

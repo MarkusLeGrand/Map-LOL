@@ -34,7 +34,7 @@ export function useMaskImages(): MaskImages {
         };
 
         wallsImg.onerror = () => {
-            console.error('Failed to load walls mask');
+
             checkComplete();
         };
 
@@ -46,7 +46,7 @@ export function useMaskImages(): MaskImages {
         };
 
         brushImg.onerror = () => {
-            console.error('Failed to load brush mask');
+
             checkComplete();
         };
 

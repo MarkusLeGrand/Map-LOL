@@ -49,6 +49,9 @@
 [x] quand tu creer ton compte et que tu mets ton id riot ca verifie si l'id riot existe et met tout a jour
 [x] pb tu del ton compte ca quitte pas la team avant ! et si tu es owner ca doit del l'equipe et kick tout le monde logique ! 
 [ ] FAIRE LE PARTENARIAT GENRE LES STRUCTURE PARTENAIRE (MAIN PAGE ET LA TEAM APPARTIEN A UNE STRUCTURE OU APS !)
+[ ] lock the team toggle button !
+[ ] admin lvlup !
+[ ] ticket signaler un bug !
 
 ==============================================
 🟡 RIOT API INTEGRATION

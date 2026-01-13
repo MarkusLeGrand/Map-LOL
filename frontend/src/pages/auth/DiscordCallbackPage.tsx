@@ -5,12 +5,12 @@ import { Header } from '../../components/layout/Header';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-export default function RiotCallbackPage() {
+export default function DiscordCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('Processing Riot authentication...');
+  const [message, setMessage] = useState('Processing Discord authentication...');
 
   useEffect(() => {
     handleCallback();
@@ -25,7 +25,7 @@ export default function RiotCallbackPage() {
     if (error) {
       setStatus('error');
       setMessage(`Authentication failed: ${error}`);
-      toast?.error(`Riot OAuth failed: ${error}`);
+      toast?.error(`Discord OAuth failed: ${error}`);
       setTimeout(() => navigate('/dashboard'), 3000);
       return;
     }
@@ -47,7 +47,7 @@ export default function RiotCallbackPage() {
 
       // Call backend callback endpoint
       const response = await fetch(
-        `${API_BASE_URL}/api/riot/auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
+        `${API_BASE_URL}/api/discord/auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
         {
           method: 'GET',
           headers: {
@@ -58,19 +58,18 @@ export default function RiotCallbackPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || 'Failed to authenticate with Riot');
+        throw new Error(error.detail || 'Failed to authenticate with Discord');
       }
 
       const data = await response.json();
 
       setStatus('success');
-      setMessage(`Successfully linked Riot account: ${data.riot_account.game_name}#${data.riot_account.tag_line}`);
-      toast?.success('Riot account linked successfully!');
+      setMessage(`Successfully linked Discord account: ${data.discord.tag}`);
+      toast?.success('Discord account linked successfully!');
 
-      // Redirect to profile after 2 seconds
+      // Redirect to dashboard after 2 seconds
       setTimeout(() => navigate('/dashboard'), 2000);
     } catch (error) {
-
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Failed to authenticate');
       toast?.error(error instanceof Error ? error.message : 'Authentication failed');
@@ -92,12 +91,12 @@ export default function RiotCallbackPage() {
             {/* Status Icon */}
             <div className="flex justify-center mb-6">
               {status === 'loading' && (
-                <div className="w-16 h-16 border-4 border-[#3D7A5F] border-t-transparent rounded-full animate-spin" />
+                <div className="w-16 h-16 border-4 border-[#5865F2] border-t-transparent rounded-full animate-spin" />
               )}
               {status === 'success' && (
-                <div className="w-16 h-16 rounded-full bg-[#3D7A5F]/20 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-[#5865F2]/20 flex items-center justify-center">
                   <svg
-                    className="w-8 h-8 text-[#3D7A5F]"
+                    className="w-8 h-8 text-[#5865F2]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -144,7 +143,7 @@ export default function RiotCallbackPage() {
             {status !== 'loading' && (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="w-full px-4 py-3 bg-[#3D7A5F] text-[#F5F5F5] text-sm font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded"
+                className="w-full px-4 py-3 bg-[#5865F2] text-[#F5F5F5] text-sm font-medium hover:bg-[#5865F2]/90 transition-colors rounded"
               >
                 Go to Dashboard
               </button>

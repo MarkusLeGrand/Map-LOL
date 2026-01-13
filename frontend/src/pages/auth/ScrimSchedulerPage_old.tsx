@@ -292,7 +292,7 @@ export default function ScrimSchedulerPage() {
                                   if (teamId) getScrims(teamId);
                                 }
                               } catch (error) {
-                                console.error('Failed to delete scrim:', error);
+
                               }
                             }}
                             className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded flex-shrink-0"
@@ -527,7 +527,7 @@ export default function ScrimSchedulerPage() {
                                               if (teamId) getScrims(teamId);
                                             }
                                           } catch (error) {
-                                            console.error('Failed to delete scrim:', error);
+
                                           }
                                         }}
                                         className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"

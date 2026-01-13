@@ -22,7 +22,7 @@ export function useFaelightMasks(faelights: Faelight[]) {
                             resolve();
                         };
                         img.onerror = () => {
-                            console.error(`Failed to load Faelight zone mask: ${faelight.zoneMaskPath}`);
+
                             resolve(); // Graceful fallback - continue without this mask
                         };
                         img.src = faelight.zoneMaskPath;

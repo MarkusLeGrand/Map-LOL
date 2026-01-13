@@ -28,7 +28,7 @@ limiter = Limiter(key_func=get_remote_address)
 class RiotAccountUpdate(BaseModel):
     riot_game_name: Optional[str] = None
     riot_tag_line: Optional[str] = None
-    discord: Optional[str] = None
+    # Discord removed - use OAuth via /api/discord/auth/authorize
 
 
 class FavoriteToolsUpdate(BaseModel):
@@ -42,6 +42,10 @@ class ProfileUpdate(BaseModel):
 
 class PasswordChange(BaseModel):
     current_password: str
+    new_password: str
+
+
+class PasswordSet(BaseModel):
     new_password: str
 
 
@@ -103,8 +107,7 @@ async def update_me(
         current_user.riot_game_name = data.riot_game_name
     if data.riot_tag_line is not None:
         current_user.riot_tag_line = data.riot_tag_line
-    if data.discord is not None:
-        current_user.discord = data.discord
+    # Discord is managed via OAuth - use /api/discord endpoints
 
     db.commit()
     db.refresh(current_user)
@@ -178,6 +181,48 @@ async def change_password(
     db.commit()
 
     return {"message": "Password changed successfully"}
+
+
+@router.get("/has-password")
+async def has_password(
+    current_user: DBUser = Depends(get_current_user)
+):
+    """Check if user has a password set (for Discord-only users)"""
+    has_pwd = bool(current_user.hashed_password and current_user.hashed_password != "")
+    return {"has_password": has_pwd}
+
+
+@router.post("/set-password")
+@limiter.limit("3/minute")
+async def set_password(
+    request: Request,
+    data: PasswordSet,
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Set a password for accounts that don't have one (e.g., Discord-only accounts)
+    Rate limited: 3 per minute
+    """
+    # Check if user already has a password
+    if current_user.hashed_password and current_user.hashed_password != "":
+        raise HTTPException(
+            status_code=400,
+            detail="You already have a password. Use /change-password to change it."
+        )
+
+    # Validate password length
+    if len(data.new_password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 characters long"
+        )
+
+    # Hash and set the new password
+    current_user.hashed_password = get_password_hash(data.new_password)
+    db.commit()
+
+    return {"message": "Password set successfully! You can now log in with email/password."}
 
 
 @router.delete("/me")

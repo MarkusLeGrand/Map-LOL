@@ -29,10 +29,8 @@ async def get_all_teams(
     try:
         from database import Team as DBTeam
         teams = db.query(DBTeam).filter(DBTeam.is_locked == False).all()
-        print(f"[DEBUG] Found {len(teams)} teams in database")
         result = []
         for team in teams:
-            print(f"[DEBUG] Processing team: {team.name} (ID: {team.id})")
             members = get_team_members_with_roles(db, team.id)
             result.append(TeamResponse(
                 id=team.id,
@@ -47,10 +45,8 @@ async def get_all_teams(
                 members=members,
                 is_locked=team.is_locked
             ))
-        print(f"[DEBUG] Returning {len(result)} teams")
         return result
     except Exception as e:
-        print(f"[ERROR] Failed to get teams: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get teams: {str(e)}")
 
 

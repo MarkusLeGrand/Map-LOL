@@ -145,7 +145,9 @@ export function TeamProvider({ children }: { children: ReactNode }) {
 
   const createTeam = async (data: CreateTeamData): Promise<Team | null> => {
     const token = getAuthToken();
-    if (!token) return null;
+    if (!token) {
+      return null;
+    }
 
     try {
       setLoading(true);
@@ -165,7 +167,6 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       }
       return null;
     } catch (error) {
-      console.error('Failed to create team:', error);
       return null;
     } finally {
       setLoading(false);
@@ -174,7 +175,9 @@ export function TeamProvider({ children }: { children: ReactNode }) {
 
   const getMyTeams = async () => {
     const token = getAuthToken();
-    if (!token) return;
+    if (!token) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -190,7 +193,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         setTeams(data);
       }
     } catch (error) {
-      console.error('Failed to get teams:', error);
+      // Silently fail
     } finally {
       setLoading(false);
     }
@@ -214,7 +217,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       }
       return [];
     } catch (error) {
-      console.error('Failed to get all teams:', error);
+
       return [];
     }
   };
@@ -236,7 +239,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       }
       return null;
     } catch (error) {
-      console.error('Failed to get team:', error);
+
       return null;
     }
   };
@@ -263,7 +266,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       }
       return null;
     } catch (error) {
-      console.error('Failed to update team:', error);
+
       return null;
     }
   };
@@ -287,7 +290,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       }
       return null;
     } catch (error) {
-      console.error('Failed to invite user:', error);
+
       return null;
     }
   };
@@ -308,10 +311,10 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
         setInvites(data);
       } else {
-        console.error('Failed to get invites:', response.status, await response.text());
+
       }
     } catch (error) {
-      console.error('Failed to get invites:', error);
+
     }
   };
 
@@ -335,7 +338,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       }
       return null;
     } catch (error) {
-      console.error('Failed to accept invite:', error);
+
       return null;
     }
   };
@@ -366,7 +369,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       }
       return null;
     } catch (error) {
-      console.error('Failed to create scrim:', error);
+
       return null;
     }
   };
@@ -392,7 +395,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         });
       }
     } catch (error) {
-      console.error('Failed to get scrims:', error);
+
     }
   };
 
@@ -415,7 +418,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       }
       return false;
     } catch (error) {
-      console.error('Failed to kick member:', error);
+
       return false;
     }
   };
@@ -439,7 +442,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       }
       return false;
     } catch (error) {
-      console.error('Failed to promote member:', error);
+
       return false;
     }
   };
@@ -473,7 +476,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       const errorData = await response.json();
       throw new Error(errorData.detail || 'Failed to send request');
     } catch (error) {
-      console.error('Failed to request join team:', error);
+
       throw error;
     }
   };
@@ -495,7 +498,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         setJoinRequests(data);
       }
     } catch (error) {
-      console.error('Failed to get join requests:', error);
+
     }
   };
 
@@ -519,7 +522,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       }
       return false;
     } catch (error) {
-      console.error('Failed to accept join request:', error);
+
       return false;
     }
   };
@@ -543,7 +546,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       }
       return false;
     } catch (error) {
-      console.error('Failed to reject join request:', error);
+
       return false;
     }
   };

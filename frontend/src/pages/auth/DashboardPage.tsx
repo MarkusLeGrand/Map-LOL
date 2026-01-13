@@ -41,7 +41,7 @@ export default function DashboardPage() {
       setSummonerData(data.summoner);
       setRiotAccount(data.riot_account);
     } catch (error) {
-      console.error('Failed to load summoner data:', error);
+      // Silently fail - summoner data is optional
     } finally {
       setIsLoadingSummoner(false);
     }
@@ -268,8 +268,8 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Riot Data Sync */}
-              {user?.riot_game_name && (
+              {/* Riot Account Setup / Data Sync */}
+              {user?.riot_game_name ? (
                 <div className="border border-[#F5F5F5]/10 bg-[#F5F5F5]/[0.02] rounded">
                   <div className="px-5 py-4 border-b border-[#F5F5F5]/10">
                     <h2 className="text-[#F5F5F5] text-lg font-semibold">Riot Data</h2>
@@ -302,6 +302,24 @@ export default function DashboardPage() {
                       className="w-full px-4 py-2 bg-[#3D7A5F] text-[#F5F5F5] hover:bg-[#3D7A5F]/90 transition-colors rounded font-medium"
                     >
                       Sync Now
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-[#B4975A]/20 bg-[#B4975A]/5 rounded">
+                  <div className="px-5 py-4 border-b border-[#B4975A]/20">
+                    <h2 className="text-[#F5F5F5] text-lg font-semibold">Setup Riot Account</h2>
+                  </div>
+                  <div className="p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[#F5F5F5]/60 text-sm">Status</span>
+                      <span className="text-[#B4975A] text-sm font-medium">Not configured</span>
+                    </div>
+                    <button
+                      onClick={() => navigate('/settings')}
+                      className="w-full px-4 py-2 bg-[#B4975A] text-[#F5F5F5] hover:bg-[#B4975A]/90 transition-colors rounded font-medium"
+                    >
+                      Go to Settings
                     </button>
                   </div>
                 </div>

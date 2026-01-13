@@ -51,7 +51,7 @@ export function RiotVerificationSection({ riotGameName, riotTagLine, onUpdate }:
       setSummoner(data.summoner);
       setRiotAccount(data.riot_account);
     } catch (error) {
-      console.error('Failed to load summoner data:', error);
+
     }
   };
 
@@ -74,7 +74,7 @@ export function RiotVerificationSection({ riotGameName, riotTagLine, onUpdate }:
       await loadSummonerData();
       onUpdate();
     } catch (error) {
-      console.error('Failed to verify Riot account:', error);
+
       toast?.error(error instanceof Error ? error.message : 'Failed to verify account');
     } finally {
       setIsVerifying(false);
@@ -94,7 +94,7 @@ export function RiotVerificationSection({ riotGameName, riotTagLine, onUpdate }:
       toast?.success('Summoner data synced successfully!');
       await loadSummonerData();
     } catch (error) {
-      console.error('Failed to sync data:', error);
+
       toast?.error(error instanceof Error ? error.message : 'Failed to sync data');
     } finally {
       setIsSyncing(false);

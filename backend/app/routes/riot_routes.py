@@ -119,7 +119,7 @@ async def verify_riot_account(
     """
     try:
         # Verify the account exists via Riot API
-        print(f"🎯 Starting verification for {request.game_name}#{request.tag_line}")
+
         verification_data = await riot_api_service.verify_summoner_exists(
             game_name=request.game_name,
             tag_line=request.tag_line,
@@ -127,11 +127,8 @@ async def verify_riot_account(
             platform=request.platform
         )
 
-        print(f"✅ Verification data received")
         account = verification_data["account"]
         summoner = verification_data["summoner"]
-        print(f"📦 Account PUUID: {account.get('puuid')}")
-        print(f"📦 Summoner ID: {summoner.get('id')}")
 
         # Update user's Riot info
         current_user.riot_puuid = account["puuid"]
@@ -156,7 +153,7 @@ async def verify_riot_account(
                 flex_rank = entry
 
         # Auto-detect preferred role from ACTUAL MATCHES (more accurate!)
-        print(f"🎯 Detecting role from recent ranked matches...")
+
         preferred_role = await riot_api_service.detect_preferred_role_from_matches(
             account["puuid"],
             region=request.region,
@@ -165,7 +162,7 @@ async def verify_riot_account(
 
         # Fallback to champion mastery if no matches found
         if not preferred_role:
-            print(f"⚠️ No matches found, falling back to champion mastery detection")
+
             preferred_role = detect_preferred_role(verification_data["top_champions"])
 
         summoner_data_dict = {
@@ -210,13 +207,10 @@ async def verify_riot_account(
 
     except HTTPException as e:
         db.rollback()
-        print(f"❌ HTTPException: {e.detail}")
+
         raise e
     except Exception as e:
         db.rollback()
-        print(f"❌ Exception during verification: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
 
 
@@ -234,7 +228,6 @@ async def sync_riot_data(
     try:
         # Case 1: User has Riot ID but hasn't verified yet (no PUUID)
         if not current_user.riot_puuid and current_user.riot_game_name and current_user.riot_tag_line:
-            print(f"🔄 User has Riot ID but no PUUID - verifying first...")
 
             # Verify the account to get PUUID
             verification_data = await riot_api_service.verify_summoner_exists(
@@ -252,8 +245,6 @@ async def sync_riot_data(
             current_user.riot_game_name = account["gameName"]
             current_user.riot_tag_line = account["tagLine"]
             db.commit()
-
-            print(f"✅ Account verified, now syncing data...")
 
         # Case 2: No Riot account linked at all
         if not current_user.riot_puuid:
@@ -274,9 +265,6 @@ async def sync_riot_data(
         raise
     except Exception as e:
         db.rollback()
-        print(f"❌ Sync error: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
 
 
@@ -467,7 +455,7 @@ async def sync_summoner_data(user_id: str, db: Session):
     region = platform_to_region.get(user.riot_platform or "EUW1", "europe")
 
     # Auto-detect preferred role from ACTUAL MATCHES (more accurate!)
-    print(f"🎯 Detecting role from recent ranked matches...")
+
     preferred_role = await riot_api_service.detect_preferred_role_from_matches(
         user.riot_puuid,
         region=region,
@@ -476,7 +464,7 @@ async def sync_summoner_data(user_id: str, db: Session):
 
     # Fallback to champion mastery if no matches found
     if not preferred_role:
-        print(f"⚠️ No matches found, falling back to champion mastery detection")
+
         preferred_role = detect_preferred_role(top_champions)
 
     # Update or create summoner data

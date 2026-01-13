@@ -128,7 +128,7 @@ export default function DataAnalyticsPage() {
         setTeamLimit(data.limit);
       }
     } catch (err) {
-      console.error('Failed to load team analytics:', err);
+
     }
   };
 
@@ -212,14 +212,14 @@ export default function DataAnalyticsPage() {
   }, [toast]);
 
   const analyzeData = async (filePath: string, teamRiotIds: string[] = []) => {
-    console.log('=== ANALYZE DATA CALLED ===');
-    console.log('File path:', filePath);
-    console.log('Team RIOT IDs:', teamRiotIds);
+
+
+
     setIsAnalyzing(true);
     setError(null);
 
     try {
-      console.log('Calling backend API...');
+
       const token = localStorage.getItem('token');
 
       if (!token) {
@@ -256,20 +256,19 @@ export default function DataAnalyticsPage() {
       }
 
       const result = await response.json();
-      console.log('Backend response:', result);
 
       if (result.success) {
-        console.log('Analysis successful!');
+
         setAnalyticsData(result.data);
         toast?.success('Analysis completed successfully!');
       } else {
-        console.error('Analysis failed:', result.error);
+
         const errorMessage = result.error || 'Analysis failed. Please check the uploaded data format.';
         throw new Error(errorMessage);
       }
 
     } catch (err) {
-      console.error('CATCH ERROR:', err);
+
       const errorMessage = err instanceof Error ? err.message : 'Analysis failed. Please try again.';
       setError(errorMessage);
       toast?.error(errorMessage);
@@ -424,129 +423,293 @@ export default function DataAnalyticsPage() {
           {/* ROFL Parser Guide View */}
           {viewMode === 'guide' && (
             <div className="max-w-5xl mx-auto">
-              <div className="flex items-start justify-between gap-8">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 rounded-lg bg-[#3D7A5F]/20 flex items-center justify-center">
-                      <svg className="w-7 h-7 text-[#3D7A5F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-[#F5F5F5] text-3xl font-bold">Convert .rofl Files to JSON</h2>
-                      <p className="text-[#F5F5F5]/50 text-sm mt-1">Step-by-step guide to generate analytics data from League of Legends replays</p>
+              {/* Hero Section */}
+              <div className="mb-10">
+                <h1 className="text-4xl font-bold text-[#F5F5F5] mb-3">ROFL to JSON Converter</h1>
+                <p className="text-[#F5F5F5]/60 text-lg">Transform your League of Legends replay files into analyzable data</p>
+              </div>
+
+              {/* Quick Stats Bar */}
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="bg-gradient-to-br from-[#F5F5F5]/10 to-[#F5F5F5]/5 border border-[#F5F5F5]/20 rounded-xl p-4 text-center">
+                  <div className="text-2xl font-bold text-[#F5F5F5] mb-1">4</div>
+                  <div className="text-xs text-[#F5F5F5]/60">Simple Steps</div>
+                </div>
+                <div className="bg-gradient-to-br from-[#F5F5F5]/10 to-[#F5F5F5]/5 border border-[#F5F5F5]/20 rounded-xl p-4 text-center">
+                  <div className="text-2xl font-bold text-[#F5F5F5] mb-1">15min</div>
+                  <div className="text-xs text-[#F5F5F5]/60">Setup Time</div>
+                </div>
+              </div>
+
+              {/* Why This Matters */}
+              <div className="bg-gradient-to-r from-[#3D7A5F]/10 to-transparent border-l-4 border-[#3D7A5F] rounded-r-lg p-6 mb-8">
+                <h3 className="text-[#F5F5F5] font-semibold text-lg mb-2 flex items-center gap-2">
+                  <span>⚡</span> Why use .rofl files?
+                </h3>
+                <p className="text-[#F5F5F5]/80 leading-relaxed">
+                  <strong className="text-[#3D7A5F]">Scrim matches are custom games</strong> that aren't tracked by Riot's public API.
+                  Your local replay files (.rofl) contain all the match data you need. This tool extracts and converts that data
+                  into JSON format for deep analysis of your team's performance.
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {/* STEP 1 */}
+                <div className="bg-[#1A1A1A] rounded-xl overflow-hidden border border-[#F5F5F5]/10">
+                  <div className="bg-gradient-to-r from-[#3D7A5F]/10 to-transparent p-5 border-b border-[#F5F5F5]/10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-[#3D7A5F] flex items-center justify-center text-white font-bold text-xl">
+                        1
+                      </div>
+                      <div>
+                        <h3 className="text-[#F5F5F5] font-bold text-xl">Organize Your Files</h3>
+                        <p className="text-[#F5F5F5]/50 text-sm">Set up your folder structure</p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-6 text-[#F5F5F5]/70">
-                    <p className="text-base leading-relaxed">
-                      <strong className="text-[#F5F5F5]">.rofl files</strong> are League of Legends replay files.
-                      This Python script converts them into JSON format compatible with our analytics dashboard.
-                    </p>
+                  <div className="p-6">
+                    <div className="grid grid-cols-[450px,1fr] gap-8">
+                      {/* Image */}
+                      <div className="space-y-3">
+                        <div className="rounded-lg overflow-hidden border-2 border-[#3D7A5F]/20">
+                          <img src="/tuto.png" alt="Folder structure" className="w-full" />
+                        </div>
+                        <p className="text-[#F5F5F5]/40 text-xs text-center italic">Example: Organized scrim folders</p>
+                      </div>
 
-                    {/* Tutorial Image */}
-                    <div className="relative rounded-lg overflow-hidden border border-[#3D7A5F]/30 shadow-2xl">
-                      <img
-                        src="/tuto.png"
-                        alt="ROFL Parser Tutorial"
-                        className="w-full h-auto"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0E0E0E]/80 via-transparent to-transparent pointer-events-none" />
-                    </div>
+                      {/* Steps */}
+                      <div className="flex flex-col justify-center space-y-6">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-7 h-7 rounded bg-[#3D7A5F]/20 flex items-center justify-center">
+                              <span className="text-[#3D7A5F] text-sm font-bold">A</span>
+                            </div>
+                            <span className="text-[#F5F5F5] font-semibold">Navigate to replays folder</span>
+                          </div>
+                          <div className="bg-[#0E0E0E] rounded-lg p-3 border border-[#3D7A5F]/20">
+                            <code className="text-[#3D7A5F] text-xs font-mono">
+                              C:\Users\[YourName]\Documents\League of Legends\Replays\
+                            </code>
+                          </div>
+                        </div>
 
-                    <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg p-6">
-                      <h3 className="text-[#F5F5F5] font-semibold mb-3 text-lg flex items-center gap-2">
-                        <span>📁</span> Step 1: Organization
-                      </h3>
-                      <ul className="text-base space-y-2 ml-6 list-disc">
-                        <li>Find your replays: <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">C:\Users\[Name]\Documents\League of Legends\Replays\</code></li>
-                        <li>Create folders named <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">Scrim1</code>, <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">Scrim2</code>, etc.</li>
-                        <li>Move your .rofl files into these folders</li>
-                      </ul>
-                    </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-7 h-7 rounded bg-[#3D7A5F]/20 flex items-center justify-center">
+                              <span className="text-[#3D7A5F] text-sm font-bold">B</span>
+                            </div>
+                            <span className="text-[#F5F5F5] font-semibold">Create scrim folders</span>
+                          </div>
+                          <div className="flex gap-2">
+                            {['Scrim1', 'Scrim2', 'Scrim3', '...'].map((folder, i) => (
+                              <div key={i} className="bg-[#0E0E0E] border border-[#3D7A5F]/20 rounded px-3 py-1.5">
+                                <span className="text-[#3D7A5F] text-xs font-mono">{folder}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
 
-                    <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg p-6">
-                      <h3 className="text-[#F5F5F5] font-semibold mb-3 text-lg flex items-center gap-2">
-                        <span>🐍</span> Step 2: Python Installation
-                      </h3>
-                      <p className="text-base mb-3">Install Python 3.8+ from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer" className="text-[#3D7A5F] hover:underline font-medium">python.org</a></p>
-                      <p className="text-base mb-2">Then install the required dependencies:</p>
-                      <code className="block mt-3 p-4 bg-[#0E0E0E] rounded text-sm text-[#F5F5F5] font-mono border border-[#F5F5F5]/10">
-                        pip install requests
-                      </code>
-                    </div>
-
-                    <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg p-6">
-                      <h3 className="text-[#F5F5F5] font-semibold mb-3 text-lg flex items-center gap-2">
-                        <span>▶️</span> Step 3: Running the Script
-                      </h3>
-                      <ol className="text-base space-y-2 ml-6 list-decimal">
-                        <li>Download the script using the button on the right</li>
-                        <li>Place it in the same folder as your Scrim folders</li>
-                        <li>Double-click the script or run: <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">python parse_rofl_direct.py</code></li>
-                        <li>Find your JSON files in the <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">outputs/</code> folder</li>
-                      </ol>
-                    </div>
-
-                    <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg p-6">
-                      <h3 className="text-[#F5F5F5] font-semibold mb-3 text-lg flex items-center gap-2">
-                        <span>📊</span> Step 4: Upload to Dashboard
-                      </h3>
-                      <p className="text-base">
-                        Go to the <strong className="text-[#F5F5F5]">Upload & Analyze</strong> tab and upload the <code className="text-[#3D7A5F] text-sm bg-[#0E0E0E] px-2 py-1 rounded">global_matches.json</code> file to view your team statistics.
-                      </p>
-                    </div>
-
-                    <div className="bg-[#3D7A5F]/10 border border-[#3D7A5F]/30 rounded-lg p-6">
-                      <h3 className="text-[#F5F5F5] font-semibold mb-2 text-base flex items-center gap-2">
-                        <span>💡</span> Pro Tip
-                      </h3>
-                      <p className="text-[#F5F5F5]/80 text-sm">
-                        The script processes all .rofl files in your Scrim folders and generates both individual scrim JSONs and a combined global_matches.json file. Use the global file for comprehensive team analysis.
-                      </p>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-7 h-7 rounded bg-[#3D7A5F]/20 flex items-center justify-center">
+                              <span className="text-[#3D7A5F] text-sm font-bold">C</span>
+                            </div>
+                            <span className="text-[#F5F5F5] font-semibold">Move .rofl files into folders</span>
+                          </div>
+                          <p className="text-[#F5F5F5]/60 text-sm pl-9">Organize each scrim session's replays into its own folder</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex-shrink-0">
-                  <div className="bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg p-8 w-80 text-center sticky top-32">
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#3D7A5F]/20 flex items-center justify-center">
-                      <svg className="w-10 h-10 text-[#3D7A5F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
+                {/* STEP 2 */}
+                <div className="bg-[#1A1A1A] rounded-xl overflow-hidden border border-[#F5F5F5]/10">
+                  <div className="bg-gradient-to-r from-[#3D7A5F]/10 to-transparent p-5 border-b border-[#F5F5F5]/10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-[#3D7A5F] flex items-center justify-center text-white font-bold text-xl">
+                        2
+                      </div>
+                      <div>
+                        <h3 className="text-[#F5F5F5] font-bold text-xl">Install Python</h3>
+                        <p className="text-[#F5F5F5]/50 text-sm">Get the required software</p>
+                      </div>
                     </div>
-                    <h3 className="text-[#F5F5F5] font-bold text-xl mb-2">ROFL Parser Script</h3>
-                    <p className="text-[#F5F5F5]/50 text-sm mb-6">
-                      Python script to convert your League of Legends replays to JSON
-                    </p>
-                    <a
-                      href={`${API_BASE_URL}/api/download/parse_rofl_direct.py`}
-                      download="parse_rofl_direct.py"
-                      className="block w-full px-6 py-4 bg-[#3D7A5F] text-[#F5F5F5] text-base font-semibold hover:bg-[#3D7A5F]/90 transition-colors rounded-lg"
-                    >
-                      Download Script
-                    </a>
-                    <p className="text-[#F5F5F5]/40 text-xs mt-4">
-                      Version 1.0 • Python 3.8+
-                    </p>
-                    <div className="mt-6 pt-6 border-t border-[#F5F5F5]/10">
-                      <p className="text-[#F5F5F5]/50 text-xs mb-3">Quick Links</p>
-                      <div className="space-y-2">
-                        <a
-                          href="https://www.python.org/downloads/"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block text-[#3D7A5F] hover:text-[#3D7A5F]/80 text-sm"
-                        >
-                          Download Python →
-                        </a>
+                  </div>
+
+                  <div className="p-6 space-y-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-[#3D7A5F]/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-2xl">🐍</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[#F5F5F5] mb-3">
+                          Download and install <strong className="text-[#3D7A5F]">Python 3.8+</strong> from{' '}
+                          <a
+                            href="https://www.python.org/downloads/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#3D7A5F] underline font-semibold"
+                          >
+                            python.org
+                          </a>
+                        </p>
+                        <div className="bg-[#F5F5F5]/5 border border-[#F5F5F5]/10 rounded-lg p-4">
+                          <p className="text-[#F5F5F5]/60 text-sm mb-3">Then install the required package:</p>
+                          <div className="bg-[#0E0E0E] rounded-lg p-4 border border-[#3D7A5F]/20">
+                            <code className="text-[#3D7A5F] font-mono">pip install requests</code>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 3 */}
+                <div className="bg-[#1A1A1A] rounded-xl overflow-hidden border border-[#F5F5F5]/10">
+                  <div className="bg-gradient-to-r from-[#3D7A5F]/10 to-transparent p-5 border-b border-[#F5F5F5]/10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-[#3D7A5F] flex items-center justify-center text-white font-bold text-xl">
+                        3
+                      </div>
+                      <div>
+                        <h3 className="text-[#F5F5F5] font-bold text-xl">Run the Parser</h3>
+                        <p className="text-[#F5F5F5]/50 text-sm">Convert your files to JSON</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="grid grid-cols-[1fr,280px] gap-6">
+                      <div className="space-y-5">
+                        <div className="flex gap-4">
+                          <div className="w-8 h-8 rounded-full bg-[#3D7A5F]/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[#3D7A5F] font-bold">1</span>
+                          </div>
+                          <div>
+                            <p className="text-[#F5F5F5] font-semibold mb-1">Download the script</p>
+                            <p className="text-[#F5F5F5]/60 text-sm">Get it from the download card →</p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                          <div className="w-8 h-8 rounded-full bg-[#3D7A5F]/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[#3D7A5F] font-bold">2</span>
+                          </div>
+                          <div>
+                            <p className="text-[#F5F5F5] font-semibold mb-1">Place the script</p>
+                            <p className="text-[#F5F5F5]/60 text-sm">Put it in the same folder as your Scrim folders</p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                          <div className="w-8 h-8 rounded-full bg-[#3D7A5F]/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[#3D7A5F] font-bold">3</span>
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[#F5F5F5] font-semibold mb-2">Execute the script</p>
+                            <div className="bg-[#0E0E0E] rounded-lg p-3 border border-[#3D7A5F]/20">
+                              <code className="text-[#3D7A5F] text-sm font-mono">python parse_rofl_direct.py</code>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                          <div className="w-8 h-8 rounded-full bg-[#3D7A5F]/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[#3D7A5F] font-bold">4</span>
+                          </div>
+                          <div>
+                            <p className="text-[#F5F5F5] font-semibold mb-1">Get your results</p>
+                            <p className="text-[#F5F5F5]/60 text-sm">
+                              Find JSON files in the <code className="text-[#3D7A5F] bg-[#0E0E0E] px-2 py-0.5 rounded">outputs/</code> folder
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Download Card */}
+                      <div className="bg-gradient-to-br from-[#0E0E0E] to-[#1A1A1A] border-2 border-[#3D7A5F]/20 rounded-xl p-5">
+                        <div className="text-center space-y-4">
+                          <div className="w-14 h-14 mx-auto rounded-xl bg-gradient-to-br from-[#3D7A5F]/30 to-[#3D7A5F]/10 flex items-center justify-center">
+                            <svg className="w-7 h-7 text-[#3D7A5F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="text-[#F5F5F5] font-bold text-base mb-1">ROFL Parser</h4>
+                            <p className="text-[#F5F5F5]/50 text-xs">Python conversion script</p>
+                          </div>
+                          <a
+                            href={`${API_BASE_URL}/api/download/parse_rofl_direct.py`}
+                            download="parse_rofl_direct.py"
+                            className="block w-full py-3 bg-[#3D7A5F] text-white font-semibold rounded-lg"
+                          >
+                            Download
+                          </a>
+                          <div className="text-[#F5F5F5]/40 text-xs">v1.0 • Python 3.8+</div>
+                          <div className="pt-3 border-t border-[#F5F5F5]/10 space-y-2 text-xs">
+                            <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer" className="block text-[#3D7A5F]">
+                              Get Python →
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 4 */}
+                <div className="bg-[#1A1A1A] rounded-xl overflow-hidden border border-[#F5F5F5]/10">
+                  <div className="bg-gradient-to-r from-[#3D7A5F]/10 to-transparent p-5 border-b border-[#F5F5F5]/10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-[#3D7A5F] flex items-center justify-center text-white font-bold text-xl">
+                        4
+                      </div>
+                      <div>
+                        <h3 className="text-[#F5F5F5] font-bold text-xl">Upload & Analyze</h3>
+                        <p className="text-[#F5F5F5]/50 text-sm">View your team statistics</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-[#3D7A5F]/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-2xl">📊</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[#F5F5F5] text-base mb-4">
+                          Navigate to the <strong className="text-[#3D7A5F]">Upload & Analyze</strong> tab and upload your{' '}
+                          <code className="bg-[#0E0E0E] border border-[#3D7A5F]/20 px-2 py-1 rounded text-[#3D7A5F] text-sm">global_matches.json</code> file
+                        </p>
                         <button
                           onClick={() => setViewMode('upload')}
-                          className="block w-full text-[#3D7A5F] hover:text-[#3D7A5F]/80 text-sm"
+                          className="px-6 py-3 bg-[#3D7A5F] text-white font-semibold rounded-lg inline-flex items-center gap-2"
                         >
-                          Go to Upload →
+                          <span>Start Analyzing</span>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
                         </button>
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pro Tip */}
+                <div className="bg-gradient-to-r from-[#3D7A5F]/10 to-transparent border-l-4 border-[#3D7A5F] rounded-r-xl p-6">
+                  <div className="flex gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-[#3D7A5F]/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-2xl">💡</span>
+                    </div>
+                    <div>
+                      <h4 className="text-[#F5F5F5] font-bold text-lg mb-2">Pro Tip</h4>
+                      <p className="text-[#F5F5F5]/80 leading-relaxed">
+                        The parser creates both <strong className="text-[#3D7A5F]">individual JSON files</strong> for each scrim folder and a{' '}
+                        <strong className="text-[#3D7A5F]">combined global_matches.json</strong>.
+                        Use the global file to analyze all your scrims together for comprehensive team insights.
+                      </p>
                     </div>
                   </div>
                 </div>
