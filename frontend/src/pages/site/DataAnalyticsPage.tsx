@@ -820,10 +820,10 @@ export default function DataAnalyticsPage() {
                   <h3 className="text-[#F5F5F5] text-xl font-semibold mb-2">No Team Yet</h3>
                   <p className="text-[#F5F5F5]/50 mb-6">Create or join a team to access team analytics</p>
                   <button
-                    onClick={() => window.location.href = '/teams'}
+                    onClick={() => window.location.href = '/dashboard'}
                     className="px-6 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors rounded"
                   >
-                    Go to Teams
+                    Go to Dashboard
                   </button>
                 </div>
               ) : (

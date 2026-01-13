@@ -571,10 +571,10 @@ export default function ScrimSchedulerPage() {
             <h2 className="text-[#F5F5F5] text-2xl font-semibold mb-3">No Team Yet</h2>
             <p className="text-[#F5F5F5]/50 mb-6">Join or create a team to use the scheduler</p>
             <button
-              onClick={() => navigate('/teams')}
+              onClick={() => navigate('/dashboard')}
               className="px-8 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90"
             >
-              Browse Teams
+              Go to Dashboard
             </button>
           </div>
         </div>
