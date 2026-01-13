@@ -123,8 +123,6 @@ class RiotAPIService:
                     }
                 )
 
-                if response.status_code != 200:
-
                 if response.status_code == 404:
                     raise HTTPException(
                         status_code=404,
@@ -221,7 +219,6 @@ class RiotAPIService:
 
                         except Exception as e:
                             pass
-                else:
 
                 if response.status_code == 404:
                     raise HTTPException(

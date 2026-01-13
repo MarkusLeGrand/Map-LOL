@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTeam, type Team, type ChampionMastery } from '../../contexts/TeamContext';
@@ -69,12 +69,12 @@ export default function TeamManagerPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const prevTeamsRef = useRef<Team[]>([]);
   const [editFormData, setEditFormData] = useState({
     name: '',
     tag: '',
     description: '',
     team_color: '#3D7A5F',
-    is_locked: false,
   });
   const [inviteFormData, setInviteFormData] = useState({
     username: '',
@@ -106,10 +106,23 @@ export default function TeamManagerPage() {
 
   useEffect(() => {
     if (teams.length > 0 && !selectedTeam) {
-
-
       setSelectedTeam(teams[0]);
     }
+  }, [teams]);
+
+  // Sync selectedTeam with teams context when it updates
+  useEffect(() => {
+    if (selectedTeam && teams.length > 0) {
+      const prevTeam = prevTeamsRef.current.find(t => t.id === selectedTeam.id);
+      const updatedTeam = teams.find(t => t.id === selectedTeam.id);
+
+      if (updatedTeam && prevTeam && updatedTeam.is_locked !== prevTeam.is_locked) {
+        // is_locked changed in context, update selectedTeam
+        console.log('Lock state changed, updating selectedTeam:', updatedTeam.is_locked);
+        setSelectedTeam({...updatedTeam});
+      }
+    }
+    prevTeamsRef.current = teams;
   }, [teams]);
 
   // Auto-refresh team data every 30 seconds
@@ -137,6 +150,28 @@ export default function TeamManagerPage() {
       setSelectedTeam(result);
     } else {
       toast?.error('Failed to update team');
+    }
+  };
+
+  const handleToggleLock = async () => {
+    if (!selectedTeam) return;
+
+    const newLockState = !selectedTeam.is_locked;
+
+    // Optimistically update the UI immediately
+    setSelectedTeam(prev => prev ? { ...prev, is_locked: newLockState } : null);
+
+    setIsLoading(true);
+    const result = await updateTeam(selectedTeam.id, { is_locked: newLockState });
+    setIsLoading(false);
+
+    if (result) {
+      toast?.success(newLockState ? 'Team locked' : 'Team unlocked');
+      // The useEffect will automatically sync selectedTeam with teams context
+    } else {
+      // Revert on error
+      setSelectedTeam(prev => prev ? { ...prev, is_locked: !newLockState } : null);
+      toast?.error('Failed to toggle team lock');
     }
   };
 
@@ -261,7 +296,6 @@ export default function TeamManagerPage() {
       tag: selectedTeam.tag || '',
       description: selectedTeam.description || '',
       team_color: selectedTeam.team_color,
-      is_locked: selectedTeam.is_locked || false,
     });
     setShowEditModal(true);
   };
@@ -480,12 +514,42 @@ export default function TeamManagerPage() {
               </div>
             </div>
             {isOwner && (
-              <button
-                onClick={openEditModal}
-                className="px-6 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors"
-              >
-                Edit Team
-              </button>
+              <div className="flex items-center gap-4">
+                {/* iOS-style Toggle Switch */}
+                <div className="flex items-center gap-3">
+                  <span className="text-[#F5F5F5]/70 text-sm font-medium">
+                    {selectedTeam.is_locked ? 'Private' : 'Public'}
+                  </span>
+                  <button
+                    onClick={handleToggleLock}
+                    className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${
+                      selectedTeam.is_locked ? 'bg-[#B4975A]' : 'bg-[#3D7A5F]'
+                    }`}
+                    title={selectedTeam.is_locked ? 'Team is private (click to make public)' : 'Team is public (click to make private)'}
+                  >
+                    <div
+                      className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform duration-300 flex items-center justify-center ${
+                        selectedTeam.is_locked ? 'translate-x-7' : 'translate-x-0'
+                      }`}
+                    >
+                      <svg className={`w-3.5 h-3.5 ${selectedTeam.is_locked ? 'text-[#B4975A]' : 'text-[#3D7A5F]'}`} fill="currentColor" viewBox="0 0 20 20">
+                        {selectedTeam.is_locked ? (
+                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                        ) : (
+                          <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
+                        )}
+                      </svg>
+                    </div>
+                  </button>
+                </div>
+
+                <button
+                  onClick={openEditModal}
+                  className="px-6 py-3 bg-[#3D7A5F] text-[#F5F5F5] font-medium hover:bg-[#3D7A5F]/90 transition-colors"
+                >
+                  Edit Team
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -643,8 +707,14 @@ export default function TeamManagerPage() {
                                   />
                                 </div>
                               ) : (
-                                <div className="w-6 h-6 flex items-center justify-center">
-                                  <span className="text-[#F5F5F5]/30 text-xs">-</span>
+                                <div className="flex items-center gap-1" title="No role set">
+                                  <ImageWithFallback
+                                    src="/riot/role/Specialist_icon.png"
+                                    alt="No role"
+                                    fallbackType="champion"
+                                    className="w-6 h-6"
+                                    style={{ width: '1.5rem', height: '1.5rem' }}
+                                  />
                                 </div>
                               )}
 
@@ -662,8 +732,14 @@ export default function TeamManagerPage() {
                                   />
                                 </div>
                               ) : (
-                                <div className="w-8 h-8 flex items-center justify-center">
-                                  <span className="text-[#F5F5F5]/30 text-xs">-</span>
+                                <div className="flex items-center gap-1" title="Unranked">
+                                  <ImageWithFallback
+                                    src="/riot/border-unranked.png"
+                                    alt="Unranked"
+                                    fallbackType="champion"
+                                    className="w-8 h-8"
+                                    style={{ width: '2rem', height: '2rem' }}
+                                  />
                                 </div>
                               )}
 
@@ -810,20 +886,6 @@ export default function TeamManagerPage() {
                       />
                     ))}
                   </div>
-                </div>
-                <div>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editFormData.is_locked || false}
-                      onChange={(e) => setEditFormData({ ...editFormData, is_locked: e.target.checked })}
-                      className="w-4 h-4 bg-[#0E0E0E] border border-[#F5F5F5]/20 rounded focus:outline-none focus:ring-2 focus:ring-[#3D7A5F]"
-                    />
-                    <div>
-                      <span className="text-[#F5F5F5] text-sm font-medium">Lock Team</span>
-                      <p className="text-[#F5F5F5]/50 text-xs">Hide team from public listing (members stay)</p>
-                    </div>
-                  </label>
                 </div>
               </div>
               <div className="flex gap-3 mt-6">

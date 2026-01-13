@@ -47,7 +47,6 @@ export default function ScrimSchedulerPage() {
 
   // State
   const [viewMode, setViewMode] = useState<'personal' | 'team'>('personal');
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [mySlots, setMySlots] = useState<AvailabilitySlot[]>([]);
   const [teamAvailability, setTeamAvailability] = useState<TeamAvailability[]>([]);
   const [teamEvents, setTeamEvents] = useState<TeamEvent[]>([]);
@@ -438,9 +437,10 @@ export default function ScrimSchedulerPage() {
     }
   };
 
-  // Get week days
-  const getWeekDays = (startDate: Date) => {
-    const monday = new Date(startDate);
+  // Get current week days (always shows the current week - Monday to Sunday)
+  const getCurrentWeekDays = () => {
+    const today = new Date();
+    const monday = new Date(today);
     const dayOfWeek = monday.getDay();
     const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     monday.setDate(monday.getDate() + daysToMonday);
@@ -454,28 +454,33 @@ export default function ScrimSchedulerPage() {
     return days;
   };
 
-  const weekDays = getWeekDays(selectedDate);
+  const weekDays = getCurrentWeekDays();
   // Hours: 10-23, then 0-1 (10am to 1am next day)
   const hours = [...Array.from({ length: 14 }, (_, i) => i + 10), 0, 1];
 
-  const getSlotForCell = (slots: AvailabilitySlot[], day: Date, hour: number) => {
+  const getSlotForCell = (slots: AvailabilitySlot[], dayOfWeek: number, hour: number) => {
+    // Match slots by day of week (0=Sunday, 1=Monday, etc.) instead of specific date
     return slots.filter((slot) => {
       const slotStart = new Date(slot.start_time);
       const slotEnd = new Date(slot.end_time);
 
-      const cellStart = new Date(day);
-      cellStart.setHours(hour, 0, 0, 0);
-      const cellEnd = new Date(day);
-      cellEnd.setHours(hour + 1, 0, 0, 0);
+      // Check if slot's day of week matches the cell's day of week
+      const slotDayOfWeek = slotStart.getDay();
+      if (slotDayOfWeek !== dayOfWeek) return false;
 
-      return slotStart < cellEnd && slotEnd > cellStart;
+      const slotStartHour = slotStart.getHours();
+      const slotEndHour = slotEnd.getHours();
+
+      // Check if this hour falls within the slot's time range
+      return slotStartHour <= hour && hour < slotEndHour;
     });
   };
 
   const getAvailableCount = (day: Date, hour: number) => {
     let count = 0;
+    const dayOfWeek = day.getDay();
     teamAvailability.forEach((member) => {
-      const slotsInCell = getSlotForCell(member.slots, day, hour);
+      const slotsInCell = getSlotForCell(member.slots, dayOfWeek, hour);
       if (slotsInCell.length > 0) count++;
     });
     return count;
@@ -589,32 +594,12 @@ export default function ScrimSchedulerPage() {
       <div className="flex-1 py-8">
         <div className="max-w-[1800px] mx-auto px-12">
 
-          {/* Week Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={() => {
-                const newDate = new Date(selectedDate);
-                newDate.setDate(newDate.getDate() - 7);
-                setSelectedDate(newDate);
-              }}
-              className="px-4 py-2 border border-[#F5F5F5]/20 text-[#F5F5F5] hover:bg-[#F5F5F5]/10 transition-colors"
-            >
-              ← Previous Week
-            </button>
+          {/* Current Week Display */}
+          <div className="flex items-center justify-center mb-6">
             <div className="text-[#F5F5F5] text-lg font-medium">
-              {weekDays[0].toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} -{' '}
+              Current Week: {weekDays[0].toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} -{' '}
               {weekDays[6].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </div>
-            <button
-              onClick={() => {
-                const newDate = new Date(selectedDate);
-                newDate.setDate(newDate.getDate() + 7);
-                setSelectedDate(newDate);
-              }}
-              className="px-4 py-2 border border-[#F5F5F5]/20 text-[#F5F5F5] hover:bg-[#F5F5F5]/10 transition-colors"
-            >
-              Next Week →
-            </button>
           </div>
 
           {/* Legend */}
@@ -667,17 +652,22 @@ export default function ScrimSchedulerPage() {
               >
                 Time
               </div>
-              {weekDays.map((day, idx) => (
-                <div
-                  key={idx}
-                  className="border-l border-b border-[#F5F5F5]/10 bg-[#0E0E0E] p-3 text-center text-[#F5F5F5] text-sm select-none"
-                  style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
-                  onMouseDown={(e) => e.preventDefault()}
-                >
-                  <div className="font-semibold">{day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                  <div className="text-[#F5F5F5]/50 text-xs">{day.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}</div>
-                </div>
-              ))}
+              {weekDays.map((day, idx) => {
+                const isToday = day.toDateString() === new Date().toDateString();
+                return (
+                  <div
+                    key={idx}
+                    className="border-l border-b border-[#F5F5F5]/10 bg-[#0E0E0E] p-3 text-center text-sm select-none relative"
+                    style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <div className={`font-semibold ${isToday ? 'text-[#3D7A5F]' : 'text-[#F5F5F5]'}`}>{day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                      <div className={isToday ? 'text-[#3D7A5F]/70 text-xs' : 'text-[#F5F5F5]/50 text-xs'}>{day.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}</div>
+                    </div>
+                  </div>
+                );
+              })}
 
               {/* Grid Body */}
               {hours.map((hour, hourIdx) => (
@@ -749,10 +739,13 @@ export default function ScrimSchedulerPage() {
               {viewMode === 'personal' && mySlots.map((slot) => {
                 const startTime = new Date(slot.start_time);
                 const endTime = new Date(slot.end_time);
-                const slotDay = startTime.toDateString();
-                const dayIndex = weekDays.findIndex(d => d.toDateString() === slotDay);
 
-                if (dayIndex === -1) return null; // Slot not in current week
+                // Match by day of week instead of specific date
+                const slotDayOfWeek = startTime.getDay();
+                const dayIndex = weekDays.findIndex(d => d.getDay() === slotDayOfWeek);
+
+                // This should always find a match since we have all 7 days
+                if (dayIndex === -1) return null;
 
                 const startHour = startTime.getHours();
                 const endHour = endTime.getHours();
@@ -811,10 +804,13 @@ export default function ScrimSchedulerPage() {
               {viewMode === 'team' && teamEvents.map((event) => {
                 const startTime = new Date(event.start_time);
                 const endTime = new Date(event.end_time);
-                const eventDay = startTime.toDateString();
-                const dayIndex = weekDays.findIndex(d => d.toDateString() === eventDay);
 
-                if (dayIndex === -1) return null; // Event not in current week
+                // Match by day of week instead of specific date
+                const eventDayOfWeek = startTime.getDay();
+                const dayIndex = weekDays.findIndex(d => d.getDay() === eventDayOfWeek);
+
+                // This should always find a match since we have all 7 days
+                if (dayIndex === -1) return null;
 
                 const startHour = startTime.getHours();
                 const endHour = endTime.getHours();
@@ -880,9 +876,9 @@ export default function ScrimSchedulerPage() {
           {/* My Slots List - Only show in personal mode */}
           {viewMode === 'personal' && (
             <div className="mt-8 bg-[#1A1A1A] border border-[#F5F5F5]/10 p-6">
-              <h3 className="text-[#F5F5F5] text-lg font-semibold mb-4">My Availability Slots</h3>
+              <h3 className="text-[#F5F5F5] text-lg font-semibold mb-4">My Weekly Availability</h3>
               {mySlots.length === 0 ? (
-                <p className="text-[#F5F5F5]/50 text-sm">Click and drag on the calendar to create slots</p>
+                <p className="text-[#F5F5F5]/50 text-sm">Click and drag on the calendar to create recurring weekly slots</p>
               ) : (
                 <div className="space-y-2">
                   {mySlots.map((slot) => (
