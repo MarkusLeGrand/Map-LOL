@@ -8,6 +8,8 @@ interface User {
   riot_game_name?: string;
   riot_tag_line?: string;
   discord?: string;
+  discord_id?: string;
+  discord_verified?: boolean;
   favorite_tools: string[];
   theme: string;
   is_admin: boolean;
@@ -81,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(null);
       }
     } catch (error) {
-      console.error('Failed to fetch user:', error);
+
       localStorage.removeItem('token');
       setToken(null);
     } finally {
@@ -195,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(updatedUser);
       }
     } catch (error) {
-      console.error('Failed to update favorite tools:', error);
+
     }
   };
 

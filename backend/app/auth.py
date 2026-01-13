@@ -32,7 +32,7 @@ class UserCreate(BaseModel):
     password: str
     riot_game_name: Optional[str] = None
     riot_tag_line: Optional[str] = None
-    discord: Optional[str] = None
+    # Discord removed - use OAuth via /api/discord/auth/authorize
 
 
 class UserLogin(BaseModel):
@@ -56,6 +56,8 @@ class UserResponse(BaseModel):
     riot_game_name: Optional[str]
     riot_tag_line: Optional[str]
     discord: Optional[str]
+    discord_id: Optional[str]
+    discord_verified: bool
     created_at: datetime
     favorite_tools: list
     theme: str
@@ -174,7 +176,7 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         hashed_password=hashed_password,
         riot_game_name=user_data.riot_game_name,
         riot_tag_line=user_data.riot_tag_line,
-        discord=user_data.discord,
+        # Discord is managed via OAuth - use /api/discord endpoints
     )
 
     db.add(db_user)

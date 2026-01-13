@@ -15,6 +15,8 @@ import TeamsPage from './pages/TeamsPage';
 import SettingsPage from './pages/auth/SettingsPage';
 import AdminPage from './pages/auth/AdminPage';
 import RiotCallbackPage from './pages/auth/RiotCallbackPage';
+import DiscordCallbackPage from './pages/auth/DiscordCallbackPage';
+import DiscordLoginCallbackPage from './pages/auth/DiscordLoginCallbackPage';
 import FavoriteToolsPage from './pages/auth/FavoriteToolsPage';
 import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
@@ -48,6 +50,8 @@ export default function App() {
                             <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
                             <Route path="/favorite-tools" element={<ProtectedRoute><FavoriteToolsPage /></ProtectedRoute>} />
                             <Route path="/auth/riot/callback" element={<RiotCallbackPage />} />
+                            <Route path="/auth/discord/callback" element={<DiscordCallbackPage />} />
+                            <Route path="/auth/discord/login/callback" element={<DiscordLoginCallbackPage />} />
                             <Route path="*" element={<ErrorPage />} />
                         </Routes>
                     </BrowserRouter>

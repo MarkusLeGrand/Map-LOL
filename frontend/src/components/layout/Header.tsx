@@ -44,7 +44,7 @@ export function Header({
                         setProfileIconId(data.summoner.profile_icon_id);
                     }
                 } catch (error) {
-                    console.error('Failed to load profile icon:', error);
+
                 }
             }
         };

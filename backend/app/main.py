@@ -31,6 +31,7 @@ from routes.scrims_routes import router as scrims_router
 from routes.availability_routes import router as availability_router
 from routes.team_events_routes import router as team_events_router
 from routes.riot_routes import router as riot_router
+from routes.discord_routes import router as discord_router
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -53,7 +54,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS configuration
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://localhost").split(",")
 
 # Stricter CORS for production
 if ENVIRONMENT == "production":
@@ -96,9 +97,6 @@ async def startup_event():
     from services.scheduler import start_scheduler
     start_scheduler()
 
-    print("OpenRift API started successfully!")
-
-
 # ==================== INCLUDE ROUTERS ====================
 
 # Health check routes (no prefix, at root level)
@@ -121,6 +119,9 @@ app.include_router(team_events_router)
 
 # Riot API routes (includes /api/riot prefix)
 app.include_router(riot_router)
+
+# Discord API routes (includes /api/discord prefix)
+app.include_router(discord_router)
 
 
 # ==================== ANALYTICS ENDPOINTS (TODO: Extract to routes/analytics_routes.py) ====================
@@ -910,8 +911,6 @@ async def shutdown_event():
     """Cleanup on app shutdown"""
     from services.scheduler import shutdown_scheduler
     shutdown_scheduler()
-    print("OpenRift API shutdown successfully!")
-
 
 if __name__ == "__main__":
     import uvicorn

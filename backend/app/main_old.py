@@ -94,7 +94,6 @@ app.mount("/exports", StaticFiles(directory=str(EXPORT_DIR)), name="exports")
 @app.on_event("startup")
 async def startup_event():
     init_db()
-    print("OpenRift API started successfully!")
 
 @app.get("/")
 async def root():

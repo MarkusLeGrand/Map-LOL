@@ -78,7 +78,7 @@ export default function AdminPage() {
           setStats(data);
         }
       } catch (error) {
-        console.error('Failed to fetch stats:', error);
+
       }
     };
 
@@ -108,7 +108,7 @@ export default function AdminPage() {
           setUsers(data.users);
         }
       } catch (error) {
-        console.error('Failed to fetch users:', error);
+
       } finally {
         setLoading(false);
       }
@@ -136,7 +136,7 @@ export default function AdminPage() {
           setTeams(data.teams);
         }
       } catch (error) {
-        console.error('Failed to fetch teams:', error);
+
       } finally {
         setLoading(false);
       }
@@ -163,7 +163,7 @@ export default function AdminPage() {
         ));
       }
     } catch (error) {
-      console.error('Failed to toggle user active:', error);
+
     }
   };
 
@@ -182,7 +182,7 @@ export default function AdminPage() {
         setUsers(users.filter(u => u.id !== userId));
       }
     } catch (error) {
-      console.error('Failed to delete user:', error);
+
     }
   };
 
@@ -201,7 +201,7 @@ export default function AdminPage() {
         setTeams(teams.filter(t => t.id !== teamId));
       }
     } catch (error) {
-      console.error('Failed to delete team:', error);
+
     }
   };
 
