@@ -253,6 +253,15 @@ export default function ScrimSchedulerPage() {
     }
   };
 
+  // Helper to convert hour to calendar index for proper comparison
+  // Hours displayed: 10, 11, ..., 23, 0, 1 -> indices 0, 1, ..., 13, 14, 15
+  const hourToCalendarIndex = (hour: number) => {
+    if (hour >= 10 && hour <= 23) return hour - 10;
+    if (hour === 0) return 14;
+    if (hour === 1) return 15;
+    return 0;
+  };
+
   // Handle mouse up to finish selection and create slot/event
   const handleMouseUp = async () => {
     if (isSelecting && selectionStart && selectionEnd && !isCreatingSlot) {
@@ -263,8 +272,13 @@ export default function ScrimSchedulerPage() {
       const startDay = selectionStart.day < selectionEnd.day ? selectionStart.day : selectionEnd.day;
       const endDay = selectionStart.day < selectionEnd.day ? selectionEnd.day : selectionStart.day;
 
-      const startHour = Math.min(selectionStart.hour, selectionEnd.hour);
-      const endHour = Math.max(selectionStart.hour, selectionEnd.hour) + 1;
+      // Use calendar index for proper comparison (handles 00:00, 01:00 being after 23:00)
+      const startCalIdx = hourToCalendarIndex(selectionStart.hour);
+      const endCalIdx = hourToCalendarIndex(selectionEnd.hour);
+
+      const startHour = startCalIdx <= endCalIdx ? selectionStart.hour : selectionEnd.hour;
+      const endHour = startCalIdx <= endCalIdx ? selectionEnd.hour : selectionStart.hour;
+      const endHourPlusOne = endHour === 23 ? 0 : (endHour === 0 ? 1 : (endHour === 1 ? 2 : endHour + 1));
 
       // Only create if same day
       if (startDay.toDateString() === endDay.toDateString()) {
@@ -273,8 +287,18 @@ export default function ScrimSchedulerPage() {
         const month = startDay.getMonth();
         const date = startDay.getDate();
 
-        const startTime = new Date(Date.UTC(year, month, date, startHour, 0, 0, 0));
-        const endTime = new Date(Date.UTC(year, month, date, endHour, 0, 0, 0));
+        // In the calendar, hours 00:00 and 01:00 are shown after 23:00, representing the next day
+        // So if startHour is 0 or 1, we need to add a day to get the correct date
+        const startNeedsNextDay = startHour === 0 || startHour === 1;
+        const startTime = startNeedsNextDay
+          ? new Date(Date.UTC(year, month, date + 1, startHour, 0, 0, 0))
+          : new Date(Date.UTC(year, month, date, startHour, 0, 0, 0));
+
+        // End time: if endHourPlusOne is 0, 1, or 2, it's on the next day
+        const endNeedsNextDay = endHourPlusOne <= 2;
+        const endTime = endNeedsNextDay
+          ? new Date(Date.UTC(year, month, date + 1, endHourPlusOne, 0, 0, 0))
+          : new Date(Date.UTC(year, month, date, endHourPlusOne, 0, 0, 0));
 
         if (viewMode === 'team') {
           // Team mode: Open modal to create team event
@@ -339,10 +363,15 @@ export default function ScrimSchedulerPage() {
 
     if (cellDay !== startDay || cellDay !== endDay) return false;
 
-    const minHour = Math.min(selectionStart.hour, selectionEnd.hour);
-    const maxHour = Math.max(selectionStart.hour, selectionEnd.hour);
+    // Use calendar index for proper comparison (handles 00:00, 01:00 being after 23:00)
+    const startCalIdx = hourToCalendarIndex(selectionStart.hour);
+    const endCalIdx = hourToCalendarIndex(selectionEnd.hour);
+    const cellCalIdx = hourToCalendarIndex(hour);
 
-    return hour >= minHour && hour <= maxHour;
+    const minCalIdx = Math.min(startCalIdx, endCalIdx);
+    const maxCalIdx = Math.max(startCalIdx, endCalIdx);
+
+    return cellCalIdx >= minCalIdx && cellCalIdx <= maxCalIdx;
   };
 
   const createRecurringSlot = async () => {
@@ -464,12 +493,16 @@ export default function ScrimSchedulerPage() {
       const slotStart = new Date(slot.start_time);
       const slotEnd = new Date(slot.end_time);
 
-      // Check if slot's day of week matches the cell's day of week
-      const slotDayOfWeek = slotStart.getDay();
-      if (slotDayOfWeek !== dayOfWeek) return false;
-
       const slotStartHour = slotStart.getHours();
       const slotEndHour = slotEnd.getHours();
+
+      // For slots at 00:00 or 01:00, they should match the PREVIOUS day's column
+      const slotDayOfWeek = slotStart.getDay();
+      const displayDayOfWeek = (slotStartHour === 0 || slotStartHour === 1)
+        ? (slotDayOfWeek === 0 ? 6 : slotDayOfWeek - 1)
+        : slotDayOfWeek;
+
+      if (displayDayOfWeek !== dayOfWeek) return false;
 
       // Check if this hour falls within the slot's time range
       return slotStartHour <= hour && hour < slotEndHour;
@@ -518,14 +551,15 @@ export default function ScrimSchedulerPage() {
   };
 
   // Map hour (0-23) to row index in calendar
-  // Hours displayed: 10, 11, 12, ..., 23, 0, 1
+  // Hours displayed: 10, 11, 12, ..., 23, 0, 1 (16 rows total)
   const getHourIndex = (hour: number) => {
     if (hour >= 10 && hour <= 23) {
       return hour - 10; // 10->0, 11->1, ..., 23->13
     }
     if (hour === 0) return 14; // 0 (midnight) comes after 23
     if (hour === 1) return 15; // 1am comes after midnight
-    return 0; // Fallback for hours 2-9 (not displayed)
+    if (hour === 2) return 16; // 2am is the end boundary (for slots ending at 02:00)
+    return 0; // Fallback for hours 3-9 (not displayed)
   };
 
   if (!myTeam) {
@@ -740,15 +774,20 @@ export default function ScrimSchedulerPage() {
                 const startTime = new Date(slot.start_time);
                 const endTime = new Date(slot.end_time);
 
-                // Match by day of week instead of specific date
+                const startHour = startTime.getHours();
+                const endHour = endTime.getHours();
+
+                // For slots at 00:00 or 01:00, they should be displayed on the PREVIOUS day's column
+                // because in the calendar, 00:00-01:00 are shown after 23:00 of the previous day
                 const slotDayOfWeek = startTime.getDay();
-                const dayIndex = weekDays.findIndex(d => d.getDay() === slotDayOfWeek);
+                const displayDayOfWeek = (startHour === 0 || startHour === 1)
+                  ? (slotDayOfWeek === 0 ? 6 : slotDayOfWeek - 1) // Go to previous day
+                  : slotDayOfWeek;
+
+                const dayIndex = weekDays.findIndex(d => d.getDay() === displayDayOfWeek);
 
                 // This should always find a match since we have all 7 days
                 if (dayIndex === -1) return null;
-
-                const startHour = startTime.getHours();
-                const endHour = endTime.getHours();
 
                 const rowStart = getHourIndex(startHour) + 2; // +2 for header row
                 const rowSpan = getHourIndex(endHour) - getHourIndex(startHour);

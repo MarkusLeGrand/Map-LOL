@@ -150,10 +150,13 @@ export default function TacticalMapPage() {
     const handleToggleVisionMode = useCallback((mode: 'blue' | 'red' | 'both') => {
         if (visionMode === mode) {
             setVisionMode('off');
+            // Clear vision data when turning off to prevent stale data issues
+            setVisionData(null);
+            setBrushData(null);
         } else {
             setVisionMode(mode);
         }
-    }, [visionMode, setVisionMode]);
+    }, [visionMode, setVisionMode, setVisionData, setBrushData]);
 
     const handleToggleGrid = useCallback(() => {
         setShowGrid(!showGrid);

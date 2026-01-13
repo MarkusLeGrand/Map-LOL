@@ -197,7 +197,8 @@ async def discord_login_callback(
         user_info = await discord_auth_service.get_user_info(token_data["access_token"])
 
         # Extract Discord info
-        discord_username = user_info.get("username", "")
+        discord_username = user_info.get("username", "")  # Unique handle (e.g., omotesanto444)
+        discord_global_name = user_info.get("global_name", "")  # Display name (e.g., Ryzeri)
         discord_id = user_info.get("id", "")
         discord_discriminator = user_info.get("discriminator", "0")
         discord_email = user_info.get("email")
@@ -205,7 +206,7 @@ async def discord_login_callback(
         if not discord_id:
             raise HTTPException(status_code=400, detail="Failed to get Discord ID")
 
-        # Format Discord tag
+        # Format Discord tag - use the unique username handle
         if discord_discriminator == "0":
             discord_tag = discord_username
         else:
@@ -328,7 +329,8 @@ async def discord_login_callback(
                 }
 
             # Check if username is already taken - add random suffix if needed
-            base_username = discord_username
+            # Use Discord display name (global_name) for OpenRift username, fallback to unique username
+            base_username = discord_global_name if discord_global_name else discord_username
             username_to_use = base_username
             attempts = 0
             while db.query(User).filter(User.username == username_to_use).first() and attempts < 10:

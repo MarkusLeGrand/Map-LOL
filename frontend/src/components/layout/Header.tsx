@@ -26,31 +26,38 @@ export function Header({
     const toast = useToast();
     const [showNotifications, setShowNotifications] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
-    const [profileIconId, setProfileIconId] = useState<number | string | null>(null);
+    // Initialize profile icon from sessionStorage cache
+    const [profileIconId, setProfileIconId] = useState<number | string | null>(() => {
+        const cached = sessionStorage.getItem('profileIconId');
+        return cached ? JSON.parse(cached) : null;
+    });
 
     // Get user's team tag
     const myTeam = teams.length > 0 ? teams[0] : null;
 
-    // Load user's profile icon from Riot
+    // Load user's profile icon from Riot (only if not already loaded)
     useEffect(() => {
         const loadProfileIcon = async () => {
-            if (isAuthenticated && user?.riot_game_name) {
-                try {
-                    const token = localStorage.getItem('token');
-                    if (!token) return;
+            // Skip if already loaded or no riot account linked
+            if (profileIconId !== null || !isAuthenticated || !user?.riot_game_name) return;
 
-                    const data = await getSummonerData(token);
-                    if (data?.summoner?.profile_icon_id) {
-                        setProfileIconId(data.summoner.profile_icon_id);
-                    }
-                } catch (error) {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
 
+                const data = await getSummonerData(token);
+                if (data?.summoner?.profile_icon_id) {
+                    setProfileIconId(data.summoner.profile_icon_id);
+                    // Cache in sessionStorage to persist across navigations
+                    sessionStorage.setItem('profileIconId', JSON.stringify(data.summoner.profile_icon_id));
                 }
+            } catch (error) {
+                // Silent fail
             }
         };
 
         loadProfileIcon();
-    }, [isAuthenticated, user?.riot_game_name]);
+    }, [isAuthenticated, user?.riot_game_name, profileIconId]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -261,7 +268,7 @@ export function Header({
                             <div className="relative user-menu-dropdown">
                                 <button
                                     onClick={() => setShowUserMenu(!showUserMenu)}
-                                    className="w-10 h-10 rounded-full border-2 border-[#3D7A5F]/40 hover:border-[#3D7A5F]/60 transition-colors overflow-hidden flex items-center justify-center bg-[#1A1A1A]"
+                                    className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-[#1A1A1A] hover:opacity-80 transition-opacity"
                                 >
                                     {profileIconId ? (
                                         <ImageWithFallback
