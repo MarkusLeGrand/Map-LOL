@@ -48,10 +48,12 @@
 [x] rajouter un lock team pour le owner et donc la team n'aaparait plus dans teams ! +impossible de rejoindre plusieur team a la fois
 [x] quand tu creer ton compte et que tu mets ton id riot ca verifie si l'id riot existe et met tout a jour
 [x] pb tu del ton compte ca quitte pas la team avant ! et si tu es owner ca doit del l'equipe et kick tout le monde logique ! 
-[ ] FAIRE LE PARTENARIAT GENRE LES STRUCTURE PARTENAIRE (MAIN PAGE ET LA TEAM APPARTIEN A UNE STRUCTURE OU APS !)
-[ ] admin lvlup !
-[ ] ticket signaler un bug !
-[ ] 
+[x] notif ui pour disconnect discord !
+[x] pseudo disocrd = username openrift username discord = username discord !
+[x] quand je mets la vision blue red ou both sur la map lol je peux plus partir de la maplol genre ca buffer des que j'enleve la vision ! ???
+[x] Schedule bug quand je mets un slot 00:00 01:00 !!!!!!!!!!
+[x] quand je click sur un truc du header du site ca recharge l'icon de l'user ! (pas grave a regarder !)
+[x] cercle vert autour de l'icon dans le header du site enleve 
 
 ==============================================
 🟡 RIOT API INTEGRATION
@@ -62,9 +64,10 @@
 [X] reagencer ces section pour plus de sytle!
 [x] Amélioration de team manager ! 3 champions préférés, icon LOL, rank, lane
 [x] page teams avec l'elo average et les role qu'il manque dans l'equipe !
-[ ] Google OAuth (optionnel, après Riot)
 [ ] Gerer la recuperation du mots de passe via l'adresse mail (verification de l'addresse mail, et tout !)
-
+[ ] admin lvlup !
+[ ] ticket signaler un bug !
+[ ] FAIRE LE PARTENARIAT GENRE LES STRUCTURE PARTENAIRE (MAIN PAGE ET LA TEAM APPARTIEN A UNE STRUCTURE OU APS !)
 
 ==============================================
 🎮 MAP / TACTICAL BOARD - CORE FEATURES
@@ -81,7 +84,6 @@
 ==============================================
 [ ] Clean calendrier: slots personnalisés (17h23 → 19h37, pas limité à 30min)
 [x] chaque joueurs mes ses slot et les slot ou tout le monde est dispo se mette en couleurs
-[ ] prevoir un slot tout les jeudi boucle cron 
 
 ==============================================
 📊 ANALYTICS / DATA MANAGEMENT
@@ -89,6 +91,9 @@
 [x] Proposer script a dl pour faire des JSON à partir des .rofl
 [x] Faire un guide pour uttiliser le script
 [x] Guide utilisateur pour download + utilisation script
+[ ] save toute la data sur un joueurs par saison et tout a voir ! 
+[ ] stat d'equipe stat player alone ! 
+[ ] comparaison avec stat de soloq pour un joueurs
 
 ==============================================
 🛡️ MONITORING & MAINTENANCE (MANDATORY)

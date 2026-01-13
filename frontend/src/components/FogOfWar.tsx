@@ -28,12 +28,23 @@ export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, on
     });
 
     useEffect(() => {
+        // Early return if vision is off - don't do any calculations
+        if (visionMode === 'off') return;
+
         const canvas = canvasRef.current;
-        if (!canvas || visionMode === 'off') return;
+        if (!canvas) return;
         if (!wallsImg.complete || !brushImg.complete) return;
 
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
+
+        // Flag to track if component is still mounted (for cleanup during navigation)
+        let isMounted = true;
+        let animationFrameId: number | null = null;
+
+        // Use requestAnimationFrame to allow navigation during calculations
+        const runCalculations = () => {
+            if (!isMounted) return;
 
         const wallsCanvas = document.createElement('canvas');
         wallsCanvas.width = 512;
@@ -281,12 +292,26 @@ export function FogOfWar({ boardSize, tokens, towers, wards = [], visionMode, on
             }
         }
 
+        // Check if still mounted before final operations
+        if (!isMounted) return;
+
         ctx.putImageData(fogData, 0, 0);
 
         if (onVisionUpdate) {
             onVisionUpdate(visionData, brushData);
         }
+        }; // End of runCalculations
 
+        // Schedule the calculations using requestAnimationFrame
+        animationFrameId = requestAnimationFrame(runCalculations);
+
+        // Cleanup function to allow navigation even during vision calculations
+        return () => {
+            isMounted = false;
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
     }, [boardSize, tokens, towers, wards, visionMode, wallsImg, brushImg, faelights, faelightActivations, faelightMasks, onVisionUpdate]);
 
     if (visionMode === 'off') return null;
