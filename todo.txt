@@ -54,6 +54,7 @@
 [x] Schedule bug quand je mets un slot 00:00 01:00 !!!!!!!!!!
 [x] quand je click sur un truc du header du site ca recharge l'icon de l'user ! (pas grave a regarder !)
 [x] cercle vert autour de l'icon dans le header du site enleve 
+[ ] FAIRE LE PARTENARIAT GENRE LES STRUCTURE PARTENAIRE (MAIN PAGE ET LA TEAM APPARTIEN A UNE STRUCTURE OU APS !)
 
 ==============================================
 🟡 RIOT API INTEGRATION
@@ -67,7 +68,7 @@
 [ ] Gerer la recuperation du mots de passe via l'adresse mail (verification de l'addresse mail, et tout !)
 [x] admin lvlup !
 [x] ticket signaler un bug !
-[ ] FAIRE LE PARTENARIAT GENRE LES STRUCTURE PARTENAIRE (MAIN PAGE ET LA TEAM APPARTIEN A UNE STRUCTURE OU APS !)
+
 
 ==============================================
 🎮 MAP / TACTICAL BOARD - CORE FEATURES
@@ -93,7 +94,8 @@
 [x] Guide utilisateur pour download + utilisation script
 [ ] save toute la data sur un joueurs par saison et tout a voir ! 
 [ ] stat d'equipe stat player alone ! 
-[ ] comparaison avec stat de soloq pour un joueurs
+    stat solo :comparaison avec stat de soloq pour un joueurs
+    stat d'equipe stat player alone ! 
 
 ==============================================
 🛡️ MONITORING & MAINTENANCE (MANDATORY)
@@ -114,11 +116,6 @@
 [ ] Breadcrumbs navigation
 [ ] Active tab indication claire
 
-==============================================
-📝 INFO À VÉRIFIER
-==============================================
-[ ] Subgit docker - check ce que c'est
-[ ] Dockploy - check si utile (probablement non)
 
 ==============================================
 💡 NOTES / RESSOURCES
