@@ -65,8 +65,8 @@
 [x] Amélioration de team manager ! 3 champions préférés, icon LOL, rank, lane
 [x] page teams avec l'elo average et les role qu'il manque dans l'equipe !
 [ ] Gerer la recuperation du mots de passe via l'adresse mail (verification de l'addresse mail, et tout !)
-[ ] admin lvlup !
-[ ] ticket signaler un bug !
+[x] admin lvlup !
+[x] ticket signaler un bug !
 [ ] FAIRE LE PARTENARIAT GENRE LES STRUCTURE PARTENAIRE (MAIN PAGE ET LA TEAM APPARTIEN A UNE STRUCTURE OU APS !)
 
 ==============================================

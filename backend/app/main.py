@@ -144,11 +144,13 @@ from analytics import ScrimAnalytics
 from database import (
     get_db, User as DBUser, Scrim as DBScrim, Team as DBTeam,
     TeamInvite as DBInvite, UserAnalytics as DBUserAnalytics,
-    TeamAnalytics as DBTeamAnalytics, team_members as team_members_table
+    TeamAnalytics as DBTeamAnalytics, team_members as team_members_table,
+    BugTicket as DBBugTicket, Notification as DBNotification
 )
 from auth import get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 from teams import get_team_by_id, get_team_members_with_roles, get_user_teams
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from fastapi import Depends, HTTPException
 
 # Copy all analytics endpoints from main_old.py starting at line 817
@@ -904,6 +906,315 @@ async def admin_delete_team(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete team: {str(e)}")
+
+
+@app.patch("/api/admin/users/{user_id}/toggle-admin")
+async def toggle_user_admin(
+    user_id: str,
+    admin: DBUser = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Toggle user admin status (promote/demote) (admin only)"""
+    if user_id == admin.id:
+        raise HTTPException(status_code=400, detail="Cannot change your own admin status")
+
+    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    try:
+        user.is_admin = not user.is_admin
+        db.commit()
+
+        status = "promoted to admin" if user.is_admin else "demoted from admin"
+        return {"message": f"User {user.username} {status}", "is_admin": user.is_admin}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
+
+
+# ==================== TICKET ENDPOINTS ====================
+
+@app.post("/api/tickets/submit")
+async def submit_ticket(
+    request: Request,
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a bug report ticket via JSON (requires authentication)"""
+    try:
+        data = await request.json()
+        title = data.get("title")
+        description = data.get("description")
+        category = data.get("category", "bug")
+        page_url = data.get("page_url")
+        user_agent = data.get("user_agent")
+
+        if not title or not description:
+            raise HTTPException(status_code=400, detail="Title and description are required")
+
+        ticket = DBBugTicket(
+            user_id=current_user.id,
+            title=title,
+            description=description,
+            category=category,
+            page_url=page_url,
+            user_agent=user_agent
+        )
+        db.add(ticket)
+        db.commit()
+        db.refresh(ticket)
+
+        return {"message": "Ticket submitted successfully", "ticket_id": ticket.id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create ticket: {str(e)}")
+
+
+@app.get("/api/admin/tickets")
+async def get_all_tickets(
+    admin: DBUser = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50
+):
+    """Get all tickets (admin only)"""
+    try:
+        query = db.query(DBBugTicket)
+
+        if status:
+            query = query.filter(DBBugTicket.status == status)
+
+        total = query.count()
+        tickets = query.order_by(DBBugTicket.created_at.desc()).offset(skip).limit(limit).all()
+
+        # Get usernames for tickets with user_id
+        result = []
+        for ticket in tickets:
+            ticket_data = {
+                "id": ticket.id,
+                "title": ticket.title,
+                "description": ticket.description,
+                "category": ticket.category,
+                "status": ticket.status,
+                "priority": ticket.priority,
+                "admin_response": ticket.admin_response,
+                "created_at": ticket.created_at.isoformat(),
+                "updated_at": ticket.updated_at.isoformat() if ticket.updated_at else None,
+                "resolved_at": ticket.resolved_at.isoformat() if ticket.resolved_at else None,
+                "page_url": ticket.page_url,
+                "user_id": ticket.user_id,
+                "username": None
+            }
+            if ticket.user_id:
+                user = db.query(DBUser).filter(DBUser.id == ticket.user_id).first()
+                if user:
+                    ticket_data["username"] = user.username
+            result.append(ticket_data)
+
+        return {
+            "total": total,
+            "tickets": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get tickets: {str(e)}")
+
+
+@app.patch("/api/admin/tickets/{ticket_id}")
+async def update_ticket(
+    ticket_id: str,
+    request: Request,
+    admin: DBUser = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Update ticket status/response (admin only)"""
+    ticket = db.query(DBBugTicket).filter(DBBugTicket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    try:
+        data = await request.json()
+        should_notify = False
+
+        if "status" in data:
+            ticket.status = data["status"]
+            if data["status"] in ["resolved", "closed"]:
+                ticket.resolved_at = datetime.utcnow()
+                ticket.resolved_by_id = admin.id
+                should_notify = True
+
+        if "priority" in data:
+            ticket.priority = data["priority"]
+
+        if "admin_response" in data and data["admin_response"]:
+            ticket.admin_response = data["admin_response"]
+            should_notify = True
+
+        # Create notification for the user if ticket has a user
+        if should_notify and ticket.user_id:
+            notification = DBNotification(
+                user_id=ticket.user_id,
+                type="ticket_response",
+                title="Ticket Update",
+                message=f"Your ticket '{ticket.title}' has been updated by an admin.",
+                reference_id=ticket.id,
+                reference_type="ticket"
+            )
+            db.add(notification)
+
+        db.commit()
+        return {"message": "Ticket updated successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update ticket: {str(e)}")
+
+
+@app.delete("/api/admin/tickets/{ticket_id}")
+async def delete_ticket(
+    ticket_id: str,
+    admin: DBUser = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a ticket (admin only)"""
+    ticket = db.query(DBBugTicket).filter(DBBugTicket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    try:
+        db.delete(ticket)
+        db.commit()
+        return {"message": "Ticket deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete ticket: {str(e)}")
+
+
+@app.get("/api/admin/tickets/stats")
+async def get_ticket_stats(
+    admin: DBUser = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get ticket statistics (admin only)"""
+    try:
+        total = db.query(func.count(DBBugTicket.id)).scalar()
+        open_count = db.query(func.count(DBBugTicket.id)).filter(DBBugTicket.status == "open").scalar()
+        in_progress = db.query(func.count(DBBugTicket.id)).filter(DBBugTicket.status == "in_progress").scalar()
+        resolved = db.query(func.count(DBBugTicket.id)).filter(DBBugTicket.status == "resolved").scalar()
+        closed = db.query(func.count(DBBugTicket.id)).filter(DBBugTicket.status == "closed").scalar()
+
+        # By category
+        by_category = db.query(
+            DBBugTicket.category,
+            func.count(DBBugTicket.id)
+        ).group_by(DBBugTicket.category).all()
+
+        return {
+            "total": total,
+            "open": open_count,
+            "in_progress": in_progress,
+            "resolved": resolved,
+            "closed": closed,
+            "by_category": {cat: count for cat, count in by_category}
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get ticket stats: {str(e)}")
+
+
+# ==================== NOTIFICATION ENDPOINTS ====================
+
+@app.get("/api/notifications")
+async def get_my_notifications(
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    unread_only: bool = False
+):
+    """Get current user's notifications"""
+    try:
+        query = db.query(DBNotification).filter(DBNotification.user_id == current_user.id)
+
+        if unread_only:
+            query = query.filter(DBNotification.is_read == False)
+
+        notifications = query.order_by(DBNotification.created_at.desc()).limit(50).all()
+
+        return {
+            "notifications": [
+                {
+                    "id": n.id,
+                    "type": n.type,
+                    "title": n.title,
+                    "message": n.message,
+                    "reference_id": n.reference_id,
+                    "reference_type": n.reference_type,
+                    "is_read": n.is_read,
+                    "created_at": n.created_at.isoformat()
+                }
+                for n in notifications
+            ],
+            "unread_count": db.query(func.count(DBNotification.id)).filter(
+                DBNotification.user_id == current_user.id,
+                DBNotification.is_read == False
+            ).scalar()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get notifications: {str(e)}")
+
+
+@app.patch("/api/notifications/{notification_id}/read")
+async def mark_notification_read(
+    notification_id: str,
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Mark a notification as read"""
+    notification = db.query(DBNotification).filter(
+        DBNotification.id == notification_id,
+        DBNotification.user_id == current_user.id
+    ).first()
+
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    notification.is_read = True
+    db.commit()
+    return {"message": "Notification marked as read"}
+
+
+@app.patch("/api/notifications/read-all")
+async def mark_all_notifications_read(
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Mark all notifications as read"""
+    db.query(DBNotification).filter(
+        DBNotification.user_id == current_user.id,
+        DBNotification.is_read == False
+    ).update({"is_read": True})
+    db.commit()
+    return {"message": "All notifications marked as read"}
+
+
+@app.delete("/api/notifications/{notification_id}")
+async def delete_notification(
+    notification_id: str,
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a notification"""
+    notification = db.query(DBNotification).filter(
+        DBNotification.id == notification_id,
+        DBNotification.user_id == current_user.id
+    ).first()
+
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    db.delete(notification)
+    db.commit()
+    return {"message": "Notification deleted"}
 
 
 @app.on_event("shutdown")

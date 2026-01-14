@@ -7,6 +7,19 @@ import { useToast } from '../../contexts/ToastContext';
 import { getSummonerData } from '../../services/riotApi';
 import { ImageWithFallback } from '../ui/ImageWithFallback';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+interface Notification {
+    id: string;
+    type: string;
+    title: string;
+    message: string;
+    reference_id: string | null;
+    reference_type: string | null;
+    is_read: boolean;
+    created_at: string;
+}
+
 interface HeaderProps {
     brandName?: string;
     tagline?: string;
@@ -21,25 +34,47 @@ export function Header({
     showAboutLink = true,
 }: HeaderProps) {
     const navigate = useNavigate();
-    const { isAuthenticated, user, logout } = useAuth();
+    const { isAuthenticated, user, logout, token } = useAuth();
     const { invites, joinRequests, acceptInvite, getMyInvites, acceptJoinRequest, rejectJoinRequest, getMyJoinRequests, teams } = useTeam();
     const toast = useToast();
     const [showNotifications, setShowNotifications] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
     // Initialize profile icon from sessionStorage cache
     const [profileIconId, setProfileIconId] = useState<number | string | null>(() => {
         const cached = sessionStorage.getItem('profileIconId');
         return cached ? JSON.parse(cached) : null;
     });
+    // Track the riot_game_name to detect changes
+    const [lastRiotGameName, setLastRiotGameName] = useState<string | undefined>(user?.riot_game_name);
 
     // Get user's team tag
     const myTeam = teams.length > 0 ? teams[0] : null;
 
-    // Load user's profile icon from Riot (only if not already loaded)
+    // Load user's profile icon from Riot (refresh when Riot ID changes)
     useEffect(() => {
         const loadProfileIcon = async () => {
-            // Skip if already loaded or no riot account linked
-            if (profileIconId !== null || !isAuthenticated || !user?.riot_game_name) return;
+            // Skip if no riot account linked
+            if (!isAuthenticated || !user?.riot_game_name) {
+                // Clear icon if no riot account
+                if (profileIconId !== null) {
+                    setProfileIconId(null);
+                    sessionStorage.removeItem('profileIconId');
+                }
+                return;
+            }
+
+            // Check if Riot ID changed - if so, clear cache and reload
+            const riotIdChanged = lastRiotGameName !== user.riot_game_name;
+            if (riotIdChanged) {
+                setLastRiotGameName(user.riot_game_name);
+                sessionStorage.removeItem('profileIconId');
+                setProfileIconId(null);
+            }
+
+            // Skip if already loaded and Riot ID hasn't changed
+            if (profileIconId !== null && !riotIdChanged) return;
 
             try {
                 const token = localStorage.getItem('token');
@@ -57,7 +92,96 @@ export function Header({
         };
 
         loadProfileIcon();
-    }, [isAuthenticated, user?.riot_game_name, profileIconId]);
+    }, [isAuthenticated, user?.riot_game_name, profileIconId, lastRiotGameName]);
+
+    // Load notifications
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            if (!isAuthenticated || !token) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setNotifications(data.notifications);
+                    setUnreadCount(data.unread_count);
+                }
+            } catch (error) {
+                // Silent fail
+            }
+        };
+
+        fetchNotifications();
+        // Refresh every 30 seconds
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+    }, [isAuthenticated, token]);
+
+    const markNotificationAsRead = async (notificationId: string) => {
+        if (!token) return;
+        try {
+            await fetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            setNotifications(notifications.map(n =>
+                n.id === notificationId ? { ...n, is_read: true } : n
+            ));
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        } catch (error) {
+            // Silent fail
+        }
+    };
+
+    const markAllAsRead = async () => {
+        if (!token) return;
+        try {
+            await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+            setUnreadCount(0);
+        } catch (error) {
+            // Silent fail
+        }
+    };
+
+    const deleteNotification = async (notificationId: string) => {
+        if (!token) return;
+        try {
+            await fetch(`${API_BASE_URL}/api/notifications/${notificationId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const notif = notifications.find(n => n.id === notificationId);
+            setNotifications(notifications.filter(n => n.id !== notificationId));
+            if (notif && !notif.is_read) {
+                setUnreadCount(prev => Math.max(0, prev - 1));
+            }
+        } catch (error) {
+            // Silent fail
+        }
+    };
+
+    const clearAllNotifications = async () => {
+        if (!token) return;
+        // Delete all notifications one by one
+        for (const notif of notifications) {
+            try {
+                await fetch(`${API_BASE_URL}/api/notifications/${notif.id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } catch (error) {
+                // Silent fail
+            }
+        }
+        setNotifications([]);
+        setUnreadCount(0);
+    };
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -135,7 +259,7 @@ export function Header({
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                     </svg>
-                                    {(invites.length > 0 || joinRequests.length > 0) && (
+                                    {(invites.length > 0 || joinRequests.length > 0 || unreadCount > 0) && (
                                         <span className="absolute top-1 right-1 w-2 h-2 bg-[#3D7A5F] rounded-full"></span>
                                     )}
                                 </button>
@@ -143,16 +267,58 @@ export function Header({
                                 {/* Notifications Dropdown Menu */}
                                 {showNotifications && (
                                     <div className="absolute right-0 mt-2 w-80 bg-[#1A1A1A] border border-[#F5F5F5]/10 shadow-lg z-50">
-                                        <div className="p-4 border-b border-[#F5F5F5]/10">
+                                        <div className="p-4 border-b border-[#F5F5F5]/10 flex items-center justify-between">
                                             <h3 className="text-[#F5F5F5] font-semibold">Notifications</h3>
+                                            {notifications.length > 0 && (
+                                                <button
+                                                    onClick={clearAllNotifications}
+                                                    className="text-xs text-[#F5F5F5]/40 hover:text-[#F5F5F5]/60 transition-colors"
+                                                >
+                                                    Clear all
+                                                </button>
+                                            )}
                                         </div>
                                         <div className="max-h-96 overflow-y-auto">
-                                            {invites.length === 0 && joinRequests.length === 0 ? (
+                                            {invites.length === 0 && joinRequests.length === 0 && notifications.length === 0 ? (
                                                 <div className="p-6 text-center">
                                                     <p className="text-[#F5F5F5]/50 text-sm">No new notifications</p>
                                                 </div>
                                             ) : (
                                                 <div className="p-2">
+                                                    {/* System Notifications (ticket responses, etc.) */}
+                                                    {notifications.map((notification) => (
+                                                        <div
+                                                            key={notification.id}
+                                                            className={`p-3 mb-2 border rounded transition-colors ${
+                                                                notification.is_read
+                                                                    ? 'border-[#F5F5F5]/10 bg-[#F5F5F5]/5'
+                                                                    : 'border-[#3D7A5F]/30 bg-[#3D7A5F]/10'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-start gap-2">
+                                                                {!notification.is_read && (
+                                                                    <div className="w-2 h-2 rounded-full bg-[#3D7A5F] mt-1.5 flex-shrink-0"></div>
+                                                                )}
+                                                                <div className={`flex-1 min-w-0 ${notification.is_read ? '' : ''}`}>
+                                                                    <p className="text-[#F5F5F5] text-sm font-medium">{notification.title}</p>
+                                                                    <p className="text-[#F5F5F5]/60 text-xs mt-1">{notification.message}</p>
+                                                                    <p className="text-[#F5F5F5]/30 text-xs mt-1">
+                                                                        {new Date(notification.created_at).toLocaleDateString()}
+                                                                    </p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => deleteNotification(notification.id)}
+                                                                    className="text-[#F5F5F5]/30 hover:text-[#F5F5F5]/60 transition-colors p-1"
+                                                                    title="Dismiss"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+
                                                     {/* Team Invitations */}
                                                     {invites.map((invite) => (
                                                         <div key={invite.id} className="p-3 mb-2 border border-[#3D7A5F]/20 bg-[#3D7A5F]/10 rounded">

@@ -9,7 +9,16 @@ import uuid
 
 # SQLite database (easy for dev, switch to PostgreSQL for prod)
 import os
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./openrift.db")
+from pathlib import Path
+
+# Get the backend directory (parent of app/)
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_DB_PATH = BACKEND_DIR / "data" / "openrift.db"
+
+# Ensure data directory exists
+DEFAULT_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DB_PATH}")
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
@@ -347,6 +356,59 @@ class SummonerData(Base):
 
     # Relationship
     user = relationship("User", back_populates="summoner_data")
+
+
+class Notification(Base):
+    """User notification model"""
+    __tablename__ = "notifications"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+
+    # Notification content
+    type = Column(String, nullable=False)  # ticket_response, team_invite, join_request, etc.
+    title = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+
+    # Reference to related entity
+    reference_id = Column(String, nullable=True)  # ticket_id, team_id, etc.
+    reference_type = Column(String, nullable=True)  # ticket, team, etc.
+
+    # Status
+    is_read = Column(Boolean, default=False)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class BugTicket(Base):
+    """Bug report ticket model"""
+    __tablename__ = "bug_tickets"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)  # Required - tickets must be from logged in users
+
+    # Ticket content
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    category = Column(String, default="bug")  # bug, feature, feedback, other
+
+    # Status tracking
+    status = Column(String, default="open")  # open, in_progress, resolved, closed
+    priority = Column(String, default="normal")  # low, normal, high, critical
+
+    # Admin response
+    admin_response = Column(String, nullable=True)
+    resolved_by_id = Column(String, ForeignKey("users.id"), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Browser/device info for debugging
+    user_agent = Column(String, nullable=True)
+    page_url = Column(String, nullable=True)
 
 
 # Database initialization
