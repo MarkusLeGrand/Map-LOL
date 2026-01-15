@@ -495,17 +495,36 @@ export default function ScrimSchedulerPage() {
 
       const slotStartHour = slotStart.getHours();
       const slotEndHour = slotEnd.getHours();
-
-      // For slots at 00:00 or 01:00, they should match the PREVIOUS day's column
       const slotDayOfWeek = slotStart.getDay();
-      const displayDayOfWeek = (slotStartHour === 0 || slotStartHour === 1)
-        ? (slotDayOfWeek === 0 ? 6 : slotDayOfWeek - 1)
-        : slotDayOfWeek;
+      const slotEndDayOfWeek = slotEnd.getDay();
 
-      if (displayDayOfWeek !== dayOfWeek) return false;
+      // Check if slot crosses midnight by comparing dates
+      const crossesMidnight = slotEndDayOfWeek !== slotDayOfWeek || slotEndHour < slotStartHour;
 
-      // Check if this hour falls within the slot's time range
-      return slotStartHour <= hour && hour < slotEndHour;
+      // For cells at 00:00 or 01:00, they are visually in the PREVIOUS day's column
+      // but represent hours of the NEXT calendar day
+      if (hour === 0 || hour === 1) {
+        // Check if a slot from dayOfWeek crosses midnight and covers this hour
+        if (slotDayOfWeek === dayOfWeek && crossesMidnight) {
+          // For slots ending at exactly 00:00 (midnight), hour 0 is NOT included (it's the end boundary)
+          if (slotEndHour === 0) {
+            return false; // 00:00 is the end, not included
+          }
+          return hour < slotEndHour;
+        }
+        return false;
+      }
+
+      // For normal hours (10:00 - 23:00)
+      if (slotDayOfWeek !== dayOfWeek) return false;
+
+      if (crossesMidnight) {
+        // Slot crosses midnight - check if hour is >= start (the part before midnight)
+        return hour >= slotStartHour;
+      } else {
+        // Normal slot
+        return slotStartHour <= hour && hour < slotEndHour;
+      }
     });
   };
 

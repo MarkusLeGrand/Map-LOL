@@ -55,6 +55,7 @@
 [x] quand je click sur un truc du header du site ca recharge l'icon de l'user ! (pas grave a regarder !)
 [x] cercle vert autour de l'icon dans le header du site enleve 
 [ ] FAIRE LE PARTENARIAT GENRE LES STRUCTURE PARTENAIRE (MAIN PAGE ET LA TEAM APPARTIEN A UNE STRUCTURE OU APS !)
+[ ] bug shceduler team !
 
 ==============================================
 🟡 RIOT API INTEGRATION
