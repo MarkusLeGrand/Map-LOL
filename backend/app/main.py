@@ -32,6 +32,7 @@ from routes.availability_routes import router as availability_router
 from routes.team_events_routes import router as team_events_router
 from routes.riot_routes import router as riot_router
 from routes.discord_routes import router as discord_router
+from routes.champion_pool_routes import router as champion_pool_router
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -122,6 +123,9 @@ app.include_router(riot_router)
 
 # Discord API routes (includes /api/discord prefix)
 app.include_router(discord_router)
+
+# Champion Pool routes (includes /api/champion-pool prefix)
+app.include_router(champion_pool_router)
 
 
 # ==================== ANALYTICS ENDPOINTS (TODO: Extract to routes/analytics_routes.py) ====================

@@ -18,6 +18,7 @@ import RiotCallbackPage from './pages/auth/RiotCallbackPage';
 import DiscordCallbackPage from './pages/auth/DiscordCallbackPage';
 import DiscordLoginCallbackPage from './pages/auth/DiscordLoginCallbackPage';
 import FavoriteToolsPage from './pages/auth/FavoriteToolsPage';
+import ChampionPoolPage from './pages/auth/ChampionPoolPage';
 import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -49,6 +50,7 @@ export default function App() {
                             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
                             <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
                             <Route path="/favorite-tools" element={<ProtectedRoute><FavoriteToolsPage /></ProtectedRoute>} />
+                            <Route path="/champion-pool" element={<ProtectedRoute><ChampionPoolPage /></ProtectedRoute>} />
                             <Route path="/auth/riot/callback" element={<RiotCallbackPage />} />
                             <Route path="/auth/discord/callback" element={<DiscordCallbackPage />} />
                             <Route path="/auth/discord/login/callback" element={<DiscordLoginCallbackPage />} />

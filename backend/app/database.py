@@ -1,9 +1,9 @@
 """
 Database configuration and models
 """
-from sqlalchemy import create_engine, Column, String, Boolean, DateTime, JSON, ForeignKey, Table
+from sqlalchemy import create_engine, Column, String, Boolean, DateTime, JSON, ForeignKey, Table, Integer
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, backref
 from datetime import datetime
 import uuid
 
@@ -409,6 +409,49 @@ class BugTicket(Base):
     # Browser/device info for debugging
     user_agent = Column(String, nullable=True)
     page_url = Column(String, nullable=True)
+
+
+class ChampionPool(Base):
+    """Champion pool for a user - single tier list per user"""
+    __tablename__ = "champion_pools"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, unique=True)  # One pool per user
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships - order by tier priority then by position
+    entries = relationship("ChampionPoolEntry", back_populates="pool", cascade="all, delete-orphan", order_by="ChampionPoolEntry.position")
+
+
+class ChampionPoolEntry(Base):
+    """Single champion entry in a pool"""
+    __tablename__ = "champion_pool_entries"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    pool_id = Column(String, ForeignKey("champion_pools.id"), nullable=False)
+
+    # Champion info
+    champion_id = Column(String, nullable=False)  # Riot champion ID
+    champion_name = Column(String, nullable=False)  # Champion name for display
+
+    # Tier ranking
+    tier = Column(String, default="B")  # S, A, B, C or custom
+
+    # Position within tier for ordering
+    position = Column(Integer, default=0)
+
+    # Optional notes
+    notes = Column(String, nullable=True)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    pool = relationship("ChampionPool", back_populates="entries")
 
 
 # Database initialization
