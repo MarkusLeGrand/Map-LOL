@@ -29,6 +29,8 @@ export default function ToolsPage() {
       navigate('/teams');
     } else if (toolId === 'scrim-scheduler') {
       navigate('/scrim-scheduler');
+    } else if (toolId === 'champion-pool') {
+      navigate('/champion-pool');
     }
   };
 

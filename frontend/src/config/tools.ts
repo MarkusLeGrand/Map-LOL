@@ -82,8 +82,9 @@ export const ALL_TOOLS: Tool[] = [
   {
     name: 'Champion Pool',
     description: 'Build and optimize your champion pool based on role, meta, and personal performance',
-    status: 'Coming Soon',
-    color: COLORS.purple,
+    status: 'Available',
+    color: COLORS.primary,
+    onClick: 'champion-pool',
     category: 'tactics',
     displayOnHomePage: false,
   },
