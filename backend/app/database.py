@@ -454,6 +454,34 @@ class ChampionPoolEntry(Base):
     pool = relationship("ChampionPool", back_populates="entries")
 
 
+class Draft(Base):
+    """Saved draft composition"""
+    __tablename__ = "drafts"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    team_id = Column(String, ForeignKey("teams.id"), nullable=True)  # Optional team association
+
+    # Draft metadata
+    name = Column(String, nullable=False)
+    blue_team_name = Column(String, default="Blue Team")
+    red_team_name = Column(String, default="Red Team")
+
+    # Draft data stored as JSON
+    # Format: { blue_picks: [...], red_picks: [...], blue_bans: [...], red_bans: [...] }
+    draft_data = Column(JSON, nullable=False)
+
+    # Optional notes
+    notes = Column(String, nullable=True)
+
+    # External draft URL (from Prodraft, etc.)
+    external_url = Column(String, nullable=True)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 # Database initialization
 def init_db():
     """Create all tables"""

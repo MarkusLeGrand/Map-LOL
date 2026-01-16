@@ -4,7 +4,7 @@ import { COLORS } from '../../constants/theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTeam } from '../../contexts/TeamContext';
 import { useToast } from '../../contexts/ToastContext';
-import { getSummonerData } from '../../services/riotApi';
+import { getSummonerData, getProfileIconUrl } from '../../services/riotApi';
 import { ImageWithFallback } from '../ui/ImageWithFallback';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -438,7 +438,7 @@ export function Header({
                                 >
                                     {profileIconId ? (
                                         <ImageWithFallback
-                                            src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${profileIconId}.png`}
+                                            src={getProfileIconUrl(profileIconId)}
                                             alt="Profile Icon"
                                             fallbackType="profile"
                                             className="w-full h-full object-cover"

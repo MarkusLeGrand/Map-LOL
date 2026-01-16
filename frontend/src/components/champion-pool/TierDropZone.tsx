@@ -1,7 +1,6 @@
 import { useDroppable } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
-
-const DDRAGON_VERSION = '14.24.1';
+import { getChampionImageUrl } from '../../services/riotApi';
 
 interface ChampionEntry {
   id?: string;
@@ -53,7 +52,7 @@ function TierChampion({ id, championId, championName, tier }: { id: string; cham
     >
       <div className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-transform ${isOver ? 'border-[#3D7A5F] scale-110' : 'border-transparent hover:scale-110'}`}>
         <img
-          src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/${championId}.png`}
+          src={getChampionImageUrl(championId)}
           alt={championName}
           className="w-full h-full object-cover"
           draggable={false}

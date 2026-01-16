@@ -1,3 +1,5 @@
+import { getChampionImageUrl } from '../../services/riotApi';
+
 interface ChampionCardProps {
   championId: string;
   championName: string;
@@ -8,8 +10,6 @@ interface ChampionCardProps {
   onRemove?: () => void;
   size?: 'sm' | 'md' | 'lg';
 }
-
-const DDRAGON_VERSION = '14.24.1';
 
 export function ChampionCard({
   championId,
@@ -27,7 +27,7 @@ export function ChampionCard({
     lg: 'w-20 h-20'
   };
 
-  const imageUrl = `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/${championId}.png`;
+  const imageUrl = getChampionImageUrl(championId);
 
   return (
     <div
@@ -45,7 +45,7 @@ export function ChampionCard({
         alt={championName}
         className="w-full h-full object-cover"
         onError={(e) => {
-          (e.target as HTMLImageElement).src = `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/Aatrox.png`;
+          (e.target as HTMLImageElement).src = getChampionImageUrl('Aatrox');
         }}
       />
 

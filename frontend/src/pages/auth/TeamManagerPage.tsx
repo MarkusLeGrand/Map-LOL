@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { COLORS } from '../../constants/theme';
+import { getChampionImageUrl, getProfileIconUrl } from '../../services/riotApi';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -56,7 +57,7 @@ const championIdToKey: Record<number, string> = {
 
 function getChampionImage(championId: number): string {
   const championKey = championIdToKey[championId] || 'Unknown';
-  return `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${championKey}.png`;
+  return getChampionImageUrl(championKey);
 }
 
 export default function TeamManagerPage() {
@@ -677,7 +678,7 @@ export default function TeamManagerPage() {
                             <div className="flex-shrink-0">
                               {member.profile_icon_id ? (
                                 <ImageWithFallback
-                                  src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${member.profile_icon_id}.png`}
+                                  src={getProfileIconUrl(member.profile_icon_id)}
                                   alt="Profile Icon"
                                   fallbackType="profile"
                                   className="w-16 h-16 rounded-lg border-2 border-[#F5F5F5]/20"

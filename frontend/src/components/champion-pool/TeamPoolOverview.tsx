@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
+import { getChampionImageUrl } from '../../services/riotApi';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const DDRAGON_VERSION = '14.24.1';
 
 interface ChampionEntry {
   id: string;
@@ -133,7 +133,7 @@ export function TeamPoolOverview({ teamId }: TeamPoolOverviewProps) {
                             >
                               <div className="w-10 h-10 rounded overflow-hidden border border-[#F5F5F5]/10">
                                 <img
-                                  src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/${entry.champion_id}.png`}
+                                  src={getChampionImageUrl(entry.champion_id)}
                                   alt={entry.champion_name}
                                   className="w-full h-full object-cover"
                                 />

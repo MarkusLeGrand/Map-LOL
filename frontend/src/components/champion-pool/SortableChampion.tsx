@@ -1,7 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-
-const DDRAGON_VERSION = '14.24.1';
+import { getChampionImageUrl } from '../../services/riotApi';
 
 interface SortableChampionProps {
   id: string;
@@ -45,7 +44,7 @@ export function SortableChampion({ id, championId, championName, tier }: Sortabl
     >
       <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-transparent hover:scale-110 transition-transform">
         <img
-          src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/${championId}.png`}
+          src={getChampionImageUrl(championId)}
           alt={championName}
           className="w-full h-full object-cover"
           draggable={false}

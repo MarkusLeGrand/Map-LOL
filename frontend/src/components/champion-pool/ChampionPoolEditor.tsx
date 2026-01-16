@@ -5,9 +5,9 @@ import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { TierDropZone } from './TierDropZone';
 import { DraggableChampion } from './DraggableChampion';
+import { getChampionImageUrl, getLatestDDragonVersion } from '../../services/riotApi';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const DDRAGON_VERSION = '14.24.1';
 
 interface ChampionEntry {
   id?: string;
@@ -132,8 +132,9 @@ export function ChampionPoolEditor({ teamId }: ChampionPoolEditorProps) {
   useEffect(() => {
     const loadChampions = async () => {
       try {
+        const version = await getLatestDDragonVersion();
         const response = await fetch(
-          `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/data/en_US/champion.json`
+          `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`
         );
         const data = await response.json();
 
@@ -475,7 +476,7 @@ export function ChampionPoolEditor({ teamId }: ChampionPoolEditorProps) {
         {activeChampion && (
           <div className="w-14 h-14 rounded-lg overflow-hidden shadow-2xl border-2 border-[#3D7A5F]">
             <img
-              src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/${'champion_id' in activeChampion ? activeChampion.champion_id : activeChampion.id}.png`}
+              src={getChampionImageUrl('champion_id' in activeChampion ? activeChampion.champion_id : activeChampion.id)}
               alt={'champion_name' in activeChampion ? activeChampion.champion_name : activeChampion.name}
               className="w-full h-full object-cover"
             />

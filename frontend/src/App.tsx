@@ -19,12 +19,17 @@ import DiscordCallbackPage from './pages/auth/DiscordCallbackPage';
 import DiscordLoginCallbackPage from './pages/auth/DiscordLoginCallbackPage';
 import FavoriteToolsPage from './pages/auth/FavoriteToolsPage';
 import ChampionPoolPage from './pages/auth/ChampionPoolPage';
+import DraftToolPage from './pages/draft/DraftToolPage';
 import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import ErrorPage from './pages/ErrorPage';
+import { preloadDDragonVersion } from './services/riotApi';
+
+// Preload DDragon version on app start
+preloadDDragonVersion();
 
 export default function App() {
     return (
@@ -51,6 +56,7 @@ export default function App() {
                             <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
                             <Route path="/favorite-tools" element={<ProtectedRoute><FavoriteToolsPage /></ProtectedRoute>} />
                             <Route path="/champion-pool" element={<ProtectedRoute><ChampionPoolPage /></ProtectedRoute>} />
+                            <Route path="/draft" element={<DraftToolPage />} />
                             <Route path="/auth/riot/callback" element={<RiotCallbackPage />} />
                             <Route path="/auth/discord/callback" element={<DiscordCallbackPage />} />
                             <Route path="/auth/discord/login/callback" element={<DiscordLoginCallbackPage />} />

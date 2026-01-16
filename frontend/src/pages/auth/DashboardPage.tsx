@@ -5,7 +5,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useToast } from '../../contexts/ToastContext';
 import { Header } from '../../components/layout/Header';
 import { Footer } from '../../components/layout/Footer';
-import { getSummonerData, type SummonerData, type RiotAccount } from '../../services/riotApi';
+import { getSummonerData, getProfileIconUrl, type SummonerData, type RiotAccount } from '../../services/riotApi';
 import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 
 export default function DashboardPage() {
@@ -101,7 +101,7 @@ export default function DashboardPage() {
                 </div>
               ) : summonerData?.profile_icon_id ? (
                 <ImageWithFallback
-                  src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${summonerData.profile_icon_id}.png`}
+                  src={getProfileIconUrl(summonerData.profile_icon_id)}
                   alt="Profile Icon"
                   fallbackType="profile"
                   className="w-40 h-40 rounded-lg border-2 border-[#F5F5F5]/20"
@@ -218,33 +218,6 @@ export default function DashboardPage() {
                       <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
                     </svg>
                     <span className="text-[#F5F5F5] font-medium">Favorite Tools</span>
-                  </button>
-                  <button
-                    onClick={() => navigate('/teams')}
-                    className="w-full px-4 py-3 text-left border border-[#F5F5F5]/10 hover:border-[#3D7A5F]/40 hover:bg-[#3D7A5F]/5 transition-all rounded flex items-center gap-3"
-                  >
-                    <svg className="w-5 h-5 text-[#F5F5F5]/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <span className="text-[#F5F5F5] font-medium">Find a Team</span>
-                  </button>
-                  <button
-                    onClick={() => navigate('/team-manager')}
-                    className="w-full px-4 py-3 text-left border border-[#F5F5F5]/10 hover:border-[#3D7A5F]/40 hover:bg-[#3D7A5F]/5 transition-all rounded flex items-center gap-3"
-                  >
-                    <svg className="w-5 h-5 text-[#F5F5F5]/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <span className="text-[#F5F5F5] font-medium">My Team</span>
-                  </button>
-                  <button
-                    onClick={() => navigate('/scrim-scheduler')}
-                    className="w-full px-4 py-3 text-left border border-[#F5F5F5]/10 hover:border-[#3D7A5F]/40 hover:bg-[#3D7A5F]/5 transition-all rounded flex items-center gap-3"
-                  >
-                    <svg className="w-5 h-5 text-[#F5F5F5]/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-[#F5F5F5] font-medium">Scrim Scheduler</span>
                   </button>
                   <button
                     onClick={() => navigate('/tools')}

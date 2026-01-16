@@ -21,16 +21,8 @@ export default function ToolsPage() {
   }, []);
 
   const handleToolClick = (toolId: string) => {
-    if (toolId === 'tacticalmap') {
-      navigate('/tacticalmap');
-    } else if (toolId === 'data-analytics') {
-      navigate('/data-analytics');
-    } else if (toolId === 'teams') {
-      navigate('/teams');
-    } else if (toolId === 'scrim-scheduler') {
-      navigate('/scrim-scheduler');
-    } else if (toolId === 'champion-pool') {
-      navigate('/champion-pool');
+    if (toolId) {
+      navigate(`/${toolId}`);
     }
   };
 

@@ -5,6 +5,56 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// Cache for DDragon version
+let cachedDDragonVersion: string | null = null;
+let versionFetchPromise: Promise<string> | null = null;
+
+/**
+ * Get the latest Data Dragon version (cached)
+ */
+export const getLatestDDragonVersion = async (): Promise<string> => {
+  // Return cached version if available
+  if (cachedDDragonVersion) {
+    return cachedDDragonVersion;
+  }
+
+  // If already fetching, wait for that promise
+  if (versionFetchPromise) {
+    return versionFetchPromise;
+  }
+
+  // Fetch latest version
+  versionFetchPromise = fetch('https://ddragon.leagueoflegends.com/api/versions.json')
+    .then(res => res.json())
+    .then(versions => {
+      cachedDDragonVersion = versions[0];
+      return cachedDDragonVersion!;
+    })
+    .catch(() => {
+      // Fallback to a recent version if fetch fails
+      return '14.24.1';
+    })
+    .finally(() => {
+      versionFetchPromise = null;
+    });
+
+  return versionFetchPromise;
+};
+
+/**
+ * Get DDragon version synchronously (returns cached or fallback)
+ */
+export const getDDragonVersionSync = (): string => {
+  return cachedDDragonVersion || '14.24.1';
+};
+
+/**
+ * Preload DDragon version (call this on app init)
+ */
+export const preloadDDragonVersion = (): void => {
+  getLatestDDragonVersion();
+};
+
 export interface SummonerData {
   profile_icon_id: string;
   summoner_level: string;
@@ -149,16 +199,33 @@ export const updatePreferredLane = async (
 };
 
 /**
- * Get Data Dragon URLs for assets
+ * Get Data Dragon URLs for assets (uses cached version)
  */
-export const getDataDragonUrls = (version: string = '14.24.1') => {
-  const baseUrl = `https://ddragon.leagueoflegends.com/cdn/${version}`;
+export const getDataDragonUrls = (version?: string) => {
+  const v = version || getDDragonVersionSync();
+  const baseUrl = `https://ddragon.leagueoflegends.com/cdn/${v}`;
 
   return {
     championImage: (championId: number) => `${baseUrl}/img/champion/${getChampionKey(championId)}.png`,
     profileIcon: (iconId: string) => `${baseUrl}/img/profileicon/${iconId}.png`,
     rankEmblem: (tier: string) => `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/emblem-${tier.toLowerCase()}.png`,
   };
+};
+
+/**
+ * Get champion image URL by champion key (name)
+ */
+export const getChampionImageUrl = (championKey: string, version?: string): string => {
+  const v = version || getDDragonVersionSync();
+  return `https://ddragon.leagueoflegends.com/cdn/${v}/img/champion/${championKey}.png`;
+};
+
+/**
+ * Get profile icon URL
+ */
+export const getProfileIconUrl = (iconId: string | number, version?: string): string => {
+  const v = version || getDDragonVersionSync();
+  return `https://ddragon.leagueoflegends.com/cdn/${v}/img/profileicon/${iconId}.png`;
 };
 
 /**

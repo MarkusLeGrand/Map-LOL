@@ -16,10 +16,8 @@ export default function HomePage() {
   }, []);
 
   const handleToolClick = (toolId: string) => {
-    if (toolId === 'tacticalmap') {
-      navigate('/tacticalmap');
-    } else if (toolId === 'data-analytics') {
-      navigate('/data-analytics');
+    if (toolId) {
+      navigate(`/${toolId}`);
     }
   };
 
