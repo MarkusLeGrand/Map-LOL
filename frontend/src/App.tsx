@@ -20,6 +20,7 @@ import DiscordLoginCallbackPage from './pages/auth/DiscordLoginCallbackPage';
 import FavoriteToolsPage from './pages/auth/FavoriteToolsPage';
 import ChampionPoolPage from './pages/auth/ChampionPoolPage';
 import DraftToolPage from './pages/draft/DraftToolPage';
+import ScrimHubPage from './pages/scrim/ScrimHubPage';
 import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -57,6 +58,8 @@ export default function App() {
                             <Route path="/favorite-tools" element={<ProtectedRoute><FavoriteToolsPage /></ProtectedRoute>} />
                             <Route path="/champion-pool" element={<ProtectedRoute><ChampionPoolPage /></ProtectedRoute>} />
                             <Route path="/draft" element={<DraftToolPage />} />
+                            <Route path="/scrim" element={<ProtectedRoute><ScrimHubPage /></ProtectedRoute>} />
+                            <Route path="/scrim/:scrimId" element={<ProtectedRoute><ScrimHubPage /></ProtectedRoute>} />
                             <Route path="/auth/riot/callback" element={<RiotCallbackPage />} />
                             <Route path="/auth/discord/callback" element={<DiscordCallbackPage />} />
                             <Route path="/auth/discord/login/callback" element={<DiscordLoginCallbackPage />} />

@@ -134,7 +134,7 @@ class Team(Base):
 
 
 class Scrim(Base):
-    """Scrim/Practice session model"""
+    """Scrim/Practice session model - Central hub for scrim data"""
     __tablename__ = "scrims"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -150,8 +150,46 @@ class Scrim(Base):
     status = Column(String, default="scheduled")  # scheduled, completed, cancelled
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationship
+    # Summary fields
+    total_games = Column(Integer, default=0)
+    wins = Column(Integer, default=0)
+    losses = Column(Integer, default=0)
+
+    # Relationships
     team = relationship("Team", back_populates="scrims")
+    games = relationship("ScrimGame", back_populates="scrim", cascade="all, delete-orphan")
+    analytics = relationship("TeamAnalytics", back_populates="scrim")
+
+
+class ScrimGame(Base):
+    """Individual game within a scrim session (max 5 games - Bo5)"""
+    __tablename__ = "scrim_games"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    scrim_id = Column(String, ForeignKey("scrims.id"), nullable=False)
+    game_number = Column(Integer, nullable=False)  # 1, 2, 3, 4, 5
+
+    # Game result
+    result = Column(String, nullable=True)  # 'win', 'lose', null for pending
+
+    # Coach notes
+    coach_notes = Column(String, nullable=True)
+    improvement_notes = Column(String, nullable=True)
+
+    # Draft link (optional)
+    draft_id = Column(String, ForeignKey("drafts.id"), nullable=True)
+
+    # Analytics link (optional)
+    analytics_id = Column(String, ForeignKey("team_analytics.id"), nullable=True)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    scrim = relationship("Scrim", back_populates="games")
+    draft = relationship("Draft", foreign_keys=[draft_id], back_populates="scrim_game")
+    analytics = relationship("TeamAnalytics")
 
 
 class TeamAnalytics(Base):
@@ -174,8 +212,12 @@ class TeamAnalytics(Base):
     # Analysis results (cached)
     analysis_results = Column(JSON, nullable=True)
 
-    # Relationship
+    # Link to scrim (optional)
+    scrim_id = Column(String, ForeignKey("scrims.id"), nullable=True)
+
+    # Relationships
     team = relationship("Team", back_populates="analytics")
+    scrim = relationship("Scrim", back_populates="analytics")
 
 
 class TeamInvite(Base):
@@ -477,9 +519,15 @@ class Draft(Base):
     # External draft URL (from Prodraft, etc.)
     external_url = Column(String, nullable=True)
 
+    # Scrim association (optional) - for tracking which scrim this draft belongs to
+    scrim_id = Column(String, ForeignKey("scrims.id"), nullable=True)
+
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships - Draft can be linked FROM ScrimGame via ScrimGame.draft_id
+    scrim_game = relationship("ScrimGame", back_populates="draft", uselist=False, foreign_keys="ScrimGame.draft_id")
 
 
 # Database initialization

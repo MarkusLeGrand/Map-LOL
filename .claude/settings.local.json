@@ -59,7 +59,11 @@
       "Bash(awk:*)",
       "Bash(docker-compose logs:*)",
       "Bash(dir /b /s *.png)",
-      "Bash(docker restart:*)"
+      "Bash(docker restart:*)",
+      "Bash(wmic process where \"processid=75364\" get name)",
+      "Bash(wmic process where \"processid=75364\" call terminate)",
+      "Bash(wmic process where \"processid=21628\" call terminate)",
+      "Bash(wmic process where \"processid=30432\" call terminate)"
     ]
   }
 }

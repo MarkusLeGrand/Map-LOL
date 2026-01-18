@@ -73,6 +73,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 type ViewMode = 'guide' | 'upload' | 'team';
 
+interface ScrimOption {
+  id: string;
+  opponent_name: string;
+  scrim_date: string;
+  total_games: number;
+}
+
 export default function DataAnalyticsPage() {
   const { isAuthenticated, user } = useAuth();
   const { teams } = useTeam();
@@ -95,6 +102,10 @@ export default function DataAnalyticsPage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveName, setSaveName] = useState('');
 
+  // Scrim selection
+  const [teamScrims, setTeamScrims] = useState<ScrimOption[]>([]);
+  const [selectedScrimId, setSelectedScrimId] = useState<string | null>(null);
+
   // Confirm dialog
   const [confirmDialog, setConfirmDialog] = useState<{
     show: boolean;
@@ -108,12 +119,29 @@ export default function DataAnalyticsPage() {
     onConfirm: () => {}
   });
 
-  // Load saved analytics on mount if authenticated
+  // Load saved analytics and scrims on mount if authenticated
   useEffect(() => {
     if (isAuthenticated && myTeam) {
       loadTeamAnalytics();
+      loadTeamScrims();
     }
   }, [isAuthenticated, myTeam]);
+
+  const loadTeamScrims = async () => {
+    if (!myTeam) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/api/scrim-hub/scrims/team/${myTeam.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTeamScrims(data.scrims || []);
+      }
+    } catch (err) {
+      console.error('Failed to load scrims:', err);
+    }
+  };
 
   const loadTeamAnalytics = async () => {
     if (!myTeam) return;
@@ -290,19 +318,27 @@ export default function DataAnalyticsPage() {
 
     try {
       const token = localStorage.getItem('token');
+
+      // Build request body with optional scrim_id
+      const requestBody: Record<string, unknown> = {
+        name: saveName,
+        file_path: currentFilePath,
+        analysis_results: analyticsData,
+        save_to_team: true,
+        team_id: myTeam.id
+      };
+
+      if (selectedScrimId) {
+        requestBody.scrim_id = selectedScrimId;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/analytics/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          name: saveName,
-          file_path: currentFilePath,
-          analysis_results: analyticsData,
-          save_to_team: true,
-          team_id: myTeam.id
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -311,7 +347,30 @@ export default function DataAnalyticsPage() {
       }
 
       const result = await response.json();
-      toast.success(result.message);
+
+      // If scrim is selected, upload the JSON to the scrim as well
+      if (selectedScrimId && currentFilePath) {
+        try {
+          await fetch(`${API_BASE_URL}/api/scrim-hub/scrims/${selectedScrimId}/analytics`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              analytics_id: result.analytics_id,
+              file_path: currentFilePath
+            })
+          });
+          toast.success('Analysis saved and linked to scrim!');
+        } catch (linkError) {
+          console.error('Failed to link analytics to scrim:', linkError);
+          toast.success(result.message);
+        }
+      } else {
+        toast.success(result.message);
+      }
+
       setShowSaveModal(false);
       setSaveName('');
 
@@ -748,13 +807,13 @@ export default function DataAnalyticsPage() {
 
                     {uploadedFile && (
                       <div className="mt-6 text-[#F5F5F5]/70">
-                        ✅ Uploaded: {uploadedFile.players_count} players detected
+                        Uploaded: {uploadedFile.players_count} players detected
                       </div>
                     )}
 
                     {error && (
                       <div className="mt-6 text-red-400">
-                        ❌ Error: {error}
+                        Error: {error}
                       </div>
                     )}
                   </div>

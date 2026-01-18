@@ -34,6 +34,7 @@ from routes.riot_routes import router as riot_router
 from routes.discord_routes import router as discord_router
 from routes.champion_pool_routes import router as champion_pool_router
 from routes.draft_routes import router as draft_router
+from routes.scrim_hub_routes import router as scrim_hub_router
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -130,6 +131,9 @@ app.include_router(champion_pool_router)
 
 # Draft routes (includes /api/drafts prefix)
 app.include_router(draft_router)
+
+# Scrim Hub routes (includes /api/scrim-hub prefix)
+app.include_router(scrim_hub_router)
 
 
 # ==================== ANALYTICS ENDPOINTS (TODO: Extract to routes/analytics_routes.py) ====================

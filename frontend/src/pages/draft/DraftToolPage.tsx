@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getLatestDDragonVersion, getChampionImageUrl } from '../../services/riotApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -46,9 +47,20 @@ const createEmptyDraft = (): DraftData => ({
   red_bans: Array(5).fill(null).map(() => ({ champion_id: null, champion_name: null })),
 });
 
+interface ScrimContext {
+  scrimId: string;
+  gameNumber: number;
+  opponentName: string;
+}
+
 export default function DraftToolPage() {
   const { token } = useAuth();
   const toast = useToast();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Scrim context from URL params
+  const [scrimContext, setScrimContext] = useState<ScrimContext | null>(null);
 
   const [champions, setChampions] = useState<Champion[]>([]);
   const [loadingChampions, setLoadingChampions] = useState(true);
@@ -78,6 +90,42 @@ export default function DraftToolPage() {
 
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Load scrim context from URL params
+  useEffect(() => {
+    const scrimId = searchParams.get('scrimId');
+    const gameNumber = searchParams.get('gameNumber');
+    const opponentName = searchParams.get('opponent');
+
+    if (scrimId && gameNumber && opponentName) {
+      setScrimContext({
+        scrimId,
+        gameNumber: parseInt(gameNumber, 10),
+        opponentName: decodeURIComponent(opponentName)
+      });
+      // Auto-fill draft name
+      setDraftName(`vs ${decodeURIComponent(opponentName)} - Game ${gameNumber}`);
+    }
+  }, [searchParams]);
+
+  // Load draft from URL param (when clicking on draft link from scrim)
+  useEffect(() => {
+    const loadDraftId = searchParams.get('loadDraft');
+    if (loadDraftId && drafts.length > 0) {
+      const draftToLoad = drafts.find(d => d.id === loadDraftId);
+      if (draftToLoad) {
+        setEditingDraftId(draftToLoad.id);
+        setDraftName(draftToLoad.name);
+        setBlueTeamName(draftToLoad.blue_team_name);
+        setRedTeamName(draftToLoad.red_team_name);
+        setBluePicks(draftToLoad.draft_data.blue_picks);
+        setRedPicks(draftToLoad.draft_data.red_picks);
+        setBlueBans(draftToLoad.draft_data.blue_bans);
+        setRedBans(draftToLoad.draft_data.red_bans);
+        setSelectedSlot(null);
+      }
+    }
+  }, [searchParams, drafts]);
 
   useEffect(() => {
     const loadChampions = async () => {
@@ -254,22 +302,64 @@ export default function DraftToolPage() {
     setSaving(true);
     try {
       const url = editingDraftId ? `${API_BASE_URL}/api/drafts/${editingDraftId}` : `${API_BASE_URL}/api/drafts`;
+
+      // Build request body, including scrim context if present
+      const requestBody: Record<string, unknown> = {
+        name: draftName.trim(),
+        blue_team_name: blueTeamName.trim() || 'Blue Team',
+        red_team_name: redTeamName.trim() || 'Red Team',
+        draft_data: { blue_picks: bluePicks, red_picks: redPicks, blue_bans: blueBans, red_bans: redBans },
+      };
+
+      // Add scrim context if coming from scrim hub
+      if (scrimContext) {
+        requestBody.scrim_id = scrimContext.scrimId;
+        requestBody.scrim_game_number = scrimContext.gameNumber;
+      }
+
       const response = await fetch(url, {
         method: editingDraftId ? 'PUT' : 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: draftName.trim(),
-          blue_team_name: blueTeamName.trim() || 'Blue Team',
-          red_team_name: redTeamName.trim() || 'Red Team',
-          draft_data: { blue_picks: bluePicks, red_picks: redPicks, blue_bans: blueBans, red_bans: redBans },
-        }),
+        body: JSON.stringify(requestBody),
       });
+
       if (response.ok) {
+        const data = await response.json();
         toast?.success(editingDraftId ? 'Draft updated!' : 'Draft saved!');
         await fetchDrafts();
+
         if (!editingDraftId) {
-          const data = await response.json();
           setEditingDraftId(data.id);
+        }
+
+        // If coming from scrim context, update the scrim game with draft_id and navigate back
+        if (scrimContext && data.id) {
+          try {
+            // Find the game by scrim_id and game_number, then update it with draft_id
+            const gameResponse = await fetch(`${API_BASE_URL}/api/scrim-hub/scrims/${scrimContext.scrimId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (gameResponse.ok) {
+              const scrimData = await gameResponse.json();
+              const game = scrimData.games?.find((g: { game_number: number }) => g.game_number === scrimContext.gameNumber);
+
+              if (game) {
+                await fetch(`${API_BASE_URL}/api/scrim-hub/games/${game.id}`, {
+                  method: 'PATCH',
+                  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ draft_id: data.id })
+                });
+              }
+            }
+
+            toast?.success('Draft linked to scrim!');
+            // Navigate back to scrim hub after linking
+            navigate(`/scrim/${scrimContext.scrimId}`);
+          } catch (linkError) {
+            console.error('Failed to link draft to scrim:', linkError);
+            // Draft was saved successfully, just couldn't link it
+          }
         }
       } else {
         toast?.error('Failed to save draft');
@@ -388,6 +478,27 @@ export default function DraftToolPage() {
       <div className="flex-1 flex">
         {/* LEFT SIDEBAR */}
         <div className="w-56 bg-[#0a0a0a] border-r border-[#F5F5F5]/10 flex flex-col">
+          {/* Scrim Context Banner */}
+          {scrimContext && (
+            <div className="p-3 bg-[#3D7A5F]/20 border-b border-[#3D7A5F]/30">
+              <button
+                onClick={() => navigate(`/scrim/${scrimContext.scrimId}`)}
+                className="flex items-center gap-2 text-[#3D7A5F] text-xs font-medium hover:text-[#3D7A5F]/80 transition-colors mb-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Scrim
+              </button>
+              <div className="text-[#F5F5F5] text-sm font-medium">
+                vs {scrimContext.opponentName}
+              </div>
+              <div className="text-[#F5F5F5]/60 text-xs">
+                Game {scrimContext.gameNumber}
+              </div>
+            </div>
+          )}
+
           {/* Save section - styled */}
           <div className="p-4 border-b border-[#F5F5F5]/10">
             <span className="text-[#F5F5F5]/80 text-xs font-semibold uppercase tracking-wider mb-3 block">Draft</span>
