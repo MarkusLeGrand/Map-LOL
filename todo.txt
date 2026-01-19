@@ -132,3 +132,5 @@ https://ddragon.leagueoflegends.com/cdn/12.6.1/img/champion/{champion_name}.png
 - Grafana monitoring (overkill pour l'instant)
 - CI/CD si deploy.sh suffit
 - Dockploy (pas nécessaire avec Docker Compose)
+
+partage draft entre equipe !

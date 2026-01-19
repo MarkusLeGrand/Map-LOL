@@ -111,21 +111,50 @@ export default function DraftToolPage() {
   // Load draft from URL param (when clicking on draft link from scrim)
   useEffect(() => {
     const loadDraftId = searchParams.get('loadDraft');
-    if (loadDraftId && drafts.length > 0) {
-      const draftToLoad = drafts.find(d => d.id === loadDraftId);
-      if (draftToLoad) {
-        setEditingDraftId(draftToLoad.id);
-        setDraftName(draftToLoad.name);
-        setBlueTeamName(draftToLoad.blue_team_name);
-        setRedTeamName(draftToLoad.red_team_name);
-        setBluePicks(draftToLoad.draft_data.blue_picks);
-        setRedPicks(draftToLoad.draft_data.red_picks);
-        setBlueBans(draftToLoad.draft_data.blue_bans);
-        setRedBans(draftToLoad.draft_data.red_bans);
-        setSelectedSlot(null);
-      }
+    if (!loadDraftId || !token) return;
+
+    // First check if draft is in user's personal list
+    const draftFromList = drafts.find(d => d.id === loadDraftId);
+    if (draftFromList) {
+      setEditingDraftId(draftFromList.id);
+      setDraftName(draftFromList.name);
+      setBlueTeamName(draftFromList.blue_team_name);
+      setRedTeamName(draftFromList.red_team_name);
+      setBluePicks(draftFromList.draft_data.blue_picks);
+      setRedPicks(draftFromList.draft_data.red_picks);
+      setBlueBans(draftFromList.draft_data.blue_bans);
+      setRedBans(draftFromList.draft_data.red_bans);
+      setSelectedSlot(null);
+      return;
     }
-  }, [searchParams, drafts]);
+
+    // If not in personal list, try to load directly (team/scrim draft)
+    const loadDraftById = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/drafts/${loadDraftId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const draft = await response.json();
+          setEditingDraftId(draft.id);
+          setDraftName(draft.name);
+          setBlueTeamName(draft.blue_team_name);
+          setRedTeamName(draft.red_team_name);
+          setBluePicks(draft.draft_data.blue_picks);
+          setRedPicks(draft.draft_data.red_picks);
+          setBlueBans(draft.draft_data.blue_bans);
+          setRedBans(draft.draft_data.red_bans);
+          setSelectedSlot(null);
+        } else {
+          toast?.error('Draft not found or access denied');
+        }
+      } catch (error) {
+        toast?.error('Failed to load draft');
+      }
+    };
+
+    loadDraftById();
+  }, [searchParams, drafts, token]);
 
   useEffect(() => {
     const loadChampions = async () => {

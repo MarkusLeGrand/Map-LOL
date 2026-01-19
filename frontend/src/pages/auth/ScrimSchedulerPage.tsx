@@ -547,20 +547,20 @@ export default function ScrimSchedulerPage() {
 
     const ratio = count / totalMembers;
 
-    // Color coding with low opacity:
-    // Red: 0-20% (ratio <= 0.2)
-    // Orange: 20-80% (0.2 < ratio < 0.8)
-    // Green: 80-100% (ratio >= 0.8)
+    // Color coding:
+    // ≤40%: No color (base)
+    // 40-80%: Yellow
+    // ≥80%: Green
 
-    if (ratio <= 0.2) {
-      // Red - very few people available
-      return `rgba(199, 91, 91, 0.25)`; // #C75B5B with 25% opacity
+    if (ratio <= 0.4) {
+      // Less than 40% - show nothing
+      return '#1A1A1A';
     } else if (ratio < 0.8) {
-      // Orange - some people available
-      return `rgba(232, 197, 71, 0.25)`; // #E8C547 with 25% opacity
+      // Yellow - 40-80% available
+      return `rgba(232, 197, 71, 0.3)`; // #E8C547 with 30% opacity
     } else {
-      // Green - most/all people available
-      return `rgba(61, 122, 95, 0.35)`; // #3D7A5F with 35% opacity
+      // Green - 80%+ available
+      return `rgba(61, 122, 95, 0.4)`; // #3D7A5F with 40% opacity
     }
   };
 
@@ -660,15 +660,11 @@ export default function ScrimSchedulerPage() {
             {viewMode === 'team' ? (
               <>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-[#C75B5B] opacity-25"></div>
-                  <span>≤20% available</span>
+                  <div className="w-4 h-4 bg-[#E8C547] opacity-30"></div>
+                  <span>40-80% available</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-[#E8C547] opacity-25"></div>
-                  <span>20-80% available</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-[#3D7A5F] opacity-35"></div>
+                  <div className="w-4 h-4 bg-[#3D7A5F] opacity-40"></div>
                   <span>≥80% available</span>
                 </div>
               </>

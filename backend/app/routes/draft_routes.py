@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from database import get_db, Draft as DBDraft, User as DBUser, Team as DBTeam
+from database import get_db, Draft as DBDraft, User as DBUser, Team as DBTeam, Scrim as DBScrim
 from auth import get_current_user
 
 router = APIRouter(prefix="/api/drafts", tags=["drafts"])
@@ -35,6 +35,7 @@ class CreateDraftRequest(BaseModel):
     notes: Optional[str] = None
     external_url: Optional[str] = None
     team_id: Optional[str] = None
+    scrim_id: Optional[str] = None  # If linking to a scrim
 
 class UpdateDraftRequest(BaseModel):
     name: Optional[str] = None
@@ -53,9 +54,24 @@ async def create_draft(
 ):
     """Create a new saved draft"""
     try:
-        # If team_id provided, verify user is member
-        if request.team_id:
-            team = db.query(DBTeam).filter(DBTeam.id == request.team_id).first()
+        team_id = request.team_id
+        scrim_id = request.scrim_id
+
+        # If scrim_id provided, get team_id from scrim and verify membership
+        if scrim_id:
+            scrim = db.query(DBScrim).filter(DBScrim.id == scrim_id).first()
+            if not scrim:
+                raise HTTPException(status_code=404, detail="Scrim not found")
+            # Get team from scrim
+            team = db.query(DBTeam).filter(DBTeam.id == scrim.team_id).first()
+            if not team or current_user not in team.members:
+                raise HTTPException(status_code=403, detail="Not a member of the scrim's team")
+            # Use scrim's team_id
+            team_id = scrim.team_id
+
+        # If team_id provided directly, verify user is member
+        elif team_id:
+            team = db.query(DBTeam).filter(DBTeam.id == team_id).first()
             if not team or current_user not in team.members:
                 raise HTTPException(status_code=403, detail="Not a team member")
 
@@ -69,7 +85,8 @@ async def create_draft(
 
         draft = DBDraft(
             user_id=current_user.id,
-            team_id=request.team_id,
+            team_id=team_id,
+            scrim_id=scrim_id,
             name=request.name,
             blue_team_name=request.blue_team_name,
             red_team_name=request.red_team_name,
@@ -185,11 +202,20 @@ async def get_draft(
         if not draft:
             raise HTTPException(status_code=404, detail="Draft not found")
 
-        # Check access - owner or team member
+        # Check access - owner, team member, or scrim team member
         has_access = draft.user_id == current_user.id
+
+        # Check via team_id
         if not has_access and draft.team_id:
             team = db.query(DBTeam).filter(DBTeam.id == draft.team_id).first()
             has_access = team and current_user in team.members
+
+        # Check via scrim_id - if draft is linked to a scrim, team members can access
+        if not has_access and draft.scrim_id:
+            scrim = db.query(DBScrim).filter(DBScrim.id == draft.scrim_id).first()
+            if scrim:
+                team = db.query(DBTeam).filter(DBTeam.id == scrim.team_id).first()
+                has_access = team and current_user in team.members
 
         if not has_access:
             raise HTTPException(status_code=403, detail="Access denied")
@@ -203,6 +229,7 @@ async def get_draft(
             "notes": draft.notes,
             "external_url": draft.external_url,
             "team_id": draft.team_id,
+            "scrim_id": draft.scrim_id,
             "created_at": draft.created_at.isoformat(),
             "updated_at": draft.updated_at.isoformat()
         }
@@ -226,9 +253,23 @@ async def update_draft(
         if not draft:
             raise HTTPException(status_code=404, detail="Draft not found")
 
-        # Only owner can update
-        if draft.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Only the creator can update this draft")
+        # Check update permission - owner, team member (if team draft), or scrim team member
+        can_update = draft.user_id == current_user.id
+
+        # Team members can update team drafts
+        if not can_update and draft.team_id:
+            team = db.query(DBTeam).filter(DBTeam.id == draft.team_id).first()
+            can_update = team and current_user in team.members
+
+        # Scrim team members can update scrim-linked drafts
+        if not can_update and draft.scrim_id:
+            scrim = db.query(DBScrim).filter(DBScrim.id == draft.scrim_id).first()
+            if scrim:
+                team = db.query(DBTeam).filter(DBTeam.id == scrim.team_id).first()
+                can_update = team and current_user in team.members
+
+        if not can_update:
+            raise HTTPException(status_code=403, detail="Permission denied")
 
         # Update fields
         if request.name is not None:

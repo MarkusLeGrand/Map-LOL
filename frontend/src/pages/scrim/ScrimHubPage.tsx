@@ -67,6 +67,9 @@ export default function ScrimHubPage() {
   const [expandedGame, setExpandedGame] = useState<string | null>(null);
   const textareasRef = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
 
+  // Local state for notes editing (to avoid saving on every keystroke)
+  const [localNotes, setLocalNotes] = useState<{ [key: string]: string }>({});
+
   // Auto-resize textarea
   const autoResize = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     e.target.style.height = 'auto';
@@ -241,8 +244,30 @@ export default function ScrimHubPage() {
     }
   };
 
-  const updateGameNotes = async (gameId: string, field: 'coach_notes' | 'improvement_notes', notes: string) => {
+  // Get the current value for a notes field (local state or from game data)
+  const getNotesValue = (gameId: string, field: 'coach_notes' | 'improvement_notes', gameValue: string | null) => {
+    const key = `${gameId}_${field}`;
+    return localNotes[key] !== undefined ? localNotes[key] : (gameValue || '');
+  };
+
+  // Handle local notes change (no API call)
+  const handleNotesChange = (gameId: string, field: 'coach_notes' | 'improvement_notes', value: string) => {
+    const key = `${gameId}_${field}`;
+    setLocalNotes(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Save notes on blur (when leaving the textarea)
+  const saveNotesOnBlur = async (gameId: string, field: 'coach_notes' | 'improvement_notes', originalValue: string | null) => {
     if (!token || !currentScrim) return;
+
+    const key = `${gameId}_${field}`;
+    const currentValue = localNotes[key];
+
+    // Only save if value was changed
+    if (currentValue === undefined || currentValue === (originalValue || '')) {
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/scrim-hub/games/${gameId}`, {
         method: 'PATCH',
@@ -250,13 +275,28 @@ export default function ScrimHubPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ [field]: notes })
+        body: JSON.stringify({ [field]: currentValue })
       });
       if (response.ok) {
-        fetchScrimDetail(currentScrim.id);
+        // Update the scrim data without refetching (to avoid cursor issues)
+        setCurrentScrim(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            games: prev.games?.map(g =>
+              g.id === gameId ? { ...g, [field]: currentValue } : g
+            )
+          };
+        });
+        // Clear local state for this field
+        setLocalNotes(prev => {
+          const newState = { ...prev };
+          delete newState[key];
+          return newState;
+        });
       }
     } catch (error) {
-      toast?.error('Error');
+      toast?.error('Failed to save notes');
     }
   };
 
@@ -518,36 +558,37 @@ export default function ScrimHubPage() {
                             </div>
                             <textarea
                               ref={(el) => { textareasRef.current[`coach_${game.id}`] = el; }}
-                              value={game.coach_notes || ''}
+                              value={getNotesValue(game.id, 'coach_notes', game.coach_notes)}
                               onChange={(e) => {
                                 autoResize(e);
-                                updateGameNotes(game.id, 'coach_notes', e.target.value);
+                                handleNotesChange(game.id, 'coach_notes', e.target.value);
                               }}
-                              className="w-full px-4 py-3 bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg text-[#F5F5F5] text-sm focus:border-[#3D7A5F] focus:outline-none min-h-[80px] resize-none overflow-hidden"
+                              onBlur={() => saveNotesOnBlur(game.id, 'coach_notes', game.coach_notes)}
+                              className="w-full px-4 py-3 bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg text-[#F5F5F5] text-sm focus:border-[#3D7A5F] focus:outline-none min-h-[80px] resize-none overflow-y-hidden"
                               placeholder="Notes about this game..."
                             />
                           </div>
 
-                          {/* Improvement Notes */}
+                          {/* Review/Solution */}
                           <div className="bg-[#0E0E0E] rounded-xl p-5">
                             <div className="flex items-center justify-between mb-3">
                               <h4 className="text-[#F5F5F5] font-medium flex items-center gap-2">
                                 <svg className="w-5 h-5 text-[#F59E0B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                Improvement Points
+                                Review / Solution
                               </h4>
                             </div>
                             <textarea
                               ref={(el) => { textareasRef.current[`improvement_${game.id}`] = el; }}
-                              value={game.improvement_notes || ''}
+                              value={getNotesValue(game.id, 'improvement_notes', game.improvement_notes)}
                               onChange={(e) => {
                                 autoResize(e);
-                                updateGameNotes(game.id, 'improvement_notes', e.target.value);
+                                handleNotesChange(game.id, 'improvement_notes', e.target.value);
                               }}
-                              className="w-full px-4 py-3 bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg text-[#F5F5F5] text-sm focus:border-[#F59E0B] focus:outline-none min-h-[80px] resize-none overflow-hidden"
-                              placeholder="Areas to improve..."
-                            />
+                              onBlur={() => saveNotesOnBlur(game.id, 'improvement_notes', game.improvement_notes)}
+                              className="w-full px-4 py-3 bg-[#1A1A1A] border border-[#F5F5F5]/10 rounded-lg text-[#F5F5F5] text-sm focus:border-[#F59E0B] focus:outline-none min-h-[80px] resize-none overflow-y-hidden"
+                              placeholder="Review and solutions..."/>
                           </div>
                         </div>
 

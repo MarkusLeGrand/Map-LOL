@@ -695,10 +695,25 @@ export default function TeamManagerPage() {
                             </div>
 
                             {/* Member Info - Single Line */}
-                            <div className="flex-1 min-w-0 flex items-center gap-4">
+                            <div className="flex-1 min-w-0 flex items-center gap-3">
+                              {/* Username + Riot ID stacked */}
+                              <div className="flex flex-col min-w-[140px]">
+                                <p className="text-[#F5F5F5] text-sm font-semibold truncate" title={member.username}>
+                                  {member.username}
+                                </p>
+                                <p className="text-[#F5F5F5]/50 text-xs truncate">
+                                  {member.riot_game_name && member.riot_tag_line
+                                    ? `${member.riot_game_name}#${member.riot_tag_line}`
+                                    : <span className="text-[#F5F5F5]/30">No Riot ID</span>
+                                  }
+                                </p>
+                              </div>
+
+                              <div className="w-px h-8 bg-[#F5F5F5]/10"></div>
+
                               {/* Role Icon */}
                               {member.preferred_lane ? (
-                                <div className="flex items-center gap-1" title={member.preferred_lane}>
+                                <div className="flex items-center" title={member.preferred_lane}>
                                   <ImageWithFallback
                                     src={`/riot/role/${member.preferred_lane === 'BOT' ? 'Bottom' : member.preferred_lane === 'MID' ? 'Middle' : member.preferred_lane.charAt(0) + member.preferred_lane.slice(1).toLowerCase()}_icon.png`}
                                     alt={member.preferred_lane}
@@ -708,7 +723,7 @@ export default function TeamManagerPage() {
                                   />
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-1" title="No role set">
+                                <div className="flex items-center" title="No role set">
                                   <ImageWithFallback
                                     src="/riot/role/Specialist_icon.png"
                                     alt="No role"
@@ -719,11 +734,11 @@ export default function TeamManagerPage() {
                                 </div>
                               )}
 
-                              <div className="w-px h-6 bg-[#F5F5F5]/20"></div>
+                              <div className="w-px h-8 bg-[#F5F5F5]/10"></div>
 
                               {/* Rank Icon */}
                               {member.solo_tier ? (
-                                <div className="flex items-center gap-1" title={`${member.solo_tier} ${member.solo_rank}${member.solo_lp ? ` - ${member.solo_lp} LP` : ''}`}>
+                                <div className="flex items-center" title={`${member.solo_tier} ${member.solo_rank}${member.solo_lp ? ` - ${member.solo_lp} LP` : ''}`}>
                                   <ImageWithFallback
                                     src={`/riot/Season_2022_-_${member.solo_tier.charAt(0).toUpperCase() + member.solo_tier.slice(1).toLowerCase()}.png`}
                                     alt={member.solo_tier}
@@ -733,7 +748,7 @@ export default function TeamManagerPage() {
                                   />
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-1" title="Unranked">
+                                <div className="flex items-center" title="Unranked">
                                   <ImageWithFallback
                                     src="/riot/border-unranked.png"
                                     alt="Unranked"
@@ -744,22 +759,10 @@ export default function TeamManagerPage() {
                                 </div>
                               )}
 
-                              <div className="w-px h-6 bg-[#F5F5F5]/20"></div>
-
-                              {/* Riot ID */}
-                              <div className="flex items-center gap-2 min-w-[180px]">
-                                <p className="text-[#F5F5F5] text-sm font-medium">
-                                  {member.riot_game_name && member.riot_tag_line
-                                    ? `${member.riot_game_name}#${member.riot_tag_line}`
-                                    : <span className="text-[#F5F5F5]/40">No Riot ID</span>
-                                  }
-                                </p>
-                              </div>
-
-                              <div className="w-px h-6 bg-[#F5F5F5]/20"></div>
+                              <div className="w-px h-8 bg-[#F5F5F5]/10"></div>
 
                               {/* Top 3 Champions */}
-                              <div className="flex gap-2">
+                              <div className="flex gap-1.5">
                                 {member.top_champions && member.top_champions.length > 0 ? (
                                   member.top_champions.slice(0, 3).map((champ, idx) => (
                                     <div
@@ -788,20 +791,20 @@ export default function TeamManagerPage() {
                                 )}
                               </div>
 
-                              <div className="w-px h-6 bg-[#F5F5F5]/20"></div>
+                              <div className="w-px h-8 bg-[#F5F5F5]/10"></div>
 
                               {/* Discord */}
-                              <div className="flex items-center gap-2 min-w-[120px]">
-                                <svg className="w-4 h-4 text-[#F5F5F5]/40 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                              <div className="flex items-center gap-1.5">
+                                <svg className="w-4 h-4 text-[#5865F2] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                                   <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
                                 </svg>
-                                <p className="text-[#F5F5F5]/60 text-sm truncate">
+                                <p className="text-[#F5F5F5]/60 text-sm truncate max-w-[100px]">
                                   {member.discord || <span className="text-[#F5F5F5]/30">-</span>}
                                 </p>
                               </div>
 
                               {/* Owner Badge OR Action Buttons */}
-                              <div className="min-w-[180px] flex items-center justify-end">
+                              <div className="ml-auto flex items-center justify-end">
                                 {isMemberOwner ? (
                                   <span className="px-2.5 py-1 bg-[#3D7A5F]/20 text-[#3D7A5F] text-xs font-medium rounded">
                                     OWNER
